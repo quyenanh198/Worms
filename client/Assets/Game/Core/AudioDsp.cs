@@ -67,6 +67,42 @@ namespace Worms.Game.Core
             return s;
         }
 
+        /// <summary>
+        /// 12 dB/octave high-pass, in place. Phone and laptop speakers cannot move air below
+        /// ~100 Hz; energy down there only makes them buzz and eats the headroom.
+        /// </summary>
+        public Stereo HighPass(float hz)
+        {
+            var l = Biquad.HighPass(hz, 0.707f);
+            var r = Biquad.HighPass(hz, 0.707f);
+            for (int i = 0; i < Length; i++)
+            {
+                L[i] = l.Process(L[i]);
+                R[i] = r.Process(R[i]);
+            }
+            return this;
+        }
+
+        /// <summary>Short linear fades at both ends so a clip never starts or stops with a click.</summary>
+        public Stereo Fade(float inSeconds, float outSeconds)
+        {
+            int fi = Math.Min(Length, (int)(inSeconds * SfxSynth.Rate));
+            int fo = Math.Min(Length, (int)(outSeconds * SfxSynth.Rate));
+            for (int i = 0; i < fi; i++)
+            {
+                float g = (float)i / fi;
+                L[i] *= g;
+                R[i] *= g;
+            }
+            for (int i = 0; i < fo; i++)
+            {
+                float g = (float)i / fo;
+                L[Length - 1 - i] *= g;
+                R[Length - 1 - i] *= g;
+            }
+            return this;
+        }
+
         /// <summary>Removes any DC offset / sub-audible drift (a 15 Hz high-pass), in place.</summary>
         public Stereo DcBlock()
         {
@@ -174,6 +210,40 @@ namespace Worms.Game.Core
                 p = q;
             }
             return b;
+        }
+    }
+
+    /// <summary>RBJ biquad filters (Audio EQ Cookbook).</summary>
+    public sealed class Biquad
+    {
+        float _b0, _b1, _b2, _a1, _a2, _x1, _x2, _y1, _y2;
+
+        public static Biquad HighPass(float freq, float q)
+        {
+            float w = Dsp.TwoPi * freq / SfxSynth.Rate, cos = (float)Math.Cos(w), alpha = (float)Math.Sin(w) / (2f * q), a0 = 1f + alpha;
+            return new Biquad { _b0 = (1f + cos) / 2f / a0, _b1 = -(1f + cos) / a0, _b2 = (1f + cos) / 2f / a0, _a1 = -2f * cos / a0, _a2 = (1f - alpha) / a0 };
+        }
+
+        public static Biquad LowPass(float freq, float q)
+        {
+            var b = new Biquad();
+            b.SetLowPass(freq, q);
+            return b;
+        }
+
+        /// <summary>Changes the cutoff, keeping the filter's state.</summary>
+        public void SetLowPass(float freq, float q)
+        {
+            float w = Dsp.TwoPi * Math.Min(freq, SfxSynth.Rate * 0.45f) / SfxSynth.Rate, cos = (float)Math.Cos(w), alpha = (float)Math.Sin(w) / (2f * q), a0 = 1f + alpha;
+            _b0 = (1f - cos) / 2f / a0; _b1 = (1f - cos) / a0; _b2 = (1f - cos) / 2f / a0; _a1 = -2f * cos / a0; _a2 = (1f - alpha) / a0;
+        }
+
+        public float Process(float x)
+        {
+            float y = _b0 * x + _b1 * _x1 + _b2 * _x2 - _a1 * _y1 - _a2 * _y2;
+            _x2 = _x1; _x1 = x;
+            _y2 = _y1; _y1 = y;
+            return y;
         }
     }
 

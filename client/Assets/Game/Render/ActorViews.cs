@@ -163,7 +163,7 @@ namespace Worms.Game.Render
         {
             screen = default;
             if (!_wormPos.TryGetValue(wormId, out var p)) return false;
-            screen = cam.WorldToScreenPoint(p + Vector3.up * 1.1f);
+            screen = cam.WorldToScreenPoint(p + Vector3.up * 1.25f);
             return screen.z > 0;
         }
     }

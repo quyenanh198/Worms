@@ -62,6 +62,61 @@ namespace Worms.Game.UI
             state.textColor = text;
         }
 
+        static GUIStyle _pill;
+        static Texture2D _arrow;
+
+        /// <summary>A rounded rectangle filled with <paramref name="color"/> (bars, badges, name tags).</summary>
+        public static void Pill(Rect r, Color color)
+        {
+            if (_pill == null)
+            {
+                _pill = new GUIStyle { border = new RectOffset(Radius, Radius, Radius, Radius) };
+                _pill.normal.background = Rounded(Color.white, Color.clear);
+            }
+            if (Event.current.type != EventType.Repaint) return;
+            // Keep the corner radius no bigger than half the height, so thin bars stay round.
+            float k = Mathf.Min(1f, r.height / (Radius * 2f));
+            var old = GUI.backgroundColor;
+            GUI.backgroundColor = color;
+            if (k < 1f)
+            {
+                var m = GUI.matrix;
+                GUIUtility.ScaleAroundPivot(new Vector2(k, k), r.position);
+                _pill.Draw(new Rect(r.x, r.y, r.width / k, r.height / k), false, false, false, false);
+                GUI.matrix = m;
+            }
+            else _pill.Draw(r, false, false, false, false);
+            GUI.backgroundColor = old;
+        }
+
+        /// <summary>A soft downward-pointing triangle, white (tint with <c>GUI.color</c>).</summary>
+        public static Texture2D Arrow
+        {
+            get
+            {
+                if (_arrow != null) return _arrow;
+                const int size = 48;
+                _arrow = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    name = "UiArrow", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.DontSave,
+                };
+                var px = new Color[size * size];
+                for (int y = 0; y < size; y++)
+                    for (int x = 0; x < size; x++)
+                    {
+                        // Texture rows go bottom-up: the tip is at y = 4, the flat top at y = size - 6.
+                        float fy = (y + 0.5f - 4f) / (size - 10f);
+                        float half = fy * (size / 2f - 4f);
+                        float d = Mathf.Abs(x + 0.5f - size / 2f) - half;
+                        float a = fy < 0 || fy > 1 ? 0 : Mathf.Clamp01(0.5f - d) * Mathf.Clamp01((1f - fy) * (size - 10f) + 0.5f);
+                        px[y * size + x] = new Color(1, 1, 1, a);
+                    }
+                _arrow.SetPixels(px);
+                _arrow.Apply(false, true);
+                return _arrow;
+            }
+        }
+
         public static void Button(GUIStyle s)
         {
             s.border = Border;

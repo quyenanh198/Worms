@@ -91,12 +91,29 @@ Shader "Worms/Terrain"
                 {
                     // Front face: topsoil, dirt, then deep rock, with scattered pebbles.
                     float d = input.uv.x + (noise - 0.5) * 2.0;
-                    half3 dirt = lerp(_DirtColor.rgb, _DirtColor.rgb * 0.72, noise);
-                    // A thick grass lip, then topsoil fading into deep earth (never quite black).
-                    albedo = lerp(_GrassColor.rgb * (0.95 + 0.2 * noise), dirt, smoothstep(2.5, 4.5, d));
-                    albedo = lerp(albedo, _DeepColor.rgb * (0.9 + 0.25 * noise), 0.85 * smoothstep(7.0, 22.0, d));
-                    float pebble = step(0.78, WormsValueNoise(ws.xy * _NoiseScale * 7.0));
-                    albedo = lerp(albedo, _RockColor.rgb, pebble * 0.35 * smoothstep(2.0, 4.0, d));
+                    // Grass hangs over the edge in uneven tufts.
+                    float grassEdge = 2.0 + 2.4 * WormsValueNoise(float2(ws.x * 26.0, 3.7));
+                    // Soil in soft, wavy layers.
+                    float strata = sin(ws.y * 2.4 + WormsFbm(ws.xy * 0.3) * 6.0);
+                    half3 dirt = lerp(_DirtColor.rgb, _DirtColor.rgb * 0.72, noise) * (0.93 + 0.07 * strata);
+                    albedo = lerp(_GrassColor.rgb * (0.95 + 0.2 * noise), dirt, smoothstep(grassEdge, grassEdge + 1.0, d));
+                    // Shadow of the turf just under the grass.
+                    float under = smoothstep(grassEdge, grassEdge + 0.6, d) * (1.0 - smoothstep(grassEdge + 0.8, grassEdge + 4.0, d));
+                    albedo *= 1.0 - 0.3 * under;
+                    albedo = lerp(albedo, _DeepColor.rgb * (0.9 + 0.25 * noise), 0.8 * smoothstep(7.0, 22.0, d));
+                    // Small stones, lit from above.
+                    float stone = WormsValueNoise(ws.xy * _NoiseScale * 9.0);
+                    float pebble = smoothstep(0.8, 0.86, stone) * smoothstep(3.0, 5.0, d);
+                    albedo = lerp(albedo, _RockColor.rgb * (1.1 + 0.3 * saturate((stone - 0.83) * 8.0)), pebble * 0.45);
+
+                    // Relief: tilt the flat front normal by the slope of a noise height field,
+                    // so the light picks out lumps and hollows.
+                    float2 hp = ws.xy * 2.2;
+                    float h0 = WormsFbm(hp);
+                    float hx = WormsFbm(hp + float2(0.07, 0.0));
+                    float hy = WormsFbm(hp + float2(0.0, 0.07));
+                    float relief = smoothstep(1.5, 3.5, d);
+                    n = normalize(float3(-(hx - h0) * 7.0 * relief, -(hy - h0) * 7.0 * relief, -1.0));
                 }
 
                 half burn = 0;

@@ -25,6 +25,16 @@ namespace Worms.Game.Core
         TurnBell,
         Tick,
         Click,
+        /// <summary>The shooter's sing-song "bye-byeee~ hehe" when their shot finishes off an enemy.</summary>
+        Taunt,
+        /// <summary>"Uh-oh": a worm killed by its own team.</summary>
+        Oops,
+        /// <summary>A long pained "waaah" for a heavy hit.</summary>
+        OuchBig,
+        Victory,
+        Defeat,
+        /// <summary>A war cry, "ban-zaaaai!", when a blast takes the shooter down together with an enemy.</summary>
+        Kamikaze,
     }
 
     /// <summary>
@@ -46,9 +56,9 @@ namespace Worms.Game.Core
             uint seed = 0x5EED0000u + (uint)sfx;
             switch (sfx)
             {
-                case Sfx.ExplosionSmall: return Explosion(seed, 0.5f, 1500f, 72f, 0.8f, 0.2f, 0.6f);
-                case Sfx.ExplosionMedium: return Explosion(seed, 1.0f, 950f, 55f, 0.9f, 0.28f, 0.9f);
-                case Sfx.ExplosionLarge: return Explosion(seed, 1.6f, 650f, 42f, 1f, 0.34f, 1.15f);
+                case Sfx.ExplosionSmall: return Explosion(seed, 0.5f, 1500f, 120f, 0.62f, 0.2f, 0.6f);
+                case Sfx.ExplosionMedium: return Explosion(seed, 1.0f, 1000f, 95f, 0.72f, 0.28f, 0.9f);
+                case Sfx.ExplosionLarge: return Explosion(seed, 1.6f, 750f, 80f, 0.8f, 0.34f, 1.15f);
                 case Sfx.Launch: return Launch(seed);
                 case Sfx.Throw: return Whoosh(seed, 0.3f, 700f, 2200f, -0.3f, 0.3f, 0.5f);
                 case Sfx.Shotgun: return Shotgun(seed);
@@ -57,14 +67,25 @@ namespace Worms.Game.Core
                 case Sfx.Bonk: return Bonk(seed);
                 case Sfx.AirRaid: return AirRaid(seed);
                 case Sfx.Bounce: return Clank(seed);
-                case Sfx.Jump: return Room(Voiced(0.17f, 430f, 560f, U, A, 0f, seed, 0.35f), 0.08f, 0.25f, 0.5f);
+                case Sfx.Jump: return Room(Voiced(0.17f, 430f, 560f, U, A, 0f, seed, 0.35f), 0.08f, 0.25f, 0.45f, 0.75f, 200f);
                 case Sfx.Land: return Land(seed);
                 case Sfx.Splash: return Splash(seed);
-                case Sfx.Hurt: return Room(Voiced(0.34f, 700f, 460f, O, U, 0.05f, seed, 0.3f), 0.12f, 0.35f, 0.6f);
+                case Sfx.Hurt: return Room(Voiced(0.34f, 700f, 460f, O, U, 0.05f, seed, 0.3f), 0.12f, 0.35f, 0.5f, 0.75f, 200f);
                 case Sfx.Death: return Death(seed);
                 case Sfx.TurnBell: return Chime();
                 case Sfx.Tick: return Wood(0.09f, 1900f, 4300f, 0.35f, 0.05f);
                 case Sfx.Click: return Wood(0.07f, 1300f, 3100f, 0.3f, 0.04f);
+                case Sfx.Taunt: return Taunt(seed);
+                case Sfx.Oops: return Room(Speak(seed,
+                    new Syllable(' ', 0.15f, 560f, 590f, 580f, Uh, Uh, 0f),
+                    new Syllable(' ', 0.34f, 480f, 470f, 390f, O, U, 0.03f) { GapBefore = 0.07f }), 0.15f, 0.4f, 0.5f, 0.75f, 180f);
+                case Sfx.OuchBig: return Room(Speak(seed,
+                    new Syllable('w', 0.55f, 880f, 990f, 500f, A, O, 0.07f)), 0.15f, 0.45f, 0.55f, 0.75f, 180f);
+                case Sfx.Kamikaze: return Room(Speak(seed,
+                    new Syllable('b', 0.16f, 520f, 560f, 560f, A, A, 0f),
+                    new Syllable('h', 0.62f, 600f, 820f, 760f, A, I, 0.06f) { GapBefore = 0.03f }), 0.2f, 0.5f, 0.6f, 0.8f, 180f);
+                case Sfx.Victory: return Fanfare();
+                case Sfx.Defeat: return SadTrombone();
                 default: return new Stereo(1);
             }
         }
@@ -75,12 +96,15 @@ namespace Worms.Game.Core
 
         static float Noise(Rng rng) { return rng.NextFloat() * 2f - 1f; }
 
-        /// <summary>Adds a room tail, then normalizes.</summary>
-        static Stereo Room(Stereo dry, float wet, float tailSeconds, float peak, float room = 0.75f)
+        /// <summary>
+        /// Adds a room tail, cuts the rumble small speakers cannot play (it only makes them
+        /// buzz), fades both ends so nothing clicks, then normalizes.
+        /// </summary>
+        static Stereo Room(Stereo dry, float wet, float tailSeconds, float peak, float room = 0.75f, float highPass = 80f)
         {
-            var s = dry.Extended(Frames(tailSeconds)).DcBlock();
+            var s = dry.Extended(Frames(tailSeconds)).HighPass(highPass);
             new Reverb(room, 0.4f).Apply(s, wet);
-            return s.Finish(peak);
+            return s.Fade(0.0015f, Math.Min(0.08f, tailSeconds * 0.5f)).Finish(peak);
         }
 
         /// <summary>
@@ -126,25 +150,27 @@ namespace Worms.Game.Core
             var s = WideNoise(seconds, seed, () =>
             {
                 float lp1 = 0, lp2 = 0, rum = 0, crackle = 0;
+                var soft = Biquad.LowPass(5500f, 0.707f); // the crack is bright, not a white-noise spike
                 return (rng, i) =>
                 {
                     float t = (float)i / Rate, u = t / seconds;
                     float n = Noise(rng);
-                    float k = Dsp.K(cutoff * (0.15f + 0.85f * (float)Math.Exp(-t * 6f / seconds)));
+                    float k = Dsp.K(cutoff * (0.2f + 0.8f * (float)Math.Exp(-t * 6f / seconds)));
                     lp1 += (n - lp1) * k;
                     lp2 += (lp1 - lp2) * k;
-                    float body = lp2 * 2.6f * (float)Math.Exp(-t * 4f / seconds) * Math.Min(1f, t * 800f);
-                    float hit = (n - lp1) * (float)Math.Exp(-t * 260f) * 0.9f;
-                    rum += (n - rum) * Dsp.K(90f);
-                    float rumble = rum * 7f * (float)Math.Exp(-t * 2.2f / seconds) * Math.Min(1f, t * 30f);
-                    if (u > 0.08f && rng.NextFloat() < 0.0012f * (1f - u)) crackle = 0.6f + rng.NextFloat() * 0.4f;
-                    crackle *= 0.993f;
-                    return body + hit + rumble + (n - lp1) * crackle * 0.45f;
+                    float body = lp2 * 2.6f * (float)Math.Exp(-t * 4f / seconds) * Math.Min(1f, t * 600f);
+                    float bright = soft.Process(n) - lp1;
+                    float hit = bright * (float)Math.Exp(-t * 180f) * Math.Min(1f, t * 3000f) * 0.5f;
+                    rum += (n - rum) * Dsp.K(220f);
+                    float rumble = rum * 3.5f * (float)Math.Exp(-t * 2.4f / seconds) * Math.Min(1f, t * 30f);
+                    if (u > 0.1f && rng.NextFloat() < 0.0008f * (1f - u)) crackle = 0.5f + rng.NextFloat() * 0.5f;
+                    crackle *= 0.995f;
+                    return body + hit + rumble + bright * crackle * 0.18f;
                 };
             });
-            s.AddMono(Sub(seconds, boomHz * 2.4f, boomHz, 14f, 5f / seconds), 0f, 0.95f);
-            s.Finish(1f, 1.8f);
-            return Room(s, wet, tail, peak, 0.82f);
+            // The "boom": a pitch drop that speakers can actually play (above ~80 Hz).
+            s.AddMono(Sub(seconds, boomHz * 2.2f, boomHz, 12f, 5f / seconds), 0f, 0.55f);
+            return Room(s, wet, tail, peak, 0.82f, 70f);
         }
 
         /// <summary>Ignition thump, then a rocket's hiss and growl.</summary>
@@ -166,9 +192,8 @@ namespace Worms.Game.Core
                     return bp.Process(n) * 2.2f * env + growl * 4f * am * env;
                 };
             });
-            s.AddMono(Sub(0.3f, 140f, 55f, 20f, 16f), 0f, 0.8f);
-            s.Finish(1f, 1.5f);
-            return Room(s, 0.15f, 0.45f, 0.75f);
+            s.AddMono(Sub(0.3f, 200f, 95f, 20f, 16f), 0f, 0.5f);
+            return Room(s, 0.15f, 0.45f, 0.6f);
         }
 
         /// <summary>Air rushing past: band-passed noise sweeping up, moving across the stereo field.</summary>
@@ -193,18 +218,18 @@ namespace Worms.Game.Core
             var s = WideNoise(0.3f, seed, () =>
             {
                 float lp = 0, lpHi = 0;
+                var soft = Biquad.LowPass(6000f, 0.707f);
                 return (rng, i) =>
                 {
                     float t = (float)i / Rate;
-                    float n = Noise(rng);
-                    lpHi += (n - lpHi) * Dsp.K(3000f);
-                    lp += (n - lp) * Dsp.K(1300f * (0.3f + 0.7f * (float)Math.Exp(-t * 20f)));
-                    return (n - lpHi) * (float)Math.Exp(-t * 120f) * 1.3f
+                    float n = soft.Process(Noise(rng));
+                    lpHi += (n - lpHi) * Dsp.K(2500f);
+                    lp += (n - lp) * Dsp.K(1500f * (0.3f + 0.7f * (float)Math.Exp(-t * 20f)));
+                    return (n - lpHi) * (float)Math.Exp(-t * 110f) * Math.Min(1f, t * 3000f) * 1.1f
                            + lp * 3f * (float)Math.Exp(-t * 9f) * Math.Min(1f, t * 3000f);
                 };
             }).Extended(Frames(0.3f));
-            s.AddMono(Sub(0.3f, 100f, 48f, 25f, 10f), 0f, 0.9f);
-            s.Finish(1f, 2f);
+            s.AddMono(Sub(0.3f, 190f, 90f, 25f, 12f), 0f, 0.5f);
             // Pump action: chk-chk.
             var r = new Rng(seed ^ 0x9A3Du);
             foreach (float at in new[] { 0.34f, 0.45f })
@@ -213,10 +238,10 @@ namespace Worms.Game.Core
                 Dsp.AddMode(click, 1850f, 0.5f, 70f);
                 Dsp.AddMode(click, 3300f, 0.35f, 90f);
                 Dsp.AddMode(click, 5200f, 0.2f, 120f);
-                for (int i = 0; i < Frames(0.004f); i++) click[i] += Noise(r) * 0.6f;
+                for (int i = 0; i < Frames(0.004f); i++) click[i] += Noise(r) * 0.25f;
                 s.AddMono(click, 0.15f, 0.35f, Frames(at));
             }
-            return Room(s, 0.25f, 0.5f, 0.85f);
+            return Room(s, 0.25f, 0.5f, 0.66f);
         }
 
         static Stereo UziShot(uint seed)
@@ -224,18 +249,19 @@ namespace Worms.Game.Core
             var s = WideNoise(0.12f, seed, () =>
             {
                 float lp = 0, lpHi = 0;
+                var soft = Biquad.LowPass(6500f, 0.707f);
                 return (rng, i) =>
                 {
                     float t = (float)i / Rate;
-                    float n = Noise(rng);
-                    lpHi += (n - lpHi) * Dsp.K(3500f);
-                    lp += (n - lp) * Dsp.K(2500f);
-                    return (n - lpHi) * (float)Math.Exp(-t * 170f) + lp * 2f * (float)Math.Exp(-t * 32f);
+                    float n = soft.Process(Noise(rng));
+                    lpHi += (n - lpHi) * Dsp.K(3000f);
+                    lp += (n - lp) * Dsp.K(2200f);
+                    return ((n - lpHi) * (float)Math.Exp(-t * 150f) + lp * 2f * (float)Math.Exp(-t * 32f)) * Math.Min(1f, t * 3000f);
                 };
             });
-            s.AddMono(Sub(0.12f, 150f, 70f, 40f, 40f), 0f, 0.5f);
-            s.Finish(1f, 1.6f);
-            return Room(s, 0.12f, 0.22f, 0.55f);
+            s.AddMono(Sub(0.12f, 240f, 130f, 40f, 40f), 0f, 0.35f);
+            // Ten of these overlap in a burst, so each one is quiet.
+            return Room(s, 0.12f, 0.22f, 0.4f);
         }
 
         /// <summary>A bat on a worm: a hollow wooden "tock".</summary>
@@ -246,10 +272,10 @@ namespace Worms.Game.Core
             Dsp.AddMode(b, 1370f, 0.5f, 40f);
             Dsp.AddMode(b, 2410f, 0.3f, 60f);
             var rng = new Rng(seed);
-            for (int i = 0; i < Frames(0.003f); i++) b[i] += Noise(rng) * 0.8f;
+            for (int i = 0; i < Frames(0.003f); i++) b[i] += Noise(rng) * 0.3f;
             var s = new Stereo(b.Length);
             s.AddMono(b);
-            return Room(s, 0.15f, 0.3f, 0.9f);
+            return Room(s, 0.15f, 0.3f, 0.6f);
         }
 
         /// <summary>Plane drone passing from left to right, then falling whistles.</summary>
@@ -302,7 +328,7 @@ namespace Worms.Game.Core
             Dsp.AddMode(b, 5100f, 0.15f, 80f);
             var thud = Sub(0.25f, 220f, 150f, 30f, 30f);
             var rng = new Rng(seed);
-            for (int i = 0; i < b.Length; i++) b[i] += thud[i] * 0.7f + (i < Frames(0.004f) ? Noise(rng) * 0.5f : 0f);
+            for (int i = 0; i < b.Length; i++) b[i] += thud[i] * 0.6f + (i < Frames(0.004f) ? Noise(rng) * 0.2f : 0f);
             var s = new Stereo(b.Length);
             s.AddMono(b);
             return Room(s, 0.1f, 0.2f, 0.6f);
@@ -321,8 +347,8 @@ namespace Worms.Game.Core
                     return lp * 3f * (float)Math.Exp(-t * 20f) + (n - lp) * 0.2f * (float)Math.Exp(-t * 35f);
                 };
             });
-            s.AddMono(Sub(0.25f, 110f, 55f, 25f, 25f), 0f, 1f);
-            return Room(s, 0.06f, 0.2f, 0.7f);
+            s.AddMono(Sub(0.25f, 170f, 95f, 25f, 25f), 0f, 0.6f);
+            return Room(s, 0.06f, 0.2f, 0.5f);
         }
 
         static Stereo Splash(uint seed)
@@ -331,12 +357,13 @@ namespace Worms.Game.Core
             var s = WideNoise(seconds, seed, () =>
             {
                 float lp = 0;
+                var soft = Biquad.LowPass(7000f, 0.707f);
                 return (rng, i) =>
                 {
                     float t = (float)i / Rate, u = t / seconds;
-                    float n = Noise(rng);
+                    float n = soft.Process(Noise(rng));
                     lp += (n - lp) * Dsp.K(2500f - 1800f * u);
-                    return lp * 2f * Math.Min(1f, t * 150f) * (float)Math.Exp(-t * 4.5f) + (n - lp) * (float)Math.Exp(-t * 60f);
+                    return lp * 2f * Math.Min(1f, t * 150f) * (float)Math.Exp(-t * 4.5f) + (n - lp) * 0.45f * Math.Min(1f, t * 2000f) * (float)Math.Exp(-t * 60f);
                 };
             });
             var r = new Rng(seed ^ 0xB0Bu);
@@ -353,7 +380,7 @@ namespace Worms.Game.Core
                 }
                 s.AddMono(bubble, r.Range(-0.6f, 0.6f), 0.35f, Frames(r.Range(0.08f, 0.7f)));
             }
-            return Room(s, 0.22f, 0.5f, 0.7f);
+            return Room(s, 0.22f, 0.5f, 0.55f);
         }
 
         // ---- voices ----------------------------------------------------------------------
@@ -376,9 +403,10 @@ namespace Worms.Game.Core
             {
                 float t = (float)i / Rate, u = (float)i / b.Length;
                 float pitch = (p0 + (p1 - p0) * u) * (1f + vibrato * (float)Math.Sin(Dsp.TwoPi * 7f * t));
-                phase += pitch / Rate;
+                double dt = pitch / Rate;
+                phase += dt;
                 phase -= Math.Floor(phase);
-                float src = (float)(2 * phase - 1) + Dsp.Hash(i, seed) * breath;
+                float src = (float)(2 * phase - 1 - PolyBlep(phase, dt)) + Dsp.Hash(i, seed) * breath * 0.5f;
                 if (i % 64 == 0)
                 {
                     float m = u * u * (3f - 2f * u);
@@ -391,6 +419,185 @@ namespace Worms.Game.Core
             }
             var s = new Stereo(b.Length);
             s.AddMono(b);
+            return s;
+        }
+
+        /// <summary>Band-limiting correction for a naive saw at its wrap point: removes the aliasing buzz.</summary>
+        static double PolyBlep(double t, double dt)
+        {
+            if (t < dt) { t /= dt; return t + t - t * t - 1; }
+            if (t > 1 - dt) { t = (t - 1) / dt; return t * t + t + t + 1; }
+            return 0;
+        }
+
+        // More vowels for speech: "uh" and "e".
+        static readonly (float, float) Uh = (800f, 1350f), E = (620f, 2400f);
+
+        /// <summary>One syllable of <see cref="Speak"/>: onset consonant, length, a three-point pitch contour and a vowel glide.</summary>
+        struct Syllable
+        {
+            public char Onset;          // 'b' lips open, 'w' rounded start, 'h' breathy, ' ' none
+            public float Seconds, P0, PMid, P1, Vibrato, GapBefore, Loud;
+            public (float, float) V0, V1;
+
+            public Syllable(char onset, float seconds, float p0, float pMid, float p1, (float, float) v0, (float, float) v1, float vibrato)
+            {
+                Onset = onset; Seconds = seconds; P0 = p0; PMid = pMid; P1 = p1; V0 = v0; V1 = v1; Vibrato = vibrato;
+                GapBefore = 0f; Loud = 1f;
+            }
+        }
+
+        /// <summary>
+        /// Cartoon speech: each syllable is a band-limited buzz (plus breath) through gliding
+        /// formant filters, with a pitch contour that carries the mood (a teasing sing-song, a
+        /// sigh, a wail). Consonants are shaped by how the formants and loudness start.
+        /// </summary>
+        static Stereo Speak(uint seed, params Syllable[] syllables)
+        {
+            var parts = new List<float[]>();
+            int total = 0;
+            foreach (var syl in syllables)
+            {
+                int gap = Frames(syl.GapBefore);
+                var b = new float[Frames(syl.Seconds)];
+                var f1 = new BandPass(syl.V0.Item1, 6f);
+                var f2 = new BandPass(syl.V0.Item2, 9f);
+                var f3 = new BandPass(3600f, 10f);
+                double phase = 0;
+                int onset = Frames(syl.Onset == 'h' ? 0.05f : syl.Onset == 'w' ? 0.07f : 0.03f);
+                for (int i = 0; i < b.Length; i++)
+                {
+                    float t = (float)i / Rate, u = (float)i / b.Length;
+                    // Pitch: P0 -> PMid over the first 30 %, then -> P1.
+                    float p = u < 0.3f ? syl.P0 + (syl.PMid - syl.P0) * (u / 0.3f) : syl.PMid + (syl.P1 - syl.PMid) * ((u - 0.3f) / 0.7f);
+                    p *= 1f + syl.Vibrato * (float)Math.Sin(Dsp.TwoPi * 6.5f * t) * Math.Min(1f, u * 3f);
+                    double dt = p / Rate;
+                    phase += dt;
+                    phase -= Math.Floor(phase);
+                    float buzz = (float)(2 * phase - 1 - PolyBlep(phase, dt));
+                    float breath = Dsp.Hash(i + (int)seed, seed) * 0.12f;
+                    float voiced = 1f;
+                    float c = i < onset ? (float)i / onset : 1f;
+                    if (syl.Onset == 'h' && i < onset) { voiced = 0f; breath *= 6f; }
+                    if (i % 64 == 0)
+                    {
+                        float m = u * u * (3f - 2f * u);
+                        float v1 = syl.V0.Item1 + (syl.V1.Item1 - syl.V0.Item1) * m, v2 = syl.V0.Item2 + (syl.V1.Item2 - syl.V0.Item2) * m;
+                        // 'b' and 'w' start with the mouth nearly closed: low formants that open up.
+                        if (syl.Onset == 'b' && c < 1f) { v1 = 250f + (v1 - 250f) * c; v2 = 900f + (v2 - 900f) * c; }
+                        if (syl.Onset == 'w' && c < 1f) { v1 = U.Item1 + (v1 - U.Item1) * c; v2 = 700f + (v2 - 700f) * c; }
+                        f1.Set(v1, 6f);
+                        f2.Set(v2, 9f);
+                    }
+                    float src = buzz * voiced + breath;
+                    float y = f1.Process(src) + f2.Process(src) * 0.6f + f3.Process(src) * 0.2f;
+                    float attack = syl.Onset == 'b' ? Math.Min(1f, t * 60f) : Math.Min(1f, t * 90f);
+                    float env = attack * (u > 0.72f ? (1f - u) / 0.28f : 1f) * syl.Loud;
+                    b[i] = y * env;
+                }
+                parts.Add(new float[gap]);
+                parts.Add(b);
+                total += gap + b.Length;
+            }
+            var mono = new float[total];
+            int at = 0;
+            foreach (var part in parts)
+            {
+                Array.Copy(part, 0, mono, at, part.Length);
+                at += part.Length;
+            }
+            var s = new Stereo(total);
+            s.AddMono(mono);
+            return s;
+        }
+
+        /// <summary>
+        /// "Bai-baaaai~ hehe": the kids' teasing sing-song (a high note, then a drawn-out
+        /// minor third below with a wobble), and a snicker.
+        /// </summary>
+        static Stereo Taunt(uint seed)
+        {
+            return Room(Speak(seed,
+                new Syllable('b', 0.17f, 700f, 760f, 750f, A, I, 0f),
+                new Syllable('b', 0.46f, 760f, 640f, 620f, A, I, 0.045f) { GapBefore = 0.05f },
+                new Syllable('h', 0.1f, 920f, 950f, 880f, E, E, 0f) { GapBefore = 0.12f, Loud = 0.7f },
+                new Syllable('h', 0.12f, 880f, 900f, 780f, E, Uh, 0f) { GapBefore = 0.04f, Loud = 0.65f }),
+                0.14f, 0.4f, 0.55f, 0.75f, 180f);
+        }
+
+        /// <summary>A bright little brass fanfare: arpeggio up, then the chord, with sparkles.</summary>
+        static Stereo Fanfare()
+        {
+            var s = Stereo.Seconds(1.9f);
+            float[] notes = { 523.25f, 659.25f, 783.99f, 1046.5f };
+            for (int n = 0; n < notes.Length; n++)
+            {
+                float len = n == notes.Length - 1 ? 1.2f : 0.16f;
+                s.Add(Brass(notes[n], len, 0f), 0.8f, Frames(n * 0.12f));
+            }
+            // The final chord under the top note.
+            float chordAt = 3 * 0.12f;
+            foreach (float f in new[] { 523.25f, 659.25f, 783.99f })
+                s.Add(Brass(f, 1.2f, 0.004f), 0.45f, Frames(chordAt));
+            var sparkle = new float[Frames(1.2f)];
+            foreach (float f in new[] { 2093f, 2637f, 3136f })
+                Dsp.AddMode(sparkle, f, 0.3f, 5f, Frames((f - 2000f) / 8000f));
+            s.AddMono(sparkle, 0.2f, 0.25f, Frames(chordAt));
+            return Room(s, 0.3f, 0.8f, 0.6f, 0.82f, 120f);
+        }
+
+        /// <summary>"Wah wah wah waaah": four falling semitones on a muted trombone, the last one wobbling.</summary>
+        static Stereo SadTrombone()
+        {
+            float[] notes = { 233.08f, 220f, 207.65f, 196f };
+            var s = Stereo.Seconds(2.3f);
+            float at = 0f;
+            for (int n = 0; n < notes.Length; n++)
+            {
+                bool last = n == notes.Length - 1;
+                float len = last ? 1.1f : 0.36f;
+                var note = Brass(notes[n], len, 0f, last ? 0.035f : 0.004f, wah: true);
+                s.Add(note, 1f, Frames(at));
+                at += len + 0.04f;
+            }
+            return Room(s, 0.2f, 0.5f, 0.55f, 0.75f, 110f);
+        }
+
+        /// <summary>
+        /// A brassy note: band-limited saw through a low-pass that opens on the attack (the
+        /// "blat" of brass), slightly detuned between the ears. With <paramref name="wah"/>,
+        /// a formant glide from "u" to "a" makes it a muted "wah".
+        /// </summary>
+        static Stereo Brass(float freq, float seconds, float detune, float vibrato = 0.004f, bool wah = false)
+        {
+            var s = Stereo.Seconds(seconds);
+            for (int ch = 0; ch < 2; ch++)
+            {
+                var target = ch == 0 ? s.L : s.R;
+                float f = freq * (ch == 0 ? 1f + 0.0015f + detune : 1f - 0.0015f - detune);
+                var lp = Biquad.LowPass(1000f, 0.9f);
+                var formant = new BandPass(450f, 3f);
+                double phase = 0;
+                for (int i = 0; i < target.Length; i++)
+                {
+                    float t = (float)i / Rate, u = (float)i / target.Length;
+                    float p = f * (1f + vibrato * (float)Math.Sin(Dsp.TwoPi * 5.5f * t) * Math.Min(1f, t * 4f));
+                    double dt = p / Rate;
+                    phase += dt;
+                    phase -= Math.Floor(phase);
+                    float saw = (float)(2 * phase - 1 - PolyBlep(phase, dt));
+                    if (i % 32 == 0)
+                    {
+                        float open = Math.Min(1f, t * 25f) * (1f - 0.5f * u);
+                        lp.SetLowPass(500f + 3500f * open, 0.9f);
+                        if (wah) formant.Set(450f + 700f * Math.Min(1f, t * 6f), 3f);
+                    }
+                    float y = lp.Process(saw);
+                    if (wah) y = formant.Process(y) * 2.5f;
+                    float env = Math.Min(1f, t * 40f) * (u > 0.8f ? (1f - u) / 0.2f : 1f);
+                    target[i] = y * env * 0.5f;
+                }
+            }
             return s;
         }
 
@@ -461,7 +668,7 @@ namespace Worms.Game.Core
         static float Midi(int note) { return 440f * (float)Math.Pow(2, (note - 69) / 12.0); }
 
         // One chord per two bars: Cmaj9, Am9, Fmaj7, G6/9. Bass root, pad voicing, arpeggio notes (MIDI).
-        static readonly int[] Roots = { 36, 33, 29, 31 };
+        static readonly int[] Roots = { 48, 45, 41, 43 };
         static readonly int[][] Pads =
         {
             new[] { 55, 60, 64, 71, 74 },
@@ -482,6 +689,15 @@ namespace Worms.Game.Core
 
         /// <summary>One cycle of a soft saw (six harmonics), indexed by phase * 4096.</summary>
         static readonly float[] PadWave = BuildPadWave();
+
+        /// <summary>Linearly interpolated table read (plain truncation adds an audible grainy hiss).</summary>
+        static float Wave(double phase)
+        {
+            double x = phase * 4096;
+            int i = (int)x;
+            float f = (float)(x - i);
+            return PadWave[i & 4095] + (PadWave[(i + 1) & 4095] - PadWave[i & 4095]) * f;
+        }
 
         static float[] BuildPadWave()
         {
@@ -528,7 +744,7 @@ namespace Worms.Game.Core
                 {
                     p = Dsp.Pluck(Midi(note), 0.7f, 0.25f, (uint)note * 7u);
                     var sub = Sub(0.5f, Midi(note), Midi(note), 1f, 5f);
-                    for (int i = 0; i < sub.Length; i++) p[i] = p[i] * 0.8f + sub[i] * 0.5f;
+                    for (int i = 0; i < sub.Length; i++) p[i] = p[i] * 0.9f + sub[i] * 0.3f;
                 }
                 else p = Dsp.Pluck(Midi(note), 0.8f, 0.55f, (uint)note * 13u);
                 plucks[(note, bass)] = p;
@@ -572,12 +788,12 @@ namespace Worms.Game.Core
             mix.Add(arpBus);
             send.Add(arpBus, 0.7f);
             new Reverb(0.85f, 0.45f).Apply(mix, 1f, send);
-            mix.DcBlock();
+            mix.HighPass(60f);
 
             var loop = new Stereo(n);
             Array.Copy(mix.L, n, loop.L, 0, n);
             Array.Copy(mix.R, n, loop.R, 0, n);
-            return loop.Finish(0.5f, 1.3f);
+            return loop.Finish(0.5f);
         }
 
         /// <summary>Soft-saw chord, chorused (each ear slightly detuned), fading in and ringing into the next chord.</summary>
@@ -594,8 +810,8 @@ namespace Worms.Game.Core
                 for (int i = 0; i < tmpL.Length; i++)
                 {
                     float env = Math.Min(1f, (float)i / attack) * (i < length ? 1f : 1f - (float)(i - length) / release);
-                    tmpL[i] += PadWave[(int)(pl * 4096) & 4095] * env;
-                    tmpR[i] += PadWave[(int)(pr * 4096) & 4095] * env;
+                    tmpL[i] += Wave(pl) * env;
+                    tmpR[i] += Wave(pr) * env;
                     pl += dl; pl -= Math.Floor(pl);
                     pr += dr; pr -= Math.Floor(pr);
                 }
@@ -621,7 +837,7 @@ namespace Worms.Game.Core
 
         static Kit DrumKit()
         {
-            var kit = new Kit { Kick = Sub(0.35f, 150f, 48f, 28f, 9f), Snare = new float[Frames(0.25f)] };
+            var kit = new Kit { Kick = Sub(0.3f, 190f, 70f, 30f, 12f), Snare = new float[Frames(0.25f)] };
             var bp = new BandPass(1900f, 0.8f);
             for (int i = 0; i < kit.Snare.Length; i++)
             {

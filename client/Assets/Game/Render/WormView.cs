@@ -13,11 +13,11 @@ namespace Worms.Game.Render
     public sealed class WormView
     {
         static Mesh _eyeMesh, _handMesh;
-        static Material _white, _black;
+        static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
         public readonly Transform Root;
-        readonly Transform _body, _eyeL, _eyeR, _pupilL, _pupilR, _handL, _handR, _weaponPivot;
+        readonly Transform _body, _eyeL, _eyeR, _pupilL, _pupilR, _handL, _handR, _weaponPivot, _mouth, _cheek;
         readonly WormRig _rig = new WormRig();
         readonly MeshBuffers _buffers = new MeshBuffers();
         readonly MeshUtil _util = new MeshUtil();
@@ -39,6 +39,8 @@ namespace Worms.Game.Render
                 _handMesh = _eyeMesh;
                 _white = Materials.Toon(new Color(0.97f, 0.97f, 0.97f));
                 _black = Materials.Toon(new Color(0.05f, 0.05f, 0.07f));
+                _mouthMat = Materials.Toon(new Color(0.32f, 0.07f, 0.09f));
+                _cheekMat = Materials.Toon(new Color(1f, 0.55f, 0.6f));
             }
             Root = new GameObject("Worm " + id).transform;
             Root.SetParent(parent, false);
@@ -54,6 +56,14 @@ namespace Worms.Game.Render
             _eyeR = Ball(_body, "EyeR", _white, 0.16f);
             _pupilL = Ball(_eyeL, "Pupil", _black, 0.5f);
             _pupilR = Ball(_eyeR, "Pupil", _black, 0.5f);
+            // A glint in each eye makes the face read as alive.
+            foreach (var pupil in new[] { _pupilL, _pupilR })
+            {
+                var glint = Ball(pupil, "Glint", _white, 0.38f);
+                glint.localPosition = new Vector3(-0.22f, 0.26f, -0.42f);
+            }
+            _mouth = Ball(_body, "Mouth", _mouthMat, 0.1f);
+            _cheek = Ball(_body, "Cheek", _cheekMat, 0.1f);
             var skin = _renderer.sharedMaterial;
             _handL = Ball(_body, "HandL", skin, 0.1f);
             _handR = Ball(_body, "HandR", skin, 0.1f);
@@ -120,6 +130,15 @@ namespace Worms.Game.Render
             _eyeL.localScale = _eyeR.localScale = new Vector3(0.16f, 0.16f * blink, 0.16f);
             var look = new Vector3(Mathf.Cos(aim), Mathf.Sin(aim), -0.6f).normalized * 0.28f;
             _pupilL.localPosition = _pupilR.localPosition = look;
+
+            // Mouth: a small smile, a round "O" when hit or tumbling. A rosy cheek on the near side.
+            bool shocked = _flash > 0.05f || w.State == WormState.Tumbling;
+            _mouth.localPosition = head - up * r * 0.42f + side * r * 0.78f + Vector3.back * r * 0.7f;
+            _mouth.localRotation = Quaternion.LookRotation(Vector3.forward, up);
+            _mouth.localScale = shocked ? new Vector3(0.07f, 0.08f, 0.04f) : new Vector3(0.12f, 0.035f, 0.04f);
+            _cheek.localPosition = head - up * r * 0.2f + side * r * 1.02f + Vector3.back * r * 0.55f;
+            _cheek.localRotation = _mouth.localRotation;
+            _cheek.localScale = new Vector3(0.08f, 0.05f, 0.03f);
 
             // Weapon in hand (grenade or dynamite: only the item, no gun).
             bool show = holding && w.State != WormState.Tumbling;

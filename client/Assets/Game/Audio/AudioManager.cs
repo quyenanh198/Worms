@@ -21,6 +21,7 @@ namespace Worms.Game.Audio
 
         readonly Dictionary<Sfx, AudioClip> _clips = new Dictionary<Sfx, AudioClip>();
         readonly AudioSource[] _voices = new AudioSource[Voices];
+        readonly Dictionary<Sfx, float> _lastStart = new Dictionary<Sfx, float>();
         AudioSource _music;
         int _next;
 
@@ -69,10 +70,19 @@ namespace Worms.Game.Audio
         public void Play(Sfx sfx, float pan = 0f, float volume = 1f, float pitchJitter = 0.06f)
         {
             if (Muted || SfxVolume <= 0 || !_clips.TryGetValue(sfx, out var clip)) return;
+            // The same sound twice within a few milliseconds is heard as one, only louder (and clipped).
+            float now = Time.unscaledTime;
+            if (_lastStart.TryGetValue(sfx, out var last) && now - last < 0.03f) return;
+            _lastStart[sfx] = now;
+            // Web audio has no limiter: many overlapping sounds would sum past full scale and
+            // crackle. Each new sound is a little quieter the busier the mix already is.
+            int busy = 0;
+            foreach (var v in _voices) if (v.isPlaying) busy++;
+            float crowd = 1f / Mathf.Sqrt(1f + 0.3f * busy);
             var src = _voices[_next];
             _next = (_next + 1) % Voices;
             src.clip = clip;
-            src.volume = Mathf.Clamp01(volume) * SfxVolume;
+            src.volume = Mathf.Clamp01(volume) * SfxVolume * crowd;
             src.pitch = 1f + UnityEngine.Random.Range(-pitchJitter, pitchJitter);
             src.panStereo = Mathf.Clamp(pan, -1f, 1f) * 0.6f;
             src.Play();

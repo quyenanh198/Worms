@@ -87,6 +87,7 @@ namespace Worms.Game.Play
             _controlsForWorm = -1;
             Presenter = new GameObject("Match").AddComponent<MatchPresenter>();
             Presenter.Init(m.Terrain, m.WaterLevel, m.Seed, m.Teams);
+            Presenter.LocalTeam = m.IsSpectator ? -1 : m.YourTeam;
         }
 
         void OnDestroy()

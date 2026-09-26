@@ -17,6 +17,10 @@ namespace Worms.Game.Play
 
         public TouchLayout Layout { get; private set; } = TouchLayout.For(Screen.width, Screen.height);
 
+        /// <summary>HUD buttons (GUI space, y down): a finger that lands here belongs to the HUD, not the game.</summary>
+        public static Rect BlockedArea;
+        readonly HashSet<int> _hudFingers = new HashSet<int>();
+
         public void Apply(ref InputFrame f, TouchContext ctx, CameraRig rig)
         {
             Layout = TouchLayout.For(Screen.width, Screen.height);
@@ -24,6 +28,12 @@ namespace Worms.Game.Play
             for (int i = 0; i < Input.touchCount; i++)
             {
                 var t = Input.GetTouch(i);
+                if (t.phase == TouchPhase.Began && BlockedArea.Contains(new Vector2(t.position.x, Screen.height - t.position.y))) _hudFingers.Add(t.fingerId);
+                if (_hudFingers.Contains(t.fingerId))
+                {
+                    if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled) _hudFingers.Remove(t.fingerId);
+                    continue;
+                }
                 _points.Add(new TouchPoint
                 {
                     Id = t.fingerId,
