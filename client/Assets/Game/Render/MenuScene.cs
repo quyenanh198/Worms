@@ -10,9 +10,8 @@ namespace Worms.Game.Render
     /// <summary>
     /// The living backdrop of the menu: the Worms squad on a little island. On open, the
     /// camera swoops in and the four worms drop from the sky one by one and land with a thud;
-    /// then each shows off (bazooka, grenade, bat, happy hops) while clouds drift and distant
-    /// blasts light the sky. The leader wears the player's outfit, and the store dresses it
-    /// up to preview items.
+    /// then each shows off (bazooka, grenade, bat, happy hops) in store outfits while clouds
+    /// drift. The leader wears the player's outfit, and the store dresses it up to preview items.
     /// </summary>
     public sealed class MenuScene : MonoBehaviour
     {
@@ -29,6 +28,15 @@ namespace Worms.Game.Render
         public WeaponId? LeaderWeapon;
 
         const int Squad = 4;
+
+        /// <summary>The squad shows off the store (the leader's slot is replaced by the player's own look).</summary>
+        static readonly Loadout[] Showcase =
+        {
+            default,
+            new Loadout { Hat = 5, Armor = 10, Grenade = 14 },      // cowboy, hero cape, watermelon grenade
+            new Loadout { Hat = 6, Armor = 11, Bat = 16 },          // wizard, knight plate, spiked bat
+            new Loadout { Hat = 3, Armor = 9, Bazooka = 12 },       // Rambo band, ninja belt, camo bazooka
+        };
         const float DropHeight = 7f, Gravity = 22f;
 
         SimTerrain _terrain;
@@ -39,7 +47,7 @@ namespace Worms.Game.Render
         readonly bool[] _landed = new bool[Squad];
         readonly Loadout[] _looks = new Loadout[Squad];
         Vector3 _focus;
-        float _start, _nextBlast;
+        float _start;
 
         public static MenuScene Create()
         {
@@ -85,7 +93,7 @@ namespace Worms.Game.Render
                 while (top < _terrain.Height && !_terrain.IsSolid(x, top)) top++;
                 _spots[i] = WorldSpace.ToWorld(x, top - C.WormRadius);
                 _worms[i] = new WormView(transform, 900 + i, TeamColors.Of(i));
-                _looks[i] = i == 0 ? default : CosmeticLooks.Random(31u * (uint)i + 5u);
+                _looks[i] = Showcase[i];
                 _worms[i].SetLoadout(_looks[i]);
             }
             _focus = (_spots[0] + _spots[Squad - 1]) / 2f + Vector3.up * 0.4f;
@@ -98,7 +106,6 @@ namespace Worms.Game.Render
             _cam.clearFlags = CameraClearFlags.Skybox;
             UrpSetup.ConfigureCamera(_cam);
             UrpSetup.CreateVolume(transform);
-            _nextBlast = 3.2f;
         }
 
         void OnDestroy()
@@ -114,13 +121,6 @@ namespace Worms.Game.Render
             for (int i = 0; i < Squad; i++) Animate(i, t, dt);
             MoveCamera(t);
 
-            // Now and then, a blast on the far hills.
-            if (t > _nextBlast)
-            {
-                _nextBlast = t + Random.Range(3.5f, 6f);
-                var at = _focus + new Vector3(Random.Range(-9f, 9f), Random.Range(1.5f, 4f), Random.Range(10f, 16f));
-                _vfx.Explosion(at, Random.Range(0.8f, 1.4f));
-            }
         }
 
         void Animate(int i, float t, float dt)
@@ -200,7 +200,7 @@ namespace Worms.Game.Render
             float distance = Mathf.Lerp(26f, 11.5f, k);
             float aspect = Mathf.Max(1f, _cam.aspect);
             float halfWidth = distance * Mathf.Tan(_cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * aspect;
-            var look = _focus + Vector3.left * halfWidth * 0.38f + Vector3.up * Mathf.Lerp(3f, 0.9f, k);
+            var look = _focus + Vector3.left * halfWidth * 0.5f + Vector3.up * Mathf.Lerp(3f, 0.9f, k);
             var sway = new Vector3(Mathf.Sin(t * 0.21f) * 0.6f, Mathf.Sin(t * 0.33f) * 0.25f, 0);
             _cam.transform.position = look + sway + new Vector3(0, distance * 0.12f, -distance);
             _cam.transform.rotation = Quaternion.Euler(6f + 8f * (1f - k), Mathf.Sin(t * 0.17f) * 2f, 0);

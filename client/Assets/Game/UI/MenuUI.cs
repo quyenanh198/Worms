@@ -145,7 +145,7 @@ namespace Worms.Game.UI
             Styles();
 
             // A soft panel behind the menu column keeps it readable over the 3D scene.
-            UiSkin.Pill(new Rect(Cx - _u * 10.5f, Screen.height * 0.04f, _u * 21f, Screen.height * 0.92f), new Color(0.05f, 0.07f, 0.1f, 0.55f));
+            UiSkin.Pill(new Rect(Cx - _u * 10.6f, Screen.height * 0.04f, _u * 21.2f, Screen.height * 0.92f), new Color(0.05f, 0.07f, 0.1f, 0.55f));
 
             // The title drops in with a bounce; the squad's name follows once they have landed.
             float age = MenuScene.Instance != null ? MenuScene.Instance.Age : 10f;
@@ -295,7 +295,7 @@ namespace Worms.Game.UI
             if (profile == null) { _store = false; return; }
             Line(ref y, "Cửa hàng · chỉ để đẹp, không đổi sức mạnh", _small, 1.3f);
 
-            float w = _u * 18f, x0 = Cx - w / 2;
+            float w = _u * 19.6f, x0 = Cx - w / 2;
             float tw = w / Tabs.Length;
             for (int t = 0; t < Tabs.Length; t++)
                 if (GUI.Button(new Rect(x0 + t * tw + 2, y, tw - 4, _u * 1.8f), Tabs[t], t == _tab ? _buttonOn : _smallButton))
