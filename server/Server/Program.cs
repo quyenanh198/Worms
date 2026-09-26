@@ -186,6 +186,8 @@ namespace Worms.Server
                     case MsgType.StartMatch: rooms.Start(conn); break;
                     case MsgType.LeaveRoom: rooms.Leave(conn); break;
                     case MsgType.Rematch: rooms.Rematch(conn); break;
+                    case MsgType.AddBot: rooms.AddBot(conn); break;
+                    case MsgType.RemoveBot: rooms.RemoveBot(conn, r.I32()); break;
                     case MsgType.Input: rooms.Input(conn, ClientMsg.ReadInput(r)); break;
                 }
             }

@@ -51,6 +51,7 @@ namespace Worms.Game.UI
             _small = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 0.8f) };
             _panel = new GUIStyle(GUI.skin.box);
             _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u * 0.85f), wordWrap = true };
+            UiFont.Apply(_label, _big, _small, _panel, _button);
         }
 
         void Box(Rect r, Color c)

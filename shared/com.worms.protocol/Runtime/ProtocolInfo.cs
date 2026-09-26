@@ -3,7 +3,7 @@ namespace Worms.Protocol
     public static class ProtocolInfo
     {
         /// <summary>Bumped on every wire-format change; the server rejects other versions.</summary>
-        public const ushort Version = 3;
+        public const ushort Version = 4;
     }
 
     /// <summary>First byte after the version header of every message.</summary>
@@ -26,6 +26,10 @@ namespace Worms.Protocol
         LeaveRoom = 25,
         Input = 26,
         Rematch = 27,
+        /// <summary>Host adds a computer player to a private room.</summary>
+        AddBot = 28,
+        /// <summary>Host removes a computer player (payload: its user id).</summary>
+        RemoveBot = 29,
     }
 
     /// <summary>Codes sent in <see cref="ErrorMsg"/>.</summary>

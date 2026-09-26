@@ -17,6 +17,8 @@ namespace Worms.Protocol
         public int Team;
         public bool Ready;
         public bool Connected;
+        /// <summary>A computer player the host added; always ready and connected, negative <see cref="UserId"/>.</summary>
+        public bool IsBot;
     }
 
     /// <summary>Server -> Client: the room the player is in. An empty <see cref="Code"/> means no room.</summary>
@@ -31,7 +33,7 @@ namespace Worms.Protocol
         public byte[] Encode()
         {
             var w = new MsgWriter(MsgType.Lobby).Str(Code).Bool(IsQuick).I32(HostUserId).U8((byte)State).U8((byte)Players.Count);
-            foreach (var p in Players) w.I32(p.UserId).Str(p.Name).U8((byte)p.Team).Bool(p.Ready).Bool(p.Connected);
+            foreach (var p in Players) w.I32(p.UserId).Str(p.Name).U8((byte)p.Team).Bool(p.Ready).Bool(p.Connected).Bool(p.IsBot);
             return w.ToArray();
         }
 
@@ -40,7 +42,7 @@ namespace Worms.Protocol
             var m = new LobbyMsg { Code = r.Str(), IsQuick = r.Bool(), HostUserId = r.I32(), State = (RoomState)r.U8() };
             int n = r.U8();
             for (int i = 0; i < n; i++)
-                m.Players.Add(new PlayerInfo { UserId = r.I32(), Name = r.Str(), Team = r.U8(), Ready = r.Bool(), Connected = r.Bool() });
+                m.Players.Add(new PlayerInfo { UserId = r.I32(), Name = r.Str(), Team = r.U8(), Ready = r.Bool(), Connected = r.Bool(), IsBot = r.Bool() });
             return m;
         }
     }
@@ -127,6 +129,7 @@ namespace Worms.Protocol
         public static byte[] Simple(MsgType type) { return new MsgWriter(type).ToArray(); }
         public static byte[] JoinRoom(string code) { return new MsgWriter(MsgType.JoinRoom).Str(code ?? string.Empty).ToArray(); }
         public static byte[] SetReady(bool ready) { return new MsgWriter(MsgType.SetReady).Bool(ready).ToArray(); }
+        public static byte[] RemoveBot(int userId) { return new MsgWriter(MsgType.RemoveBot).I32(userId).ToArray(); }
 
         public static byte[] Input(SimInput i)
         {

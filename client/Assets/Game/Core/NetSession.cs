@@ -138,6 +138,10 @@ namespace Worms.Game.Core
         public void StartMatch() { Send(ClientMsg.Simple(MsgType.StartMatch)); }
         public void LeaveRoom() { Send(ClientMsg.Simple(MsgType.LeaveRoom)); }
         public void Rematch() { Send(ClientMsg.Simple(MsgType.Rematch)); }
+        /// <summary>Host only: adds a computer player to the private room.</summary>
+        public void AddBot() { Send(ClientMsg.Simple(MsgType.AddBot)); }
+        /// <summary>Host only: removes the computer player with this (negative) user id.</summary>
+        public void RemoveBot(int userId) { Send(ClientMsg.RemoveBot(userId)); }
 
         public void SendIntent(Intent i)
         {

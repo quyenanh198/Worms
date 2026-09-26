@@ -23,6 +23,8 @@ namespace Worms.Game.UI
         string _password = string.Empty;
         string _loginError;
         bool _loggingIn;
+        /// <summary>"Chơi với máy" was pressed: add a bot as soon as our new room arrives.</summary>
+        bool _wantBot;
         string _toast;
         float _toastUntil;
         GUIStyle _title, _text, _small, _button, _field;
@@ -30,6 +32,13 @@ namespace Worms.Game.UI
 
         void Update()
         {
+            var session = Net.Session;
+            if (_wantBot && session.InRoom && session.IsHost && session.Lobby.State == RoomState.Lobby)
+            {
+                _wantBot = false;
+                if (session.Lobby.Players.Count == 1) session.AddBot();
+            }
+
             var err = Net.Session.LastError;
             if (err != null && err != ErrorCodes.Unauthorized && err != ErrorCodes.BadVersion)
             {
@@ -47,7 +56,7 @@ namespace Worms.Game.UI
                 case ErrorCodes.RoomFull: return "Phòng đã đủ người";
                 case ErrorCodes.RoomBusy: return "Phòng đang chơi";
                 case ErrorCodes.NotHost: return "Chỉ chủ phòng mới bắt đầu được";
-                case ErrorCodes.NotReady: return "Cần ít nhất 2 người và mọi người sẵn sàng";
+                case ErrorCodes.NotReady: return "Cần ít nhất 2 đội (chơi một mình thì thêm máy) và mọi người sẵn sàng";
                 case ErrorCodes.RateLimited: return "Thao tác quá nhanh";
                 case ErrorCodes.ServerFull: return "Server đang đầy, thử lại sau ít phút";
                 default: return "Lỗi: " + code;
@@ -66,6 +75,7 @@ namespace Worms.Game.UI
             _small = new GUIStyle(_text) { fontSize = Mathf.RoundToInt(u * 0.8f) };
             _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u) };
             _field = new GUIStyle(GUI.skin.textField) { fontSize = Mathf.RoundToInt(u), alignment = TextAnchor.MiddleCenter };
+            UiFont.Apply(_title, _text, _small, _button, _field);
         }
 
         bool Button(ref float y, string label, bool enabled = true)
@@ -172,6 +182,11 @@ namespace Worms.Game.UI
             Line(ref y, Net.Status);
             y += _u * 0.5f;
             if (Button(ref y, "Ghép trận nhanh")) Net.Session.QuickMatch();
+            if (Button(ref y, "Chơi với máy"))
+            {
+                _wantBot = true;
+                Net.Session.CreateRoom();
+            }
             if (Button(ref y, "Tạo phòng")) Net.Session.CreateRoom();
             float w = _u * 14, h = _u * 2.2f;
             _code = GUI.TextField(new Rect(Screen.width / 2f - w / 2, y, w * 0.45f, h), _code.ToUpperInvariant(), 4, _field);
@@ -210,12 +225,21 @@ namespace Worms.Game.UI
                 }
             }
 
+            bool hostInLobby = Net.Session.IsHost && lobby.State == RoomState.Lobby;
             foreach (var p in lobby.Players)
             {
-                string mark = p.UserId == lobby.HostUserId ? "chủ phòng" : p.Ready ? "sẵn sàng" : "chưa sẵn sàng";
+                string mark = p.IsBot ? "máy" : p.UserId == lobby.HostUserId ? "chủ phòng" : p.Ready ? "sẵn sàng" : "chưa sẵn sàng";
                 if (!p.Connected) mark = "mất kết nối";
                 string color = ColorUtility.ToHtmlStringRGB(TeamColors.Of(p.Team));
+                float rowY = y;
                 Line(ref y, "<color=#" + color + ">" + p.Name + "</color>  <size=" + Mathf.RoundToInt(_u * 0.8f) + ">" + mark + "</size>", _text, 1.4f);
+                if (p.IsBot && hostInLobby)
+                {
+                    // Right edge of the button column (buttons are 14u wide, centered).
+                    float bw = _u * 3f, bh = _u * 1.2f;
+                    if (GUI.Button(new Rect(Screen.width / 2f + _u * 7f - bw, rowY + (_u * 1.4f - bh) / 2f, bw, bh), "Bỏ", _small))
+                        Net.Session.RemoveBot(p.UserId);
+                }
             }
             y += _u * 0.5f;
 
@@ -223,6 +247,8 @@ namespace Worms.Game.UI
             {
                 if (Net.Session.IsHost)
                 {
+                    // Private rooms hold 4 teams (server: Room.MaxPlayers).
+                    if (lobby.Players.Count < 4 && Button(ref y, "+ Thêm máy")) Net.Session.AddBot();
                     bool canStart = lobby.Players.Count >= 2 && lobby.Players.TrueForAll(p => p.UserId == lobby.HostUserId || p.Ready);
                     if (Button(ref y, "Bắt đầu", canStart)) Net.Session.StartMatch();
                 }

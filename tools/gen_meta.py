@@ -42,6 +42,32 @@ IMPORTERS = {
   assetBundleName: 
   assetBundleVariant: 
 """,
+    ".txt": """TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+""",
+    # Dynamic font with its data embedded: the Web build has no system fonts to fall back on.
+    ".ttf": """TrueTypeFontImporter:
+  externalObjects: {}
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontNames: []
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+""",
     ".md": """TextScriptImporter:
   externalObjects: {}
   userData: 
