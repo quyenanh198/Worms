@@ -1,8 +1,14 @@
 {
   "name": "Worms.Editor",
   "rootNamespace": "Worms.Editor",
-  "references": ["Worms.Game"],
-  "includePlatforms": ["Editor"],
+  "references": [
+    "Worms.Game",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,

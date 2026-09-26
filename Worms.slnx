@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/client/" />
+  <Folder Name="/client/DotnetTests/">
+    <Project Path="client/DotnetTests/GameCore.Tests/GameCore.Tests.csproj" />
+    <Project Path="client/DotnetTests/GameCore/GameCore.csproj" />
+  </Folder>
   <Folder Name="/server/">
     <Project Path="server/Server.Tests/Server.Tests.csproj" />
     <Project Path="server/Server/Server.csproj" />

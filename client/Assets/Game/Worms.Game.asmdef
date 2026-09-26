@@ -1,7 +1,13 @@
 {
   "name": "Worms.Game",
   "rootNamespace": "Worms.Game",
-  "references": ["Worms.Sim", "Worms.Protocol"],
+  "references": [
+    "Worms.Sim",
+    "Worms.Protocol",
+    "Worms.Game.Core",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

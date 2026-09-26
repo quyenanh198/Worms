@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Engine-free client code (Assets/Game/Core) built as plain .NET so it can be unit-tested without Unity. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <AssemblyName>Worms.Game.Core</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Game/Core/**/*.cs" />
+    <ProjectReference Include="../../../shared/Protocol/Protocol.csproj" />
+  </ItemGroup>
+</Project>

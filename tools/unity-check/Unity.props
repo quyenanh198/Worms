@@ -14,5 +14,6 @@
   <ItemGroup>
     <Reference Include="$(UnityData)/Managed/UnityEngine/UnityEngine*.dll" Private="false" />
     <ProjectReference Include="$(Root)shared/Protocol/Protocol.csproj" />
+    <Compile Include="$(MSBuildThisFileDirectory)UrpStubs.cs" />
   </ItemGroup>
 </Project>
