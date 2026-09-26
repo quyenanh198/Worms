@@ -14,6 +14,7 @@ namespace Worms.Game.Play
     public sealed class MatchPresenter : MonoBehaviour
     {
         public TerrainView Terrain { get; private set; }
+        public Vfx Vfx { get; private set; }
         public ActorViews Actors { get; private set; }
         public CameraRig Rig { get; private set; }
         public Light Sun { get; private set; }
@@ -39,8 +40,13 @@ namespace Worms.Game.Play
             Terrain.transform.SetParent(transform, false);
             Terrain.Init(terrain, Materials.Terrain(theme));
 
+            Vfx = new GameObject("Vfx").AddComponent<Vfx>();
+            Vfx.transform.SetParent(transform, false);
+            Vfx.Init(theme.Dirt);
+
             Actors = new GameObject("Actors").AddComponent<ActorViews>();
             Actors.transform.SetParent(transform, false);
+            Actors.Vfx = Vfx;
 
             var camGo = new GameObject("Match Camera");
             camGo.transform.SetParent(transform, false);
@@ -59,12 +65,79 @@ namespace Worms.Game.Play
             Current = current;
         }
 
+        /// <summary>Turns simulation events into terrain updates, effects and popups.</summary>
         public void HandleEvents(List<SimEvent> events)
         {
             foreach (var e in events)
             {
-                if (e.Type == SimEventType.Explode) Terrain.RefreshCircle(e.X, e.Y, e.Value);
+                var at = WorldSpace.ToWorld(e.X, e.Y);
+                switch (e.Type)
+                {
+                    case SimEventType.Explode:
+                        Terrain.RefreshCircle(e.X, e.Y, e.Value);
+                        Vfx.Explosion(at, e.Value * WorldSpace.Scale);
+                        ShakeFrom(at, e.Value);
+                        break;
+                    case SimEventType.Fire:
+                    {
+                        var shooter = Actors.WormPosition(e.Worm);
+                        var worm = Current?.FindWorm(e.Worm);
+                        if (shooter.HasValue && worm.HasValue && Weapons.Get(e.Weapon).Aims)
+                        {
+                            var dir = new Vector3(worm.Value.Facing * Mathf.Cos(worm.Value.Aim), Mathf.Sin(worm.Value.Aim), 0);
+                            if (e.Weapon == WeaponId.Bazooka || e.Weapon == WeaponId.Shotgun) Vfx.Muzzle(shooter.Value + dir * 0.9f, dir);
+                        }
+                        break;
+                    }
+                    case SimEventType.Shot:
+                    {
+                        var shooter = Actors.WormPosition(e.Worm);
+                        if (shooter.HasValue)
+                        {
+                            var dir = (at - shooter.Value).normalized;
+                            Vfx.Tracer(shooter.Value + dir * 0.7f, at);
+                            if (e.Weapon == WeaponId.Uzi) Vfx.Muzzle(shooter.Value + dir * 0.7f, dir);
+                        }
+                        break;
+                    }
+                    case SimEventType.Hit:
+                    {
+                        Actors.OnHit(e.Worm);
+                        var pos = Actors.WormPosition(e.Worm);
+                        if (pos.HasValue) Vfx.AddPopup(pos.Value + Vector3.up * 0.8f, "-" + e.Amount, new Color(1f, 0.45f, 0.35f));
+                        Rig.Shake(0.05f + e.Amount * 0.004f);
+                        break;
+                    }
+                    case SimEventType.Land:
+                    {
+                        var pos = Actors.WormPosition(e.Worm);
+                        if (pos.HasValue)
+                        {
+                            Vfx.Dust(pos.Value + Vector3.down * 0.4f, 2f);
+                            if (e.Amount > 0) Vfx.AddPopup(pos.Value + Vector3.up * 0.8f, "-" + e.Amount, new Color(1f, 0.7f, 0.35f));
+                        }
+                        break;
+                    }
+                    case SimEventType.Bounce:
+                        if (e.Value > 120f) Vfx.Dust(at, 1f);
+                        break;
+                    case SimEventType.Splash:
+                        Vfx.Splash(new Vector3(at.x, -WaterLevel * WorldSpace.Scale, WorldSpace.ActorZ));
+                        break;
+                    case SimEventType.Death:
+                    {
+                        var pos = Actors.WormPosition(e.Worm) ?? at;
+                        Actors.OnDeath(e.Worm, e.Cause, pos);
+                        break;
+                    }
+                }
             }
+        }
+
+        void ShakeFrom(Vector3 at, float radius)
+        {
+            float distance = Vector2.Distance(at, Rig.transform.position);
+            Rig.Shake(radius / 50f * 0.35f * Mathf.Clamp01(1.5f - distance / 40f));
         }
 
         /// <summary>Called every frame after the snapshots are up to date.</summary>

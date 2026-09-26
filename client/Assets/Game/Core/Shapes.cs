@@ -69,6 +69,76 @@ namespace Worms.Game.Core
             return m;
         }
 
+        /// <summary>Closed cylinder along Y, centered at the origin.</summary>
+        public static MeshBuffers Cylinder(float radius, float length, int segments = 14)
+        {
+            var m = new MeshBuffers();
+            float h = length / 2;
+            // Side.
+            for (int s = 0; s <= segments; s++)
+            {
+                float a = 2f * (float)Math.PI * s / segments;
+                float nx = (float)Math.Cos(a), nz = (float)Math.Sin(a);
+                m.AddVertex(nx * radius, h, nz * radius, nx, 0, nz, (float)s / segments, 1);
+                m.AddVertex(nx * radius, -h, nz * radius, nx, 0, nz, (float)s / segments, 0);
+            }
+            for (int s = 0; s < segments; s++)
+            {
+                int a = s * 2, b = a + 1, c = a + 2, d = a + 3;
+                m.AddTriangle(a, c, b);
+                m.AddTriangle(b, c, d);
+            }
+            // Caps.
+            foreach (int side in new[] { 1, -1 })
+            {
+                int center = m.AddVertex(0, h * side, 0, 0, side, 0, 0.5f, 0.5f);
+                int first = m.VertexCount;
+                for (int s = 0; s <= segments; s++)
+                {
+                    float a = 2f * (float)Math.PI * s / segments;
+                    m.AddVertex((float)Math.Cos(a) * radius, h * side, (float)Math.Sin(a) * radius, 0, side, 0, 0, 0);
+                }
+                for (int s = 0; s < segments; s++)
+                {
+                    if (side > 0) m.AddTriangle(center, first + s + 1, first + s);
+                    else m.AddTriangle(center, first + s, first + s + 1);
+                }
+            }
+            return m;
+        }
+
+        /// <summary>Axis-aligned box centered at the origin with flat faces.</summary>
+        public static MeshBuffers Box(float sx, float sy, float sz)
+        {
+            var m = new MeshBuffers();
+            float x = sx / 2, y = sy / 2, z = sz / 2;
+            // Each face: normal and two tangents (u, v) with u x v = normal for a clockwise-from-outside quad.
+            float[][] faces =
+            {
+                new float[] { 1, 0, 0, 0, 0, 1, 0, 1, 0 },
+                new float[] { -1, 0, 0, 0, 0, -1, 0, 1, 0 },
+                new float[] { 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+                new float[] { 0, -1, 0, -1, 0, 0, 0, 0, 1 },
+                new float[] { 0, 0, 1, -1, 0, 0, 0, 1, 0 },
+                new float[] { 0, 0, -1, 1, 0, 0, 0, 1, 0 },
+            };
+            foreach (var f in faces)
+            {
+                float nx = f[0], ny = f[1], nz = f[2];
+                int start = m.VertexCount;
+                foreach (var (su, sv) in new[] { (-1f, -1f), (1f, -1f), (1f, 1f), (-1f, 1f) })
+                {
+                    float px = nx * x + (f[3] * su + f[6] * sv) * x;
+                    float py = ny * y + (f[4] * su + f[7] * sv) * y;
+                    float pz = nz * z + (f[5] * su + f[8] * sv) * z;
+                    m.AddVertex(px, py, pz, nx, ny, nz, (su + 1) / 2, (sv + 1) / 2);
+                }
+                m.AddTriangle(start, start + 2, start + 1);
+                m.AddTriangle(start, start + 3, start + 2);
+            }
+            return m;
+        }
+
         /// <summary>Flat grid in XZ at y = 0, facing up.</summary>
         public static MeshBuffers Grid(float x0, float z0, float x1, float z1, int nx, int nz)
         {

@@ -15,6 +15,7 @@ namespace Worms.Game.Render
         public float Tilt = 7f;
 
         Vector3 _focus;
+        float _shake;
         Vector3 _velocity;
         Vector3? _follow;
         float _manualUntil;
@@ -44,6 +45,12 @@ namespace Worms.Game.Render
             _manualUntil = Time.time + 3f;
         }
 
+        /// <summary>Adds screen shake (world units of offset), decaying over about half a second.</summary>
+        public void Shake(float amount)
+        {
+            _shake = Mathf.Min(1.2f, _shake + amount);
+        }
+
         public void Zoom(float factor)
         {
             Distance = Mathf.Clamp(Distance * factor, MinDistance, MaxDistance);
@@ -62,7 +69,14 @@ namespace Worms.Game.Render
             _focus.z = 0;
 
             var rotation = Quaternion.Euler(Tilt, 0, 0);
-            transform.position = _focus + rotation * new Vector3(0, 0, -Distance) + Vector3.up * (Distance * 0.06f);
+            var offset = Vector3.zero;
+            if (_shake > 0.001f)
+            {
+                float t = Time.time * 40f;
+                offset = new Vector3(Mathf.PerlinNoise(t, 0.3f) - 0.5f, Mathf.PerlinNoise(0.7f, t) - 0.5f, 0) * (_shake * 2f);
+                _shake = Mathf.MoveTowards(_shake, 0, Time.deltaTime * 2.4f);
+            }
+            transform.position = _focus + rotation * new Vector3(0, 0, -Distance) + Vector3.up * (Distance * 0.06f) + offset;
             transform.rotation = rotation;
         }
     }

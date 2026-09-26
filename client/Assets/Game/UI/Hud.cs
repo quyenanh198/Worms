@@ -88,6 +88,16 @@ namespace Worms.Game.UI
                 Shadowed(r, text, _small, TeamColors.Of(worm.Team));
             }
 
+            // Damage numbers rising from worms.
+            foreach (var popup in Source.Presenter.Vfx.Popups)
+            {
+                var sp = cam.WorldToScreenPoint(popup.World + Vector3.up * popup.Age * 0.8f);
+                if (sp.z <= 0) continue;
+                var c = popup.Color;
+                c.a = 1f - Mathf.Clamp01((popup.Age - Render.Vfx.PopupSeconds * 0.6f) / (Render.Vfx.PopupSeconds * 0.4f));
+                Shadowed(new Rect(sp.x - u * 3, h - sp.y - u, u * 6, u * 2), popup.Text, _big, c);
+            }
+
             // Top center: whose turn and the timer.
             string who = s.ActiveTeam >= 0 ? Source.TeamName(s.ActiveTeam) : "";
             float seconds = s.Phase == Phase.Retreat ? s.RetreatTicksLeft / (float)C.TicksPerSecond : s.TurnTicksLeft / (float)C.TicksPerSecond;
