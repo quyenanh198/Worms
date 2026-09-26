@@ -59,7 +59,6 @@ namespace Worms.Game.UI
         static void Fill(GUIStyleState state, Texture2D background, Color text)
         {
             state.background = background;
-            state.scaledBackgrounds = new Texture2D[0];
             state.textColor = text;
         }
 

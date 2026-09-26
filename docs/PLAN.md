@@ -330,7 +330,7 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
   - `Turn`: chuông báo lượt
   - còn 5 giây: tiếng tích tắc
 - Nhạc nền loop theo theme. Trên web và iOS, audio chỉ mở khóa sau lần chạm đầu tiên, nên lobby phải có một thao tác chạm trước khi vào trận.
-- **Nguồn: tổng hợp bằng code** (`Core/SfxSynth.cs`). Mọi tiếng động (nổ 3 cỡ, phóng tên lửa, ném, shotgun, uzi, vung gậy, máy bay không kích, nảy, nhảy, tiếp đất, bọt nước, kêu đau, "bye bye", chuông lượt, tích tắc) và nhạc nền loop 16 giây đều được sinh ra lúc game khởi động, từ noise, bộ dao động, envelope và bộ lọc. Repo không có file âm thanh nào nên không có vấn đề license. Sau này có thể thay bằng file CC0 hoặc giọng TTS mà không phải đổi phần còn lại.
+- **Nguồn: tổng hợp bằng code** (`Core/SfxSynth.cs`). Mọi tiếng động (nổ 3 cỡ, phóng tên lửa, ném, shotgun, uzi, vung gậy, máy bay không kích, nảy, nhảy, tiếp đất, bọt nước, kêu đau, "bye bye", chuông lượt, tích tắc) và nhạc nền loop 16 giây đều được sinh ra lúc game khởi động, từ noise, bộ dao động, envelope và bộ lọc. Âm thanh là stereo: lớp noise lệch pha giữa hai tai, lớp có cao độ detune nhẹ, giọng sâu đi qua bộ lọc formant, mỗi clip có reverb phòng riêng; nhạc nền có pad, bass, arpeggio ping-pong, chuông và trống, render hai vòng để loop không bị gãy. Tất cả chạy trên client, server chỉ gửi event. Repo không có file âm thanh nào nên không có vấn đề license. Sau này có thể thay bằng file CC0 hoặc giọng TTS mà không phải đổi phần còn lại.
 - Tiếng nhảy không có event riêng: client tự phát khi thấy sâu chuyển sang Airborne và đang đi lên.
 - Nút "Âm thanh: bật/tắt" trên HUD, thanh chỉnh Nhạc và Hiệu ứng ở menu. Cả hai được lưu trong `PlayerPrefs`.
 
