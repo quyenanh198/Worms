@@ -77,8 +77,14 @@ namespace Worms.Protocol
 
         public byte[] Encode()
         {
-            var w = new MsgWriter(MsgType.Snapshot)
-                .U32(Tick).U8((byte)Phase).I8((sbyte)ActiveTeam).I16((short)ActiveWorm)
+            var w = new MsgWriter(MsgType.Snapshot);
+            WriteTo(w);
+            return w.ToArray();
+        }
+
+        public void WriteTo(MsgWriter w)
+        {
+            w.U32(Tick).U8((byte)Phase).I8((sbyte)ActiveTeam).I16((short)ActiveWorm)
                 .F32(Wind).U16((ushort)TurnTicksLeft).U16((ushort)RetreatTicksLeft)
                 .I8((sbyte)Winner).U8((byte)ActiveWeapon);
             w.U8((byte)Worms.Count);
@@ -90,7 +96,6 @@ namespace Worms.Protocol
             w.U8((byte)Projectiles.Count);
             foreach (var p in Projectiles)
                 w.I32(p.Id).U8((byte)p.Weapon).F32(p.X).F32(p.Y).I16((short)p.FuseLeft);
-            return w.ToArray();
         }
 
         public static Snapshot Decode(MsgReader r, Snapshot reuse = null)

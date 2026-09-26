@@ -7,6 +7,12 @@ namespace Worms.Sim
         public short X;
         public short Y;
         public short R;
+
+        /// <summary>The exact carve an explosion makes; clients rebuild terrain from Explode events with this.</summary>
+        public static CarveOp FromExplosion(float x, float y, float radius)
+        {
+            return new CarveOp { X = (short)Math.Round(x), Y = (short)Math.Round(y), R = (short)Math.Round(radius) };
+        }
     }
 
     public static class Explosion
@@ -18,13 +24,7 @@ namespace Worms.Sim
         /// </summary>
         public static void Detonate(World w, Vec2 c, float radius, int maxDamage, int excludeWorm = -1)
         {
-            var op = new CarveOp
-            {
-                X = (short)Math.Round(c.X),
-                Y = (short)Math.Round(c.Y),
-                R = (short)Math.Round(radius),
-            };
-            w.ApplyCarve(op);
+            w.ApplyCarve(CarveOp.FromExplosion(c.X, c.Y, radius));
             w.Emit(new SimEvent { Type = SimEventType.Explode, X = c.X, Y = c.Y, Value = radius });
 
             foreach (var worm in w.Worms)

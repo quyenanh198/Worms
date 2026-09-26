@@ -18,7 +18,7 @@ Kế hoạch đầy đủ: [docs/PLAN.md](docs/PLAN.md).
 
 ```bash
 dotnet test Worms.slnx                    # sim, protocol, server
-dotnet run --project server/Server        # http://localhost:8080, WebSocket tại /ws
+dotnet run --project server/Server        # http://localhost:8080, WebSocket tại /ws (chế độ khách vì chưa đặt CHAT_API_URL)
 docker build -t worms:dev .               # image server (+ trang tạm nếu chưa có bản Web)
 python3 tools/gen_meta.py                 # sinh .meta cho file mới trong client/Assets và shared/
 ```

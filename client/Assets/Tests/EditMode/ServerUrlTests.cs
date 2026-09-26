@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using Worms.Game.Net;
+using Worms.Game.Core;
 
 namespace Worms.Tests
 {
