@@ -86,12 +86,13 @@ namespace Worms.Game.Render
             return m;
         }
 
-        public static Material Backdrop(Color top, Color bottom, float height)
+        public static Material Backdrop(Color top, Color bottom, float height, float haze)
         {
             var m = Create("Worms/Backdrop", "Backdrop");
             m.SetColor("_TopColor", top);
             m.SetColor("_BottomColor", bottom);
             m.SetFloat("_Height", height);
+            m.SetFloat("_Haze", haze);
             return m;
         }
 

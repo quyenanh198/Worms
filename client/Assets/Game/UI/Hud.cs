@@ -28,7 +28,7 @@ namespace Worms.Game.UI
     public sealed class Hud : MonoBehaviour
     {
         public IHudSource Source;
-        GUIStyle _label, _big, _small, _panel, _button;
+        GUIStyle _label, _big, _small, _panel, _button, _buttonOn;
         bool _weaponMenu;
         Texture2D _white;
 
@@ -51,7 +51,11 @@ namespace Worms.Game.UI
             _small = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 0.8f) };
             _panel = new GUIStyle(GUI.skin.box);
             _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u * 0.85f), wordWrap = true };
-            UiFont.Apply(_label, _big, _small, _panel, _button);
+            UiSkin.Panel(_panel);
+            UiSkin.Button(_button);
+            // The selected weapon: gold outline and text.
+            _buttonOn = new GUIStyle(_button) { normal = _button.onNormal, hover = _button.onHover };
+            UiFont.Apply(_label, _big, _small, _panel, _button, _buttonOn);
         }
 
         void Box(Rect r, Color c)
@@ -74,6 +78,7 @@ namespace Worms.Game.UI
 
         void OnGUI()
         {
+            UiFont.UseForSkin();
             var s = Source?.Current;
             if (s == null) return;
             Styles();
@@ -198,7 +203,7 @@ namespace Worms.Game.UI
             const int cols = 4;
             float cw = u * 6.2f, ch = u * 3f;
             var panel = new Rect(w - cw * cols - u * 1.5f, h - u * 4.2f - ch * 2 - u, cw * cols + u, ch * 2 + u);
-            Box(panel, new Color(0, 0, 0, 0.55f));
+            GUI.Box(panel, GUIContent.none, _panel);
             Play.KeyboardInput.BlockedArea = new Rect(panel.x, panel.y, panel.width, toggle.yMax - panel.y);
             for (int i = 0; i < Weapons.Count; i++)
             {
@@ -208,14 +213,11 @@ namespace Worms.Game.UI
                 var r = new Rect(panel.x + u * 0.5f + (i % cols) * cw, panel.y + u * 0.5f + (i / cols) * ch, cw - u * 0.3f, ch - u * 0.3f);
                 var old = GUI.enabled;
                 GUI.enabled = ammo != 0 && !s.AttackInProgress;
-                var oldColor = GUI.backgroundColor;
-                if (id == s.ActiveWeapon) GUI.backgroundColor = new Color(1f, 0.85f, 0.4f);
-                if (GUI.Button(r, label, _button))
+                if (GUI.Button(r, label, id == s.ActiveWeapon ? _buttonOn : _button))
                 {
                     Source.SelectWeapon(id);
                     _weaponMenu = false;
                 }
-                GUI.backgroundColor = oldColor;
                 GUI.enabled = old;
             }
         }
@@ -223,12 +225,12 @@ namespace Worms.Game.UI
         void GameOverPanel(Snapshot s, float w, float h, float u)
         {
             var r = new Rect(w / 2 - u * 10, h / 2 - u * 4, u * 20, u * 8);
-            Box(r, new Color(0, 0, 0, 0.65f));
+            GUI.Box(r, GUIContent.none, _panel);
             string text = s.Winner >= 0 ? Source.TeamName(s.Winner) + " thắng!" : "Hòa!";
             Shadowed(new Rect(r.x, r.y + u, r.width, u * 2), text, _big, s.Winner >= 0 ? TeamColors.Of(s.Winner) : Color.white);
             float bw = u * 8;
-            if (Source.PlayAgain != null && GUI.Button(new Rect(r.center.x - bw - u * 0.5f, r.yMax - u * 2.6f, bw, u * 1.8f), "Chơi lại")) Source.PlayAgain();
-            if (Source.Leave != null && GUI.Button(new Rect(r.center.x + u * 0.5f, r.yMax - u * 2.6f, bw, u * 1.8f), "Về menu")) Source.Leave();
+            if (Source.PlayAgain != null && GUI.Button(new Rect(r.center.x - bw - u * 0.5f, r.yMax - u * 2.6f, bw, u * 1.8f), "Chơi lại", _button)) Source.PlayAgain();
+            if (Source.Leave != null && GUI.Button(new Rect(r.center.x + u * 0.5f, r.yMax - u * 2.6f, bw, u * 1.8f), "Về menu", _button)) Source.Leave();
         }
     }
 }

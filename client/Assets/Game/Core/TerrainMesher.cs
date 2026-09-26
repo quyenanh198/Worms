@@ -16,6 +16,11 @@ namespace Worms.Game.Core
         public const int ChunkSize = 64;
         /// <summary>Rock deeper than this is shaded the same.</summary>
         public const int MaxDepth = 24;
+        /// <summary>
+        /// Wall normals are averaged over this many cells, so the stair steps of the
+        /// pixel boundary shade as one smooth slope instead of light/dark stripes.
+        /// </summary>
+        public const float NormalRadius = 4f;
 
         readonly Terrain _t;
         /// <summary>World units per simulation unit.</summary>
@@ -165,13 +170,28 @@ namespace Worms.Game.Core
             // and the outward normal is on the left: (-dy, dx) in Y-up space.
             float dx = bx - ax, dy = by - ay;
             float len = (float)Math.Sqrt(dx * dx + dy * dy);
-            float nx = -dy / len, ny = dx / len;
-            int a0 = mesh.AddVertex(ax, ay, FrontZ, nx, ny, 0, 0, 1);
-            int b0 = mesh.AddVertex(bx, by, FrontZ, nx, ny, 0, 0, 1);
-            int b1 = mesh.AddVertex(bx, by, BackZ, nx, ny, 0, 0, 1);
-            int a1 = mesh.AddVertex(ax, ay, BackZ, nx, ny, 0, 0, 1);
+            float fx = -dy / len, fy = dx / len;
+            // Each end takes the smoothed surface normal there; neighbouring segments share
+            // their end points, so the shading runs on without a seam.
+            var (anx, any) = SmoothNormal(sx0, sy0, fx, fy);
+            var (bnx, bny) = SmoothNormal(sx1, sy1, fx, fy);
+            int a0 = mesh.AddVertex(ax, ay, FrontZ, anx, any, 0, 0, 1);
+            int b0 = mesh.AddVertex(bx, by, FrontZ, bnx, bny, 0, 0, 1);
+            int b1 = mesh.AddVertex(bx, by, BackZ, bnx, bny, 0, 0, 1);
+            int a1 = mesh.AddVertex(ax, ay, BackZ, anx, any, 0, 0, 1);
             mesh.AddTriangle(a0, a1, b1);
             mesh.AddTriangle(a0, b1, b0);
+        }
+
+        /// <summary>Outward normal (Y up) of the terrain around sample point (sx, sy); the segment's own normal if it is ambiguous.</summary>
+        (float, float) SmoothNormal(float sx, float sy, float fx, float fy)
+        {
+            // Sample (i, j) is cell (i, j)'s center, i.e. simulation point (i + 0.5, j + 0.5).
+            var n = _t.NormalAt(new Vec2(sx + 0.5f, sy + 0.5f), NormalRadius);
+            float nx = n.X, ny = -n.Y;
+            // Thin slivers can average to the wrong side; never tilt more than 90 degrees from the segment.
+            if (nx * fx + ny * fy <= 0.1f) return (fx, fy);
+            return (nx, ny);
         }
     }
 }

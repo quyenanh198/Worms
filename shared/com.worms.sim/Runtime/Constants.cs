@@ -8,6 +8,13 @@ namespace Worms.Sim
     {
         public const int TicksPerSecond = 60;
         public const float Dt = 1f / TicksPerSecond;
+        /// <summary>
+        /// Projectiles live in slow motion: each tick advances them by this fraction of
+        /// <see cref="Dt"/>, so a full-power rocket crosses the screen slowly enough to follow.
+        /// Their paths are the same; only the flight takes longer. Fuses stay in real seconds.
+        /// </summary>
+        public const float ProjectileTimeScale = 0.5f;
+        public const float ProjectileDt = Dt * ProjectileTimeScale;
 
         public const int MapWidth = 2048;
         public const int MapHeight = 1024;

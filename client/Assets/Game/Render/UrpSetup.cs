@@ -60,6 +60,9 @@ namespace Worms.Game.Render
                 urp.renderScale = tier == QualityTier.Low ? 0.7f : tier == QualityTier.Medium ? 0.85f : 1f;
                 urp.msaaSampleCount = tier == QualityTier.Low ? 1 : tier == QualityTier.Medium ? 2 : 4;
                 urp.shadowDistance = 60f;
+                // The terrain is a stack of pixel steps; a little extra bias keeps it free of shadow acne stripes.
+                urp.shadowDepthBias = 1.6f;
+                urp.shadowNormalBias = 1.4f;
                 urp.shadowCascadeCount = tier == QualityTier.High ? 2 : 1;
             }
             if (sun != null) sun.shadows = tier == QualityTier.Low ? LightShadows.None : LightShadows.Soft;

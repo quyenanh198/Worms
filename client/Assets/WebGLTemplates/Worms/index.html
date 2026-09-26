@@ -19,10 +19,15 @@
       #loading h1 { color: #ffcc66; font-size: 40px; margin: 0 0 16px; letter-spacing: 4px; }
       #bar { height: 8px; background: #26303f; border-radius: 4px; overflow: hidden; }
       #fill { height: 100%; width: 0; background: #ffcc66; transition: width 0.2s; }
-      #banner { position: fixed; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 8px; align-items: center; justify-content: space-between;
-                background: #1a2130ee; color: #e8ecf2; font: 14px system-ui, sans-serif; padding: 10px 12px; border-radius: 10px; }
-      #banner a { color: #10141c; background: #ffcc66; padding: 6px 10px; border-radius: 6px; text-decoration: none; font-weight: 600; white-space: nowrap; }
-      #banner button { background: none; border: 0; color: #9aa6b8; font-size: 18px; }
+      #banner { position: fixed; z-index: 10; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 8px; align-items: center; justify-content: space-between;
+                background: #1a2130ee; color: #e8ecf2; font: 14px system-ui, sans-serif; padding: 6px 6px 6px 12px; border-radius: 10px;
+                touch-action: manipulation; }
+      #banner[hidden] { display: none; }
+      #banner a { color: #10141c; background: #ffcc66; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; white-space: nowrap; }
+      /* A real touch target (the bare "×" glyph was ~10 px wide and nearly impossible to hit). */
+      #banner button { flex: none; width: 44px; height: 44px; background: none; border: 0; border-radius: 8px; color: #c7d0dc;
+                       font-size: 26px; line-height: 1; cursor: pointer; }
+      #banner button:active { background: #ffffff1a; }
     </style>
   </head>
   <body>
@@ -30,7 +35,7 @@
     <div id="loading"><div class="box"><h1>WORMS</h1><div id="bar"><div id="fill"></div></div><p id="status">Đang tải…</p></div></div>
     <div id="banner" hidden>
       <span>Chơi mượt hơn với app Android.</span>
-      <a href="download">Cài app</a>
+      <a href="download" target="_blank" rel="noopener">Cài app</a>
       <button id="close" aria-label="Đóng">×</button>
     </div>
     <script src="Build/{{{ LOADER_FILENAME }}}"></script>
@@ -40,14 +45,27 @@
       try {
         if (isAndroid && !localStorage.getItem("worms.noApkBanner")) document.getElementById("banner").hidden = false;
       } catch (e) {}
-      document.getElementById("close").onclick = function () {
-        document.getElementById("banner").hidden = true;
-        try { localStorage.setItem("worms.noApkBanner", "1"); } catch (e) {}
-      };
+      var banner = document.getElementById("banner");
+      function dismissBanner(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        banner.hidden = true;
+        try { localStorage.setItem("worms.noApkBanner", "1"); } catch (err) {}
+      }
+      // pointerup as well as click: on phones the click can be swallowed by the game's
+      // own touch handling or by the page jumping to fullscreen underneath the finger.
+      document.getElementById("close").addEventListener("pointerup", dismissBanner);
+      document.getElementById("close").addEventListener("click", dismissBanner);
+      // Taps on the banner belong to the banner, not to the game underneath.
+      ["pointerdown", "touchstart", "touchend", "mousedown"].forEach(function (type) {
+        banner.addEventListener(type, function (e) { e.stopPropagation(); });
+      });
 
       // Phones: go fullscreen in landscape on the first tap (browsers only allow it after a gesture).
       if (isMobile) {
-        document.addEventListener("touchend", function once() {
+        document.addEventListener("touchend", function once(e) {
+          // Not from the install banner: going fullscreen mid-tap moves the "×" out from under the finger.
+          if (banner.contains(e.target)) return;
           document.removeEventListener("touchend", once);
           var el = document.documentElement;
           var req = el.requestFullscreen || el.webkitRequestFullscreen;

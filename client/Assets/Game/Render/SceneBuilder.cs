@@ -34,8 +34,8 @@ namespace Worms.Game.Render
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = theme.Fog;
-            RenderSettings.fogStartDistance = 45f;
-            RenderSettings.fogEndDistance = 230f;
+            RenderSettings.fogStartDistance = 60f;
+            RenderSettings.fogEndDistance = 280f;
         }
 
         /// <summary>Layers of hills behind the map; the perspective camera gives them parallax.</summary>
@@ -44,9 +44,9 @@ namespace Worms.Game.Render
             var rng = new Rng(seed ^ 0xB4CDu);
             var layers = new[]
             {
-                (z: 12f, height: 9f, color: theme.HillsNear[0], dark: theme.HillsNear[1]),
-                (z: 35f, height: 16f, color: theme.HillsFar[0], dark: theme.HillsFar[1]),
-                (z: 80f, height: 28f, color: Color.Lerp(theme.HillsFar[0], theme.Fog, 0.45f), dark: Color.Lerp(theme.HillsFar[1], theme.Fog, 0.45f)),
+                (z: 12f, height: 9f, color: theme.HillsNear[0], dark: theme.HillsNear[1], haze: 0.08f),
+                (z: 35f, height: 16f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.3f),
+                (z: 80f, height: 28f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.58f),
             };
             foreach (var layer in layers)
             {
@@ -56,7 +56,7 @@ namespace Worms.Game.Render
                 go.transform.SetParent(parent, false);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var r = go.AddComponent<MeshRenderer>();
-                r.sharedMaterial = Materials.Backdrop(layer.color, layer.dark, layer.height * 2f);
+                r.sharedMaterial = Materials.Backdrop(layer.color, layer.dark, layer.height * 2f, layer.haze);
                 r.shadowCastingMode = ShadowCastingMode.Off;
                 r.receiveShadows = false;
             }
@@ -68,6 +68,7 @@ namespace Worms.Game.Render
             float p1 = rng.Range(0, 6.28f), p2 = rng.Range(0, 6.28f), p3 = rng.Range(0, 6.28f);
             float f1 = rng.Range(0.02f, 0.04f), f2 = rng.Range(0.06f, 0.1f), f3 = rng.Range(0.15f, 0.25f);
             var verts = new Vector3[(n + 1) * 2];
+            var uvs = new Vector2[(n + 1) * 2];
             var tris = new int[n * 6];
             for (int i = 0; i <= n; i++)
             {
@@ -75,6 +76,8 @@ namespace Worms.Game.Render
                 float h = height * (0.55f + 0.3f * Mathf.Sin(x * f1 + p1) + 0.12f * Mathf.Sin(x * f2 + p2) + 0.05f * Mathf.Sin(x * f3 + p3));
                 verts[i * 2] = new Vector3(x, baseY, z);
                 verts[i * 2 + 1] = new Vector3(x, baseY + h, z);
+                uvs[i * 2] = new Vector2(0, 0);
+                uvs[i * 2 + 1] = new Vector2(0, 1);
                 if (i < n)
                 {
                     int a = i * 2, t = i * 6;
@@ -82,7 +85,7 @@ namespace Worms.Game.Render
                     tris[t + 3] = a; tris[t + 4] = a + 3; tris[t + 5] = a + 2;
                 }
             }
-            var mesh = new Mesh { name = "Hills", vertices = verts, triangles = tris };
+            var mesh = new Mesh { name = "Hills", vertices = verts, uv = uvs, triangles = tris };
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             return mesh;

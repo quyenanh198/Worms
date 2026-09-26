@@ -27,7 +27,8 @@ namespace Worms.Game.UI
         bool _wantBot;
         string _toast;
         float _toastUntil;
-        GUIStyle _title, _text, _small, _button, _field;
+        GUIStyle _title, _text, _small, _button, _smallButton, _field, _track, _thumb;
+        float _sliderH;
         float _u;
 
         void Update()
@@ -75,7 +76,12 @@ namespace Worms.Game.UI
             _small = new GUIStyle(_text) { fontSize = Mathf.RoundToInt(u * 0.8f) };
             _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u) };
             _field = new GUIStyle(GUI.skin.textField) { fontSize = Mathf.RoundToInt(u), alignment = TextAnchor.MiddleCenter };
-            UiFont.Apply(_title, _text, _small, _button, _field);
+            _smallButton = new GUIStyle(_button) { fontSize = Mathf.RoundToInt(u * 0.8f) };
+            UiSkin.Button(_button);
+            UiSkin.Button(_smallButton);
+            UiSkin.Field(_field);
+            (_track, _thumb, _sliderH) = UiSkin.Slider(u);
+            UiFont.Apply(_title, _text, _small, _button, _smallButton, _field);
         }
 
         bool Button(ref float y, string label, bool enabled = true)
@@ -98,6 +104,7 @@ namespace Worms.Game.UI
 
         void OnGUI()
         {
+            UiFont.UseForSkin();
             if (Hidden) return;
             Styles();
             float y = Screen.height * 0.08f;
@@ -122,13 +129,13 @@ namespace Worms.Game.UI
             if (audio == null) return;
             float w = _u * 9, x = Screen.width - w - _u, y = _u * 0.5f;
             GUI.Label(new Rect(x, y, w, _u * 1.2f), "Nhạc", _small);
-            float music = GUI.HorizontalSlider(new Rect(x, y + _u * 1.2f, w, _u), audio.MusicVolume, 0, 1);
-            GUI.Label(new Rect(x, y + _u * 2.2f, w, _u * 1.2f), "Hiệu ứng", _small);
-            float sfx = GUI.HorizontalSlider(new Rect(x, y + _u * 3.4f, w, _u), audio.SfxVolume, 0, 1);
+            float music = GUI.HorizontalSlider(new Rect(x, y + _u * 1.2f, w, _sliderH), audio.MusicVolume, 0, 1, _track, _thumb);
+            GUI.Label(new Rect(x, y + _u * 2.4f, w, _u * 1.2f), "Hiệu ứng", _small);
+            float sfx = GUI.HorizontalSlider(new Rect(x, y + _u * 3.6f, w, _sliderH), audio.SfxVolume, 0, 1, _track, _thumb);
             if (!Mathf.Approximately(music, audio.MusicVolume) || !Mathf.Approximately(sfx, audio.SfxVolume)) audio.SetVolumes(sfx, music);
 
             int choice = Render.QualitySettingsManager.Choice;
-            if (GUI.Button(new Rect(x, y + _u * 4.8f, w, _u * 1.6f), "Đồ họa: " + Render.QualitySettingsManager.Label(choice), _small))
+            if (GUI.Button(new Rect(x, y + _u * 5.1f, w, _u * 1.7f), "Đồ họa: " + Render.QualitySettingsManager.Label(choice), _smallButton))
                 Render.QualitySettingsManager.Choice = choice >= 2 ? -1 : choice + 1;
         }
 

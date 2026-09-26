@@ -26,6 +26,17 @@ namespace Worms.Game.UI
             return _font;
         }
 
+        /// <summary>
+        /// Makes the font the IMGUI default, so a control drawn without an explicit style
+        /// (the game-over "Chơi lại"/"Về menu" buttons were) still gets Vietnamese letters.
+        /// Call at the top of every OnGUI.
+        /// </summary>
+        public static void UseForSkin()
+        {
+            var font = Get();
+            if (font != null && GUI.skin.font != font) GUI.skin.font = font;
+        }
+
         /// <summary>Puts the UI font on these styles (no-op if it failed to load).</summary>
         public static void Apply(params GUIStyle[] styles)
         {

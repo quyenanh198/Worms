@@ -203,7 +203,7 @@ namespace Worms.Sim
                 var p = Projectiles[i];
                 if (!p.Alive) continue;
                 p.Age++;
-                var hit = Physics.Step(p.Body, Terrain, Wind);
+                var hit = Physics.Step(p.Body, Terrain, Wind, C.ProjectileDt);
 
                 if (p.FuseTicks >= 0)
                 {

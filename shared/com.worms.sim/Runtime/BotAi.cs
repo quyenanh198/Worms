@@ -55,7 +55,7 @@ namespace Worms.Sim
         }
 
         const float Deg = (float)(Math.PI / 180.0);
-        const int MaxFlightTicks = 8 * C.TicksPerSecond;
+        const int MaxFlightTicks = (int)(8 * C.TicksPerSecond / C.ProjectileTimeScale);
         /// <summary>Hurting its own team costs twice what hurting an enemy earns.</summary>
         const float FriendlyFireWeight = 2f;
         const float KillBonus = 25f;
@@ -211,7 +211,7 @@ namespace Worms.Sim
 
             for (int age = 0; age < MaxFlightTicks; age++)
             {
-                var hit = Physics.Step(body, v.Terrain, v.Wind);
+                var hit = Physics.Step(body, v.Terrain, v.Wind, C.ProjectileDt);
                 if (fuseTicks >= 0)
                 {
                     if (age >= fuseTicks) return body.Pos;

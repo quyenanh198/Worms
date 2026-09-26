@@ -81,19 +81,20 @@ Shader "Worms/Terrain"
 
                 if (input.uv.y > 0.5)
                 {
-                    // Side wall: grass where it faces up, rock elsewhere; darker toward the back.
-                    half3 rock = lerp(_RockColor.rgb, _RockColor.rgb * 0.65, noise);
-                    half3 grass = _GrassColor.rgb * (0.85 + 0.3 * noise);
-                    albedo = lerp(rock, grass, smoothstep(0.45, 0.75, n.y));
-                    albedo *= lerp(1.0, 0.7, saturate(ws.z * 0.5));
+                    // Side wall: grass where it faces up, earthy rock elsewhere; darker toward the back.
+                    half3 rock = lerp(lerp(_RockColor.rgb, _DirtColor.rgb, 0.45), _RockColor.rgb * 0.7, noise);
+                    half3 grass = _GrassColor.rgb * (0.9 + 0.25 * noise);
+                    albedo = lerp(rock, grass, smoothstep(0.35, 0.65, n.y + (noise - 0.5) * 0.2));
+                    albedo *= lerp(1.0, 0.8, saturate(ws.z * 0.45));
                 }
                 else
                 {
                     // Front face: topsoil, dirt, then deep rock, with scattered pebbles.
                     float d = input.uv.x + (noise - 0.5) * 2.0;
                     half3 dirt = lerp(_DirtColor.rgb, _DirtColor.rgb * 0.72, noise);
-                    albedo = lerp(_GrassColor.rgb * (0.9 + 0.2 * noise), dirt, smoothstep(0.8, 2.2, d));
-                    albedo = lerp(albedo, _DeepColor.rgb, smoothstep(6.0, 22.0, d));
+                    // A thick grass lip, then topsoil fading into deep earth (never quite black).
+                    albedo = lerp(_GrassColor.rgb * (0.95 + 0.2 * noise), dirt, smoothstep(2.5, 4.5, d));
+                    albedo = lerp(albedo, _DeepColor.rgb * (0.9 + 0.25 * noise), 0.85 * smoothstep(7.0, 22.0, d));
                     float pebble = step(0.78, WormsValueNoise(ws.xy * _NoiseScale * 7.0));
                     albedo = lerp(albedo, _RockColor.rgb, pebble * 0.35 * smoothstep(2.0, 4.0, d));
                 }
@@ -110,7 +111,8 @@ Shader "Worms/Terrain"
                 albedo = lerp(albedo, albedo * 0.22 + half3(0.03, 0.025, 0.02), burn * (0.75 + 0.25 * noise));
 
                 Light light = GetMainLight(TransformWorldToShadowCoord(ws));
-                half ndl = saturate(dot(n, light.direction));
+                // Wrapped diffuse: walls turned away from the sun stay readable instead of going black.
+                half ndl = saturate(dot(n, light.direction) * 0.6 + 0.4);
                 half3 color = albedo * (light.color * ndl * light.shadowAttenuation + SampleSH(n));
                 color = MixFog(color, input.fogFactor);
                 return half4(color, 1);
