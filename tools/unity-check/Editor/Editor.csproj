@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Unity.props" />
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);UNITY_EDITOR;UNITY_INCLUDE_TESTS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(Root)client/Assets/Game/**/*.cs" />
+    <Compile Include="$(Root)client/Assets/Editor/**/*.cs" />
+    <Compile Include="$(Root)client/Assets/Tests/**/*.cs" />
+    <Reference Include="$(UnityData)/Managed/UnityEngine/UnityEditor*.dll" Private="false" />
+    <Reference Include="$(UnityData)/Resources/PackageManager/BuiltInPackages/com.unity.ext.nunit/net40/unity-custom/nunit.framework.dll" Private="false" />
+  </ItemGroup>
+</Project>

@@ -59,9 +59,9 @@ Xếp hạng và lịch sử trận, app iOS native, bot AI, Ninja Rope, Jetpack
 | Transport | **Chỉ WebSocket** cho mọi client | Trình duyệt không dùng được UDP. Game theo lượt nên TCP đủ tốt, và chỉ phải bảo trì một đường truyền |
 | WebSocket phía client | NativeWebSocket (mã nguồn mở, chạy cả WebGL lẫn native) | — |
 | Serialize | Codec nhị phân tự viết trong `com.worms.protocol` (BinaryWriter/Reader) | Không phụ thuộc thư viện, chạy an toàn với IL2CPP và WebGL |
-| Render | Shader Graph, Particle System (Shuriken), URP Decal (chế độ Screen Space), Post-processing Volume, Cinemachine 3 | Tất cả đều chạy được trên WebGL2 (§3.14) |
-| Tính toán nặng | Burst + Job System (dựng mesh địa hình) | Trên web Burst vẫn chạy, nhưng job chạy đơn luồng. Ngân sách hiệu năng tính theo trường hợp web |
-| Tải asset | Addressables | Web tải phần tối thiểu trước, phần còn lại tải dần |
+| Render | Shader URP viết tay bằng HLSL, Particle System (Shuriken), URP Decal (chế độ Screen Space), Post-processing Volume. Camera tự viết | Tất cả đều chạy được trên WebGL2 (§3.14). Không dùng Shader Graph (file graph khó viết và review bằng tay) và Cinemachine (§3.16) |
+| Tính toán nặng | C# thường, chia chunk 64×64 | Web chạy đơn luồng. Chỉ dùng Burst nếu đo thấy chậm (§3.16) |
+| Tải asset | Một bản build duy nhất. Chỉ thêm Addressables nếu bản Web vượt 30 MB | — |
 | Test | xUnit cho sim, protocol và server (**Claude tự chạy được** trong container). Unity Test Framework cho EditMode và PlayMode (chạy trên CI qua GameCI) | — |
 | CI/CD | GitHub Actions trên **GitHub-hosted runners** (miễn phí vì repo public), dùng **GameCI** (`game-ci/unity-test-runner`, `game-ci/unity-builder`) | §3.13 |
 | Hạ tầng | Container `ghcr.io/quyenanh198/worms` (linux/arm64) chạy trên Mac mini bằng OrbStack, khai báo trong `macmini-hub`. Đi qua Caddy và cloudflared (Cloudflare Tunnel) sẵn có. **Cùng container phục vụ cả bản web** | Giống Gunny |
@@ -92,7 +92,7 @@ Xếp hạng và lịch sử trận, app iOS native, bot AI, Ninja Rope, Jetpack
  │ cloudflared ─► Caddy ── handle_path /worms/* ─────────────────┘          │
  │                  │                                                       │
  │  ┌───────────── container worms (.NET 10, Kestrel) ───────────────────┐  │
- │  │ /            bản build Unity Web (tĩnh, Brotli)                    │  │
+ │  │ /            bản build Unity Web (tĩnh, Brotli, .unityweb)         │  │
  │  │ /ws          Lobby ─► MatchRoom (mỗi trận 1 vòng lặp)              │  │
  │  │                validate ─► Sim.Step() 60Hz ─► Snapshot 20Hz + Event│  │
  │  │ /healthz                                                           │  │
@@ -118,7 +118,7 @@ client/                     # Unity project
   Packages/manifest.json    # "com.worms.sim": "file:../../shared/com.worms.sim"
   Assets/Game/
     Net/        # kết nối, buffer nội suy, lập lịch Event
-    Render/     # TerrainMesher (Burst), WormView, WeaponView, Vfx, CameraRig
+    Render/     # TerrainMesher, WormView, WeaponView, Vfx, CameraRig
     Anim/       # animation state machine của sâu
     Audio/      # map Event -> âm thanh
     Input/      # Keyboard, Touch -> Command
@@ -127,11 +127,13 @@ client/                     # Unity project
     Sandbox/    # chạy sim offline để test hình ảnh
   Assets/Editor/Build.cs    # điểm vào build ở batchmode cho từng target
   Assets/Tests/             # EditMode, PlayMode
-assets-src/                 # file nguồn CC0 và file tự tạo (.wav, script sinh âm thanh), dùng Git LFS
+assets-src/                 # file nguồn CC0 và file tự tạo (.wav, script sinh âm thanh). Không dùng Git LFS (§3.16)
 .github/workflows/
-  ci.yml                    # PR: dotnet test + Unity EditMode/PlayMode
-  build.yml                 # matrix các target (§3.13.1), upload artifact, tag thì tạo Release
-  image.yml                 # main: build Web → docker image arm64 → ghcr.io/quyenanh198/worms
+  ci.yml                    # PR và main: dotnet test + Unity EditMode
+  build.yml                 # main: Web + 4 target native, image ghcr.io/quyenanh198/worms. Tag v*: GitHub Release
+tools/
+  gen_meta.py               # sinh file .meta với GUID cố định
+  unity-check/              # compile-check code Unity không cần license
 ```
 
 ### 3.3 Bất biến
@@ -261,14 +263,14 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
 ### 3.9 Bản đồ và đồ họa 3D (Unity URP)
 - **Lớp gameplay:** mask 2D 2048×1024, sinh ngẫu nhiên từ `seed + theme` (phase sau có bản đồ vẽ tay từ PNG).
 - **Khối đất đùn (extrude):**
-  - Chia mask thành các chunk 64×64. Mỗi chunk dựng mesh bằng **Burst job**: marching squares cho mặt trước, cộng tường bên dày 40 u theo trục Z, cạnh vát, và dải mesh cỏ ở mép trên. Ghi mesh bằng `Mesh.MeshDataArray`.
+  - Chia mask thành các chunk 64×64. Mỗi chunk dựng mesh bằng C# thường: marching squares cho mặt trước, cộng tường bên dày 40 u theo trục Z, cạnh vát, và dải mesh cỏ ở mép trên. Thuật toán nằm trong assembly C# thuần để test được bằng `dotnet test`.
   - Khi có vụ nổ, chỉ dựng lại các chunk bị giao với vụ nổ.
   - Shader Graph triplanar với các lớp đất, đá, cỏ theo theme, có normal map và AO lấy theo độ sâu vào trong khối đất.
   - Miệng hố có decal cháy xém (URP Decal, chế độ Screen Space).
 - **Chiều sâu cảnh:**
   - Cảnh nền 3D (đồi, cây, nhà) ở `z < −50`, dùng ánh sáng bake và light probe. Model lấy từ bộ CC0 của Quaternius (Stylized Nature) và Kenney (Nature Kit). Texture PBR và HDRI lấy từ Poly Haven và ambientCG.
   - Skybox gradient cộng mây billboard.
-  - Camera phối cảnh (FOV khoảng 35°, dùng Cinemachine) nên tự có parallax.
+  - Camera phối cảnh (FOV khoảng 35°, camera rig tự viết) nên tự có parallax.
   - Đạo cụ tiền cảnh, DOF ở tier High.
 - **Nước:** Shader Graph với sóng dịch đỉnh (vertex), bọt theo độ sâu (depth fade), phản chiếu lấy từ reflection probe. Khúc xạ chỉ bật ở tier High.
 - **Ánh sáng:** một đèn directional realtime chiếu sâu và địa hình, phần còn lại dùng ánh sáng bake.
@@ -333,14 +335,14 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
 ### 3.12 Input đa nền tảng
 - **Desktop:** `←/→` đi · `Enter` nhảy · `Backspace` lộn ngược · `↑/↓` ngắm · giữ `Space` để nạp lực, thả để bắn · `Tab` hoặc chuột phải mở menu vũ khí · `1–5` chỉnh ngòi · click để chọn mục tiêu Air Strike.
 - **Mobile (native và web):** nút ◀ ▶ và nút nhảy bên trái. **Kéo từ con sâu** để ngắm (hướng là góc, độ dài là lực, thả là bắn). Nút vũ khí bên phải. Pinch để zoom, 2 ngón để pan.
-- Dùng Unity Input System. Cả hai kiểu điều khiển đều chuyển thành cùng một kiểu `Command`.
+- Dùng `UnityEngine.Input` (Input Manager cũ, chạy giống nhau trên mọi target kể cả Web). `ProjectSetup` tự đặt Active Input Handling. Cả hai kiểu điều khiển đều chuyển thành cùng một kiểu `Command`.
 
 ### 3.13 Build, CI và deploy
 
 #### 3.13.1 Target (GitHub-hosted runners + GameCI)
 | Target | Runner | Backend | Output | Phát hành |
 |---|---|---|---|---|
-| Web | `ubuntu-latest` | IL2CPP → WebAssembly, WebGL2 | thư mục tĩnh, nén Brotli | Đóng gói vào image server (§3.13.2) |
+| Web | `ubuntu-latest` | IL2CPP → WebAssembly, WebGL2 | thư mục tĩnh, nén Brotli với decompression fallback (file `.unityweb`) | Đóng gói vào image server (§3.13.2) |
 | Android | `ubuntu-latest` | IL2CPP, ARM64 | `.apk` | GitHub Release, và link tải tại `chat.lazybutts.com/worms/download`. Cài tay (sideload), không qua Play Store |
 | Linux | `ubuntu-latest` | IL2CPP | x86_64 | GitHub Release |
 | Windows | `windows-latest` | **IL2CPP** | `.exe` (zip) | GitHub Release. Chưa ký nên Windows SmartScreen sẽ cảnh báo, người dùng bấm "Run anyway" |
@@ -351,9 +353,9 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
 - **License Unity Personal cho CI:** lưu file `.ulf` (lấy sau khi kích hoạt Unity Hub trên một máy bất kỳ), `UNITY_EMAIL` và `UNITY_PASSWORD` vào GitHub Secrets. Secret không bị lộ cho PR từ fork.
 - **Cache:** thư mục `Library/` được cache bằng `actions/cache` theo từng target, để build lần sau nhanh hơn.
 - **Workflow:**
-  - `ci.yml` chạy mỗi PR: `dotnet test`, Unity EditMode và PlayMode (`game-ci/unity-test-runner`).
-  - `build.yml` chạy khi merge vào main (upload artifact) và khi có tag `v*` (tạo GitHub Release).
-  - `image.yml` chạy khi merge vào main: build Web, rồi build Docker image và push lên ghcr.
+  - `ci.yml` chạy mỗi PR và khi merge vào main: `dotnet test`, Unity EditMode (`game-ci/unity-test-runner`).
+  - `build.yml` chạy khi merge vào main: build Web và 4 target native, rồi build Docker image (arm64 + amd64) và push lên ghcr. Khi có tag `v*` thì tạo GitHub Release.
+  - **Chưa có secret Unity thì các job Unity được bỏ qua** (không báo lỗi), và image dùng trang tạm thay cho bản Web.
 
 #### 3.13.2 Server trên Mac mini (OrbStack + `macmini-hub`)
 Làm theo đúng mẫu của Gunny, vì Gunny cũng là game online có WebSocket và đăng nhập bằng Chat:
@@ -361,7 +363,7 @@ Làm theo đúng mẫu của Gunny, vì Gunny cũng là game online có WebSocke
 - **Image:**
   - Stage 1: .NET SDK publish cho linux-arm64.
   - Stage 2: `mcr.microsoft.com/dotnet/aspnet` (arm64). Chép thêm bản build Web vào `wwwroot/`.
-  - Kestrel phục vụ file `.br` kèm `Content-Encoding: br` và Content-Type đúng, phục vụ `/ws`, `/healthz`, và `/download`.
+  - Kestrel phục vụ bản Web (file `.unityweb` là byte thô, loader của Unity tự giải nén nên không cần header `Content-Encoding` và không phụ thuộc Cloudflare), phục vụ `/ws`, `/healthz`, và `/download`.
 - **Các thay đổi trong repo `macmini-hub`** (Claude soạn PR riêng khi tới P8):
   - Thêm service `worms` vào `docker-compose.yml`:
     - image `ghcr.io/quyenanh198/worms:latest`, `restart: unless-stopped`, `mem_limit`
@@ -389,7 +391,7 @@ Làm theo đúng mẫu của Gunny, vì Gunny cũng là game online có WebSocke
 
 - Dưới 200 draw call (dùng SRP Batcher và GPU instancing).
 - Dựng lại mesh địa hình < 4 ms mỗi vụ nổ, **đo trên Web** (job chạy đơn luồng).
-- Web: tải lần đầu < 30 MB sau nén Brotli, phần còn lại tải qua Addressables. Bộ nhớ < 1 GB trên iOS Safari.
+- Web: tải lần đầu < 30 MB sau nén Brotli. Bộ nhớ < 1 GB trên iOS Safari.
 - Server: < 1 ms cho mỗi tick của mỗi phòng.
 
 ### 3.14 Web ngang hàng native (D8)
@@ -406,7 +408,7 @@ Làm theo đúng mẫu của Gunny, vì Gunny cũng là game online có WebSocke
 |---|---|---|
 | URP Forward, Shader Graph, SRP Batcher | Forward+, Deferred | Forward, tối đa 8 đèn mỗi object |
 | Particle System (Shuriken) | VFX Graph (cần compute shader) | Shuriken |
-| Burst, Job (chạy đơn luồng trên web) | Thread C# tự tạo | Job, hoặc chia việc ra nhiều frame |
+| C# thường trên main thread | Thread C# tự tạo | Chia việc ra nhiều frame |
 | `AudioSource` cơ bản | Hiệu ứng AudioMixer | Nhân âm lượng trong code |
 | WebSocket | UDP, socket thô | WebSocket |
 | URP Decal (Screen Space) | Decal kiểu DBuffer | Screen Space |
@@ -454,6 +456,13 @@ Làm theo cách Gunny, Garden và Farm đang dùng: game hỏi Chat "cookie `lb_
 - **Lưu token trên native:** MVP lưu trong `PlayerPrefs`. Đây là rủi ro: người khác có quyền vào máy có thể đọc được token. Sau này chuyển sang Keystore (Android) và Keychain (macOS). Người dùng đăng xuất thì xóa token.
 - **Chat sập thì không đăng nhập được.** Trận đang chơi vẫn tiếp tục, vì danh tính đã được cache theo kết nối.
 
+### 3.16 Ghi chú khi triển khai
+Các quyết định đưa ra lúc làm P0, khác với bản kế hoạch trước:
+- **Không dùng package từ Unity registry** (Input System, Cinemachine, Burst, Addressables). Container của Claude không tải được `packages.unity.com` nên không compile-check được code dùng các package đó. Các package cũng không cần cho phạm vi hiện tại. Chỉ dùng package đi kèm editor (URP, Test Framework).
+- **Không dùng Git LFS.** Gói miễn phí của GitHub chỉ có 1 GB băng thông LFS mỗi tháng, CI checkout vài lần là hết. Asset phải được nén và giữ nhỏ.
+- **Dùng IMGUI cho UI** ở các phase đầu (lobby, HUD). Không cần package, chạy trên mọi target. Có thể thay bằng UI đẹp hơn sau khi gameplay xong.
+- **P0 và P1 dùng Built-in Render Pipeline**, chuyển sang URP ở P2 khi bắt đầu làm hình ảnh.
+
 ---
 
 ## 4. Implementation plan
@@ -466,9 +475,9 @@ Mỗi phase là **1 PR** (D7) và phải qua bước verify trước khi sang ph
 
 | Phase | Nội dung | Verify |
 |---|---|---|
-| **P0** Khung dự án | Repo layout §3.2, 2 package dùng chung, server có `/healthz` và WS `hello`, Unity project có 1 scene, `Build.cs`, 3 workflow, Dockerfile | CI xanh: `dotnet test` và Unity test · `build.yml` ra đủ 5 target (Web, Android, Linux, Windows, macOS) · image arm64 chạy được trên OrbStack · **bản Web chạy qua Cloudflare với Brotli** mở được trên Chrome, Safari macOS và Safari iOS (nếu Brotli lỗi qua Cloudflare thì chuyển sang Gzip) · client web và native nhận được `hello` |
+| **P0** Khung dự án | Repo layout §3.2, 2 package dùng chung, server có `/healthz` và WS `hello`, Unity project (scene tạo bằng code), `Build.cs`, 2 workflow, Dockerfile | `dotnet test` xanh · code Unity compile được (`tools/unity-check`) · image chạy được, `/healthz` trả `ok` · *Khi có secret:* `build.yml` ra đủ 5 target, bản Web mở được trên Chrome và Safari iOS, client nhận `hello` |
 | **P1** Sim | `Rng`, `Terrain`, `Body`, `Worm`, Ballistic, `Explosion`, `Turn`, `World` | xUnit: cùng seed ra cùng mask · carve đúng bán kính · không xuyên tường ở `maxSpeed` · sâu đứng yên trên mặt phẳng · không leo dốc > `MAX_CLIMB` · rơi cao thì mất HP · trúng nổ thì văng lên rồi nghỉ · state machine lượt đúng §3.7 · dây chuyền chết dừng được |
-| **P2** Render offline | Sandbox scene: sim chạy local, TerrainMesher (Burst), sâu tạm là capsule, Cinemachine, bazooka, 3 tier, shader địa hình và nước bản đầu, texture CC0 | EditMode test: dựng lại đúng các chunk bị giao · **đo trên Web**: dựng lại < 4 ms và FPS đạt §3.13.3 trên iPhone Safari và Chrome desktop · bạn xem screenshot của 3 tier |
+| **P2** Render offline | Chuyển sang URP. Sandbox: sim chạy local, TerrainMesher, sâu tạm là capsule, camera rig, bazooka, 3 tier, shader địa hình và nước bản đầu, texture CC0 | EditMode test: dựng lại đúng các chunk bị giao · **đo trên Web**: dựng lại < 4 ms và FPS đạt §3.13.3 trên iPhone Safari và Chrome desktop · bạn xem screenshot của 3 tier |
 | **P3** Online core và tài khoản | Server: ChatAuth, Lobby, MatchRoom, validate, rate limit, FullState, Snapshot, Event. Client: màn hình đăng nhập (native), Net, nội suy, lập lịch Event, UI lobby, link mời | xUnit tích hợp dùng Chat giả: cookie hợp lệ thì vào được, 401 thì bị đóng kết nối, `Origin` lạ thì bị từ chối · 2 client giả chơi hết 1 trận · Command sai lượt bị từ chối · vào lại trận thì dựng lại địa hình giống hệt · Thủ công: 1 web + 1 Android chơi 1v1 bằng tài khoản Chat thật, giả lập 150 ms trễ và 2% mất gói |
 | **P4** Vũ khí | 8 vũ khí, 5 behavior, menu vũ khí, giới hạn số lượng, model vũ khí CC0 | Mỗi vũ khí có ít nhất 1 test xUnit (grenade không chịu gió, nổ đúng tick; bat văng đúng góc; cluster bung đúng 5 mảnh…) |
 | **P5** Nhân vật và VFX | Sâu dựng bằng code (mesh spline, mắt, shader toon), animation procedural cho mọi state §3.10, socket vũ khí, VFX nổ, khói, số sát thương, decal, rung camera | EditMode test: mesh sinh đúng số đỉnh, blend giữa các state liên tục (không giật) · PlayMode test: nhận Event thì đổi state đúng · checklist nhìn trên web và native · FPS vẫn đạt |
@@ -512,7 +521,8 @@ Unity -batchmode -quit -projectPath client -executeMethod Build.Web     # hoặc
 6. Chạy bản build web để xác nhận không dùng tính năng bị cấm ở §3.14.
 
 ### 5.4 Làm việc khi không có Unity Editor (dành cho Claude)
-- Scene tối thiểu: chỉ có `Boot.unity` chứa một `Bootstrap` object. Mọi thứ khác được dựng runtime từ code, prefab hoặc Addressables.
+- Scene tối thiểu: `Boot.unity` rỗng, do `ProjectSetup` tạo lúc build. `GameRoot` tự khởi động bằng `RuntimeInitializeOnLoadMethod` và dựng mọi thứ khác từ code.
+- Trước khi push, compile-check bằng `tools/unity-check` (Game, GameWeb, Editor) và chạy `tools/gen_meta.py`.
 - Prefab và ScriptableObject được sinh bằng script trong `Assets/Editor/Generators/` và chạy ở batchmode. Không sửa tay file YAML.
 - Nhân vật và animation dựng bằng code (§3.10), nên không cần Editor để làm animation.
 - Việc chỉ làm được trong Editor (chỉnh ánh sáng, màu sắc bằng mắt) sẽ được ghi trong PR là **"cần bạn làm"**, kèm hướng dẫn từng bước.
@@ -528,7 +538,7 @@ Sửa `com.worms.protocol` trước. Server và client phải cập nhật trong
 | Claude không chạy được Unity Editor | GameCI trên CI, dựng scene bằng code (§5.4). Việc cần làm bằng mắt được ghi rõ trong từng PR |
 | Build Unity trên GitHub-hosted runner chậm (mỗi target 15–40 phút) | Cache `Library/`. PR chỉ build Web, build đủ target khi merge vào main hoặc khi có tag |
 | License Unity Personal trên CI hết hạn hoặc bị đổi điều khoản | Cập nhật lại secret. Code sim, protocol và server không phụ thuộc Unity |
-| Brotli đi qua Cloudflare bị sai header | Kiểm tra ngay ở P0; nếu lỗi thì chuyển sang Gzip hoặc bật decompression fallback của Unity |
+| Brotli đi qua Cloudflare bị sai header | Đã tránh: dùng decompression fallback, server không gửi `Content-Encoding` |
 | Token `lb_session` lưu trong `PlayerPrefs` trên native | Chấp nhận ở MVP; chuyển sang Keystore và Keychain ở P9 |
 | Server phụ thuộc Chat và Mac mini ở nhà | Giống các app khác trên hub. Trận đang chơi không phụ thuộc Chat (danh tính đã cache) |
 | App desktop và APK chưa ký nên hệ điều hành cảnh báo | Có hướng dẫn cài trên trang `/download` |

@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+
+# Unity
+client/[Ll]ibrary/
+client/[Tt]emp/
+client/[Oo]bj/
+client/[Bb]uild/
+client/[Bb]uilds/
+client/[Ll]ogs/
+client/[Uu]ser[Ss]ettings/
+client/*.csproj
+client/*.sln
+client/.vs/
+client/.idea/
+
+# CI outputs
+build/
+web-dist/
+artifacts/
+
+.DS_Store

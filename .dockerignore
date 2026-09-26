@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+client/
+docs/
+tools/
+.git/
+.github/
