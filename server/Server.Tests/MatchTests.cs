@@ -49,8 +49,9 @@ namespace Worms.Server.Tests
             await Task.Delay(150);
             Assert.Equal(Phase.Aiming, a.Read(s => s.Match.Buffer.Latest.Phase));
 
-            // Team 0 fires: both clients see the shot and the explosion.
-            a.Do(s => s.SendIntent(new Intent { Kind = InputKind.Fire, Angle = 1.0f, Power = 0.7f }));
+            // Team 0 fires into the ground at its feet (the map seed is random, so an
+            // arcing shot could land in the water): both clients see the shot and the explosion.
+            a.Do(s => s.SendIntent(new Intent { Kind = InputKind.Fire, Angle = -1.5f, Power = 0.3f }));
             Assert.True(await b.WaitFor(s => b.DueEvents.Any(e => e.Type == SimEventType.Fire)));
             Assert.True(await b.WaitFor(s => b.DueEvents.Any(e => e.Type == SimEventType.Explode), 15000));
             Assert.True(await a.WaitFor(s => s.Match.Buffer.Latest.Phase == Phase.Aiming && s.Match.Buffer.Latest.ActiveTeam == 1, 20000));
