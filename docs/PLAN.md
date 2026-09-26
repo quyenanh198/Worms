@@ -209,14 +209,14 @@ Mảnh vỡ, khói và vỏ đạn là particle trên client, không đồng b�
 | `V_SAFE` | 270 u/s | tương đương rơi khoảng 60 u. Sát thương = `ceil((v−V_SAFE)/8)` |
 | `WIND_MAX` | ±100 u/s² | |
 | `E_WORM`, `MU_WORM` | 0.3, 0.25 | hệ số nảy và ma sát của sâu |
-| `KB` | 6 u/s mỗi 1 HP sát thương | |
+| `KB` | 8 u/s mỗi 1 HP sát thương, thành phần hướng lên tối thiểu 0.6 | Tăng so với bản đầu (6 và 0.3) vì sâu bay quá thấp |
 
 #### 3.6.2 Tích phân và va chạm
 - Semi-implicit Euler: `v += (G + wind·windFactor)·dt; p += v·dt`.
 - **Sub-step:** chia mỗi bước thành các bước nhỏ ≤ 1 u để không xuyên tường.
 - **Pháp tuyến va chạm:** `n = normalize(Σ(p − cell))` với các ô đặc nằm trong bán kính.
 - **Phản hồi va chạm:** `vn = (v·n)n`, `vt = v − vn`, vận tốc mới `v' = −e·vn + (1−μ)·vt`. Sau đó đẩy vật ra khỏi địa hình theo `n`.
-- **Nghỉ:** khi `|v| < 5 u/s` và đang chạm đất liên tục 20 tick.
+- **Tiếp đất:** sâu đang nhảy hoặc rơi dừng ngay khi chạm mặt đủ phẳng (pháp tuyến hướng lên, `n.y < −0.6`). Sâu đang lăn dừng khi chạm mặt đủ phẳng với tốc độ < `LandSpeed` (40 u/s). Nếu kẹt trong khe hoặc trên dốc đứng mà vẫn chậm liên tục 45 tick thì cũng tính là đã đứng.
 
 #### 3.6.3 Từng hành động
 | Hành động | Cách tính |
@@ -227,7 +227,7 @@ Mảnh vỡ, khói và vỏ đạn là particle trên client, không đồng b�
 | **Bắn đạn đạn đạo** | `v0 = power·maxSpeed·(cos a, −sin a)`. Đạn xuất hiện ở nòng súng, cách tâm sâu `WORM_R + 4`. Nổ khi chạm (`impact`) hoặc khi hết ngòi (`timer`) |
 | **Hitscan** | Dò tia từng 1 u. Dừng tại sâu đầu tiên hoặc tại địa hình, gây vụ nổ nhỏ ở điểm trúng |
 | **Cận chiến** | Tìm sâu trong hình quạt 60°, bán kính 20 u. Gây sát thương và đặt vận tốc văng theo góc ngắm |
-| **Bị trúng nổ** | Với sâu cách tâm `d < r`: `dmg = round(maxDamage·(1−d/r))`, `v += dir·KB·dmg`, trong đó `dir` được nâng thành phần hướng lên ít nhất 0.3. Sâu chuyển sang `tumbling`, nảy và trượt cho đến khi nghỉ thì chuyển sang `getup` |
+| **Bị trúng nổ** | Với sâu cách tâm `d < r`: `dmg = round(maxDamage·(1−d/r))`, `v += dir·KB·dmg`, trong đó `dir` được nâng thành phần hướng lên ít nhất 0.6. Sâu chuyển sang `tumbling`, nảy và trượt cho đến khi nghỉ thì chuyển sang `getup` |
 | **Lăn lộn (hình ảnh)** | Client tự tính góc xoay: trên không thì `ω₀ = k·|v|·sign(vx)` và giảm dần; trên đất thì `ω = |vt|/WORM_R`. Không đồng bộ |
 | **Lựu đạn** | Vật thể tròn `r=3`, `e=0.5`, `μ=0.1`, `windFactor=0`, ngòi `fuse·60` tick |
 
