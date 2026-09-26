@@ -1,23 +1,24 @@
 using System;
 using UnityEngine;
+using Worms.Game.Core;
 using Worms.Game.Net;
 using Worms.Game.Play;
 using Worms.Game.UI;
-using Worms.Protocol;
 
 namespace Worms.Game.Boot
 {
     /// <summary>
-    /// Entry point. The Boot scene is empty; this object is created at startup,
-    /// shows the menu and builds everything else from code.
+    /// Entry point. The Boot scene is empty; this object is created at startup
+    /// and switches between the menu, an online match and the offline sandbox.
     /// </summary>
     public sealed class GameRoot : MonoBehaviour
     {
-        IWsTransport _socket;
-        string _status = "Đang kết nối…";
-        GUIStyle _title, _text, _button;
+        NetClient _net;
+        MenuUI _menu;
         Camera _menuCamera;
         SandboxMatch _sandbox;
+        NetMatch _netMatch;
+        string _roomFromUrl;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -33,24 +34,69 @@ namespace Worms.Game.Boot
             Application.targetFrameRate = 60;
             CreateMenuCamera();
 
-            bool isWeb = Application.platform == RuntimePlatform.WebGLPlayer;
-            string url = ServerUrl.Resolve(isWeb, Application.absoluteURL, CommandLineArg("-server"));
-            _socket = WsTransport.Create();
-            _socket.Connect(url, null);
+            _net = gameObject.AddComponent<NetClient>();
+            _net.Connect(ServerUrl.Resolve(NetClient.IsWeb, Application.absoluteURL, CommandLineArg("-server")));
+            _roomFromUrl = ServerUrl.QueryParam(Application.absoluteURL, "room");
+
+            _menu = gameObject.AddComponent<MenuUI>();
+            _menu.Net = _net;
+            _menu.StartSandbox = StartSandbox;
 
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sandbox") >= 0) StartSandbox();
         }
 
+        void Update()
+        {
+            var session = _net.Session;
+            // Invite link: join the room once we are connected.
+            if (_roomFromUrl != null && session.HasHello && !session.InRoom)
+            {
+                session.JoinRoom(_roomFromUrl);
+                _roomFromUrl = null;
+            }
+
+            if (_sandbox == null)
+            {
+                if (session.Match != null && _netMatch == null) StartNetMatch();
+                else if (session.Match == null && _netMatch != null) EndNetMatch();
+            }
+            _menu.Hidden = _sandbox != null || _netMatch != null;
+        }
+
         void CreateMenuCamera()
         {
+            if (_menuCamera != null) return;
             _menuCamera = new GameObject("Menu Camera").AddComponent<Camera>();
             _menuCamera.clearFlags = CameraClearFlags.SolidColor;
             _menuCamera.backgroundColor = new Color(0.08f, 0.11f, 0.16f);
         }
 
-        void StartSandbox()
+        void DestroyMenuCamera()
         {
             if (_menuCamera != null) Destroy(_menuCamera.gameObject);
+            _menuCamera = null;
+        }
+
+        void StartNetMatch()
+        {
+            DestroyMenuCamera();
+            var go = new GameObject("Online Match");
+            _netMatch = go.AddComponent<NetMatch>();
+            _netMatch.Net = _net;
+            go.AddComponent<Hud>().Source = _netMatch;
+        }
+
+        void EndNetMatch()
+        {
+            Destroy(_netMatch.gameObject);
+            _netMatch = null;
+            CreateMenuCamera();
+        }
+
+        void StartSandbox()
+        {
+            if (_netMatch != null) EndNetMatch();
+            DestroyMenuCamera();
             var go = new GameObject("Sandbox");
             _sandbox = go.AddComponent<SandboxMatch>();
             _sandbox.Leave = LeaveSandbox;
@@ -65,55 +111,6 @@ namespace Worms.Game.Boot
             Destroy(_sandbox.gameObject);
             _sandbox = null;
             CreateMenuCamera();
-        }
-
-        void Update()
-        {
-            if (_socket == null) return;
-            while (_socket.TryReceive(out var bytes)) Handle(bytes);
-            if (_socket.State == WsState.Closed && !_status.StartsWith("Mất kết nối", StringComparison.Ordinal))
-                _status = "Mất kết nối " + _socket.CloseReason;
-        }
-
-        void Handle(byte[] bytes)
-        {
-            try
-            {
-                var r = new MsgReader(bytes);
-                if (r.Version != ProtocolInfo.Version)
-                {
-                    _status = "Phiên bản không khớp, hãy cập nhật game";
-                    return;
-                }
-                if (r.Type == MsgType.Hello) _status = "Đã kết nối tới " + HelloMsg.Decode(r).Server;
-            }
-            catch (ProtocolException e)
-            {
-                Debug.LogWarning("Bad message: " + e.Message);
-            }
-        }
-
-        void OnGUI()
-        {
-            if (_sandbox != null) return;
-            float u = Mathf.Max(12f, Screen.height / 36f);
-            if (_title == null)
-            {
-                _title = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(u * 3), fontStyle = FontStyle.Bold };
-                _title.normal.textColor = new Color(1f, 0.8f, 0.4f);
-                _text = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(u) };
-                _text.normal.textColor = Color.white;
-                _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u) };
-            }
-            float w = Screen.width, h = Screen.height;
-            GUI.Label(new Rect(0, h * 0.18f, w, u * 4), "WORMS", _title);
-            GUI.Label(new Rect(0, h * 0.18f + u * 4, w, u * 1.5f), _status, _text);
-            if (GUI.Button(new Rect(w / 2 - u * 7, h * 0.55f, u * 14, u * 2.2f), "Chơi thử offline", _button)) StartSandbox();
-        }
-
-        void OnDestroy()
-        {
-            _socket?.Dispose();
         }
 
         static string CommandLineArg(string name)

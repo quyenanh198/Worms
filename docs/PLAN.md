@@ -170,22 +170,21 @@ Số thực dấu phẩy động (float) có thể cho kết quả khác nhau gi
 - **Đi và nhảy** trễ bằng RTT (khoảng 50–150 ms). Nếu playtest thấy khó chịu, bật prediction cho con sâu đang điều khiển. Client đã có sẵn cùng code sim nên làm được. Đây là việc của P9.
 
 ### 3.5 Giao thức (`com.worms.protocol`)
-```csharp
-// Client -> Server
-enum CmdType : byte { Move, Jump, Backflip, Aim, Select, Fire, Ready, Chat }
-struct Command { CmdType Type; uint Seq; sbyte Dir; float Angle; float Power;
-                 byte Fuse; WeaponId Weapon; short TargetX, TargetY; string Text; }
+Mỗi message có dạng `[PROTOCOL_VERSION:u16][MsgType:u8][payload]`, số nguyên little-endian. Hiện tại `PROTOCOL_VERSION = 2`.
 
-// Server -> Client
-enum EvType : byte { Fire, Explode, Hit, Bounce, Land, Splash, Death, Turn, GameOver }
-struct GameEvent { uint Tick; EvType Type; int Worm; short X, Y, R; int Dmg;
-                   float Ix, Iy; float Speed; DeathCause Cause; float Wind; int Winner; }
+| Hướng | Message | Nội dung |
+|---|---|---|
+| S→C | `Hello` | user id, tên hiển thị (lấy từ Chat) |
+| S→C | `Error` | mã lỗi: `unauthorized`, `bad_version`, `rate_limited`, `room_not_found`, `room_full`, `room_busy`, `not_host`, `not_ready`, `bad_message` |
+| S→C | `Lobby` | mã phòng (rỗng nghĩa là không ở trong phòng), phòng nhanh hay riêng, chủ phòng, trạng thái (Lobby, Playing, Finished), danh sách người chơi (tên, đội, sẵn sàng, còn kết nối) |
+| S→C | `MatchStart` | seed, số sâu mỗi đội, đội của bạn, tên các đội, **toàn bộ carve op**, snapshot hiện tại. Gửi khi trận bắt đầu và khi vào lại trận |
+| S→C | `Snapshot` | 20 lần/giây: tick, phase, đội và sâu đang có lượt, gió, đồng hồ, vũ khí, từng sâu (vị trí, vận tốc, HP, sát thương chờ trừ, trạng thái, hướng, góc ngắm), từng viên đạn |
+| S→C | `Events` | các `SimEvent` gắn tick (Turn, Fire, Explode, Hit, Bounce, Land, Splash, Death, GameOver) |
+| C→S | `CreateRoom`, `JoinRoom(code)`, `QuickMatch`, `SetReady(bool)`, `StartMatch`, `LeaveRoom`, `Rematch` | lobby |
+| C→S | `Input` | kind (Move, Jump, Backflip, Aim, Select, Fire), dir, angle, power, fuse, weapon, target. **Đội do server gán theo người gửi**, không lấy từ client |
 
-// Snapshot 20Hz: Tick, Phase, TurnEndsAtTick, Wind, ActiveWorm,
-//   Worms[] {Id, X, Y, Vx, Vy, Hp, State, Facing, Aim, Weapon}, Projectiles[] {Id, Kind, X, Y}
-// FullState (khi vào hoặc vào lại): MapSeed, Theme, TerrainOps[] {X, Y, R}, Teams, Snapshot
-// Mỗi message có header: [PROTOCOL_VERSION:u16][MsgType:u8][payload]
-```
+- Client dựng lại địa hình từ seed và carve op. Mỗi event `Explode` được khoét bằng đúng hàm `CarveOp.FromExplosion` như server, đúng lúc event đó tới hạn trên dòng thời gian render.
+- Server giới hạn 40 message/giây (cho phép dồn tối đa 80), message tối đa 8 KB.
 
 ### 3.6 Mô phỏng vật lý (tự viết, trong `com.worms.sim`)
 
@@ -455,6 +454,7 @@ Làm theo cách Gunny, Garden và Farm đang dùng: game hỏi Chat "cookie `lb_
 - **Chống CSRF qua WebSocket:** nếu request có header `Origin`, nó phải nằm trong `ALLOWED_ORIGINS`. Request không có `Origin` là client native, được phép.
 - **Lưu token trên native:** MVP lưu trong `PlayerPrefs`. Đây là rủi ro: người khác có quyền vào máy có thể đọc được token. Sau này chuyển sang Keystore (Android) và Keychain (macOS). Người dùng đăng xuất thì xóa token.
 - **Chat sập thì không đăng nhập được.** Trận đang chơi vẫn tiếp tục, vì danh tính đã được cache theo kết nối.
+- **Chế độ khách khi phát triển:** nếu không đặt `CHAT_API_URL`, server cho vào bằng `?name=…` (id âm, không trùng id của Chat). Production luôn đặt `CHAT_API_URL=http://chat:8082`.
 
 ### 3.16 Ghi chú khi triển khai
 Các quyết định đưa ra lúc làm P0, khác với bản kế hoạch trước:

@@ -112,6 +112,12 @@ namespace Worms.Sim
             if (ActiveTeam == team && (Phase == Phase.Aiming || Phase == Phase.Retreat)) BeginSettling(false);
         }
 
+        /// <summary>Ends the active team's turn early (its player is disconnected).</summary>
+        public void SkipTurn(int team)
+        {
+            if (ActiveTeam == team && (Phase == Phase.Aiming || Phase == Phase.Retreat)) BeginSettling(false);
+        }
+
         /// <summary>Advances one tick and returns what happened during it.</summary>
         public List<SimEvent> Step(IReadOnlyList<SimInput> inputs)
         {

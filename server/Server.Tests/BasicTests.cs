@@ -1,7 +1,5 @@
 using System;
 using System.Net;
-using System.Net.WebSockets;
-using System.Threading;
 using System.Threading.Tasks;
 using Worms.Protocol;
 using Xunit;
@@ -35,32 +33,44 @@ namespace Worms.Server.Tests
         }
 
         [Fact]
-        public async Task SocketSendsHelloFirst()
+        public async Task GuestGetsHelloAndEmptyLobby()
         {
-            var ws = _factory.Server.CreateWebSocketClient();
-            using var socket = await ws.ConnectAsync(new Uri(_factory.Server.BaseAddress, "ws"), CancellationToken.None);
-            var buffer = new byte[1024];
-            var result = await socket.ReceiveAsync(buffer, CancellationToken.None);
-            var r = new MsgReader(buffer, result.Count);
-            Assert.Equal(MsgType.Hello, r.Type);
-            Assert.Equal("worms", HelloMsg.Decode(r).Server);
+            await using var c = await TestClient.ConnectAsync(_factory, "?name=Ánh");
+            Assert.True(await c.WaitFor(s => s.HasHello));
+            Assert.Equal("Ánh", c.Read(s => s.DisplayName));
+            Assert.True(c.Read(s => s.UserId) < 0);
+            Assert.False(c.Read(s => s.InRoom));
         }
 
         [Fact]
         public async Task AllowedOriginIsAccepted()
         {
-            var ws = _factory.Server.CreateWebSocketClient();
-            ws.ConfigureRequest = req => req.Headers.Origin = "https://chat.lazybutts.com";
-            using var socket = await ws.ConnectAsync(new Uri(_factory.Server.BaseAddress, "ws"), CancellationToken.None);
-            Assert.Equal(WebSocketState.Open, socket.State);
+            await using var c = await TestClient.ConnectAsync(_factory, origin: "https://chat.lazybutts.com");
+            Assert.True(await c.WaitFor(s => s.HasHello));
         }
 
         [Fact]
         public async Task ForeignOriginIsRejected()
         {
-            var ws = _factory.Server.CreateWebSocketClient();
-            ws.ConfigureRequest = req => req.Headers.Origin = "https://evil.example";
-            await Assert.ThrowsAnyAsync<Exception>(() => ws.ConnectAsync(new Uri(_factory.Server.BaseAddress, "ws"), CancellationToken.None));
+            await Assert.ThrowsAnyAsync<Exception>(() => TestClient.ConnectAsync(_factory, origin: "https://evil.example"));
+        }
+
+        [Fact]
+        public async Task WrongProtocolVersionIsRejected()
+        {
+            await using var c = await TestClient.ConnectAsync(_factory);
+            Assert.True(await c.WaitFor(s => s.HasHello));
+            c.SendRaw(new byte[] { 0x99, 0x00, (byte)MsgType.QuickMatch });
+            Assert.True(await c.WaitFor(s => s.LastError == ErrorCodes.BadVersion));
+        }
+
+        [Fact]
+        public async Task FloodingIsRateLimited()
+        {
+            await using var c = await TestClient.ConnectAsync(_factory);
+            Assert.True(await c.WaitFor(s => s.HasHello));
+            for (int i = 0; i < 200 && !c.Closed; i++) c.SendRaw(ClientMsg.SetReady(true));
+            Assert.True(await c.WaitFor(s => s.LastError == ErrorCodes.RateLimited));
         }
     }
 }
