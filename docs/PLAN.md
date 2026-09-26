@@ -1,13 +1,14 @@
 # Worms Clone (Online) — Kế hoạch kỹ thuật
 
-> Trạng thái: **bản nháp v3, chờ duyệt**. Chưa có dòng code nào.
+> Trạng thái: **bản nháp v4, chờ duyệt**. Chưa có dòng code nào.
 > Các mục đánh dấu ❓ là quyết định còn mở. Mục đánh dấu ✅ là đã chốt.
 
-**Thay đổi so với v2:**
-- Engine chuyển từ Babylon.js/TypeScript sang **Unity 6 URP + C#**. Server chuyển từ Node/Colyseus sang **.NET**, dùng chung code mô phỏng C# với client.
-- **Mac mini M4 Pro** làm máy build, CI (self-hosted runner) và server dev.
-- **Web phải ngang hàng native**, xem định nghĩa và quy tắc ở §3.14.
-- Bỏ Electron và Capacitor: Unity build native trực tiếp cho desktop và mobile.
+**Thay đổi so với v3:**
+- **Build** chạy hoàn toàn trên GitHub-hosted runners (repo public nên miễn phí): Ubuntu, Windows, macOS, dùng GameCI. Mac mini không còn làm máy build.
+- **Server** là một container chạy trên Mac mini (OrbStack), deploy qua `macmini-hub` giống Gunny. Chạy tại `chat.lazybutts.com/worms/` cho cả dev lẫn production. Bỏ VPS và Cloudflare Pages.
+- **Tài khoản** dùng chung với app Chat (cookie `lb_session`, xác thực qua `/api/me`), xem §3.15.
+- **Không có ngân sách:** chỉ dùng asset CC0. Nhân vật sâu được dựng và diễn hoạt bằng code (§3.10). Chưa có app iOS native vì cần tài khoản Apple Developer trả phí, người dùng iPhone chơi qua web (§3.14.1).
+- D3, D4, D6, D7 đã chốt.
 
 ---
 
@@ -15,30 +16,32 @@
 
 ### 1.1 MVP
 - **Online:** 2–4 người, mỗi người chơi trên máy riêng, mỗi người điều khiển 1 đội 4 con sâu. Tạo phòng bằng mã phòng hoặc ghép trận nhanh (quick match).
-- **Nền tảng:**
-  - Web (desktop và mobile browser)
-  - Windows, macOS, Linux
-  - Android, iOS
-  - Tất cả dùng chung một project Unity. **Web ngang hàng native** (§3.14).
+- **Nền tảng:** tất cả dùng chung một project Unity. **Web ngang hàng native** (§3.14).
+  - **Web** tại `chat.lazybutts.com/worms/`, chạy được trên desktop và mobile browser. Đây là đường vào duy nhất cho iPhone.
+  - **Android:** file APK cài tay (sideload). Không cần Play Store.
+  - **Windows, macOS, Linux:** app chưa ký (unsigned).
+  - **iOS native:** hoãn cho đến khi có tài khoản Apple Developer (99 USD/năm).
+- **Tài khoản:** đăng nhập bằng tài khoản Chat (§3.15). Mời bạn chơi bằng cách gửi link phòng trong Chat.
 - **Đồ họa 3D, gameplay 2.5D:** nhân vật, địa hình và hiệu ứng là 3D. Mọi chuyển động và va chạm diễn ra trên mặt phẳng X-Y (giống *Worms Revolution*).
 - **Địa hình phá hủy được**, có gió, nước, lượt 45 giây, HP 100.
 - **8 vũ khí** (§3.8). Có animation cầm, bắn, ném, trúng đạn, văng, lăn lộn, chết, chết đuối.
 - **Âm thanh:** hiệu ứng (SFX) theo sự kiện, nhạc nền, chỉnh âm lượng.
 
 ### 1.2 Ngoài phạm vi MVP
-Tài khoản và xếp hạng, bot AI, Ninja Rope, Jetpack, trình sửa bản đồ, chat voice, replay, client-side prediction (§3.4.4), console.
+Xếp hạng và lịch sử trận, app iOS native, bot AI, Ninja Rope, Jetpack, trình sửa bản đồ, chat voice, replay, client-side prediction (§3.4.4), console.
 
 ### 1.3 Quyết định
 | # | Nội dung | Trạng thái |
 |---|---|---|
 | D1 | Gameplay 2.5D: đồ họa 3D, gameplay trên mặt phẳng 2D | ✅ |
 | D2 | Engine: **Unity 6 LTS, URP, C#** | ✅ |
-| D3 | Không có tài khoản trong MVP: chơi với tư cách khách (nickname) | ❓ khuyến nghị |
-| D4 | Asset: **mua trên Unity Asset Store** (VFX, môi trường stylized, âm thanh) + CC0 làm placeholder. **Nhân vật sâu phải thuê làm riêng** vì hiếm có sẵn | ❓ cần có ngân sách |
-| D6 | 8 vũ khí như §3.8 | ❓ khuyến nghị |
-| D7 | Mỗi phase là 1 PR | ❓ khuyến nghị |
+| D3 | Tài khoản dùng chung với app Chat (`chat.lazybutts.com`), §3.15 | ✅ |
+| D4 | Không có ngân sách: chỉ dùng asset **CC0**. Nhân vật sâu được dựng và diễn hoạt bằng code. Không dùng Asset Store, vì EULA của Asset Store cấm đưa asset vào repo public | ✅ |
+| D6 | 8 vũ khí như §3.8. Sẽ mở rộng sau | ✅ |
+| D7 | Mỗi phase là 1 PR | ✅ |
 | D8 | Web ngang hàng native, theo định nghĩa ở §3.14 | ✅ |
-| D9 | Mac mini dùng để build, chạy CI và làm server dev. Server production đặt trên VPS | ✅ |
+| D9 | Build trên GitHub-hosted runners. Server là container trên Mac mini (OrbStack, `macmini-hub`), dùng cho cả dev và production | ✅ |
+| D10 | iOS native: hoãn, người dùng iPhone chơi qua web | ✅ (xem lại khi có ngân sách) |
 
 **Pháp lý:** "Worms" và tên các vũ khí đặc trưng (Holy Hand Grenade, Super Sheep…) là tài sản của Team17. Nếu phát hành, phải đổi tên game và không dùng asset gốc.
 
@@ -52,24 +55,25 @@ Tài khoản và xếp hạng, bot AI, Ninja Rope, Jetpack, trình sửa bản �
 | Engine client | **Unity 6 LTS** (bản LTS mới nhất tại thời điểm làm P0), **URP**, rendering path **Forward** | Forward+ không chạy được trên WebGL2, nên dùng Forward để giữ đồng nhất với web (§3.14) |
 | Ngôn ngữ | **C#**, dùng ở cả client và server | Code mô phỏng viết một lần, chạy ở cả hai nơi |
 | Code mô phỏng dùng chung | Local UPM package `com.worms.sim`, `com.worms.protocol`. Target `netstandard2.1`, C# 9 | Unity dùng qua `Packages/manifest.json` (`file:`). .NET dùng qua `.csproj`. Asmdef đặt `noEngineReferences: true` nên **compiler chặn** mọi tham chiếu tới `UnityEngine` |
-| Game server | **.NET 10 (LTS)**, ASP.NET Core Kestrel, WebSocket | Nhẹ, chạy native trên Mac (arm64) và Linux VPS (x64) |
+| Game server | **.NET 10 (LTS)**, ASP.NET Core Kestrel, WebSocket | Nhẹ. Chạy trong container linux-arm64 trên Mac mini (OrbStack) |
 | Transport | **Chỉ WebSocket** cho mọi client | Trình duyệt không dùng được UDP. Game theo lượt nên TCP đủ tốt, và chỉ phải bảo trì một đường truyền |
 | WebSocket phía client | NativeWebSocket (mã nguồn mở, chạy cả WebGL lẫn native) | — |
 | Serialize | Codec nhị phân tự viết trong `com.worms.protocol` (BinaryWriter/Reader) | Không phụ thuộc thư viện, chạy an toàn với IL2CPP và WebGL |
 | Render | Shader Graph, Particle System (Shuriken), URP Decal (chế độ Screen Space), Post-processing Volume, Cinemachine 3 | Tất cả đều chạy được trên WebGL2 (§3.14) |
 | Tính toán nặng | Burst + Job System (dựng mesh địa hình) | Trên web Burst vẫn chạy, nhưng job chạy đơn luồng. Ngân sách hiệu năng tính theo trường hợp web |
 | Tải asset | Addressables | Web tải phần tối thiểu trước, phần còn lại tải dần |
-| Test | xUnit cho sim, protocol và server (chạy trên Linux CI, **Claude tự chạy được**). Unity Test Framework cho EditMode và PlayMode (chạy trên Mac runner) | — |
-| CI/CD | GitHub Actions: runner Ubuntu cho `dotnet test`; **self-hosted runner trên Mac mini** cho mọi bản build Unity | §3.13 |
-| Hạ tầng | Dev: server chạy trên Mac mini (tester vào qua Cloudflare Tunnel). Prod: VPS Linux + Docker + Caddy (TLS, `wss://`). Web client đặt trên Cloudflare Pages | — |
-| Asset nguồn | Blender → `.fbx`, `.wav`. Lưu bằng Git LFS | — |
+| Test | xUnit cho sim, protocol và server (**Claude tự chạy được** trong container). Unity Test Framework cho EditMode và PlayMode (chạy trên CI qua GameCI) | — |
+| CI/CD | GitHub Actions trên **GitHub-hosted runners** (miễn phí vì repo public), dùng **GameCI** (`game-ci/unity-test-runner`, `game-ci/unity-builder`) | §3.13 |
+| Hạ tầng | Container `ghcr.io/quyenanh198/worms` (linux/arm64) chạy trên Mac mini bằng OrbStack, khai báo trong `macmini-hub`. Đi qua Caddy và cloudflared (Cloudflare Tunnel) sẵn có. **Cùng container phục vụ cả bản web** | Giống Gunny |
+| Tài khoản | App Chat: server game gọi `http://chat:8082/api/me` bằng cookie `lb_session` | §3.15 |
+| Lưu trữ | Không có ở MVP (danh tính lấy từ Chat). Lịch sử trận để sau (SQLite hoặc Postgres, giống Gunny) | — |
+| Asset | Chỉ CC0: Poly Haven và ambientCG (texture PBR, HDRI), Quaternius và Kenney (model môi trường, vũ khí), Kenney Audio và Freesound CC0 (âm thanh). Giọng nói tạo bằng TTS-Studio trên Mac mini hoặc tự thu | §3.10, §3.11 |
 
 ### 2.2 Vì sao chọn Unity (tóm tắt)
 - Đồ họa đẹp và hiệu năng mobile đã được kiểm chứng nhiều.
-- Build được mọi nền tảng từ Mac: iOS, macOS, Android, Web, Windows và Linux (Windows và Linux dùng scripting backend Mono, §3.13).
-- Kho asset lớn, giảm rủi ro thiếu asset.
+- Build được mọi nền tảng trên GitHub Actions bằng GameCI. Mỗi nền tảng dùng IL2CPP trên runner cùng hệ điều hành (§3.13).
 - Server .NET dùng chung code C# mô phỏng với client.
-- **Đánh đổi:** Claude không chạy được Unity Editor trong container cloud. Mọi test và build Unity chạy trên Mac mini. Để giảm việc phải thao tác trong Editor, scene và prefab được dựng bằng code càng nhiều càng tốt (§5.4).
+- **Đánh đổi:** Claude không chạy được Unity Editor trong container cloud. Test và build Unity chạy trên CI. Để giảm việc phải thao tác trong Editor, scene và prefab được dựng bằng code càng nhiều càng tốt (§5.4).
 
 ---
 
@@ -77,19 +81,23 @@ Tài khoản và xếp hạng, bot AI, Ninja Rope, Jetpack, trình sửa bản �
 
 ### 3.1 Tổng quan hệ thống
 ```
- ┌──────── Unity Client (Web / Win / macOS / Linux / Android / iOS) ────────┐
+ ┌──────── Unity Client (Web / Windows / macOS / Linux / Android) ──────────┐
  │ Input (phím, chuột, cảm ứng) ──► Command ─────────────────┐              │
  │                                                           │ WebSocket    │
  │ Render URP ◄── Interpolation ◄── Snapshot + Events ◄──────┼───┐          │
  │ Audio/VFX  ◄──────── Event scheduler ◄────────────────────┘   │          │
  └───────────────────────────────────────────────────────────────┼──────────┘
-                                                                 │ wss://
- ┌──────────────── Game Server (.NET 10, Kestrel) ───────────────┼──────────┐
- │ Lobby / Matchmaker ──► MatchRoom (mỗi trận 1 room, 1 vòng lặp)│          │
- │   validate Command ──► Sim.Step() 60Hz ──► Snapshot 20Hz ─────┘          │
- │                        (com.worms.sim) └─► Events (gửi ngay)             │
+      wss://chat.lazybutts.com/worms/ws  (cookie lb_session)     │
+ ┌─ Mac mini · OrbStack · macmini-hub ───────────────────────────┼──────────┐
+ │ cloudflared ─► Caddy ── handle_path /worms/* ─────────────────┘          │
+ │                  │                                                       │
+ │  ┌───────────── container worms (.NET 10, Kestrel) ───────────────────┐  │
+ │  │ /            bản build Unity Web (tĩnh, Brotli)                    │  │
+ │  │ /ws          Lobby ─► MatchRoom (mỗi trận 1 vòng lặp)              │  │
+ │  │                validate ─► Sim.Step() 60Hz ─► Snapshot 20Hz + Event│  │
+ │  │ /healthz                                                           │  │
+ │  └──────── GET /api/me (Cookie) ──► container chat:8082 ──────────────┘  │
  └──────────────────────────────────────────────────────────────────────────┘
-  Dev: chạy trên Mac mini          Prod: VPS Linux (Docker)
 ```
 
 ### 3.2 Cấu trúc repo
@@ -103,8 +111,9 @@ shared/
   Sim.csproj Protocol.csproj  # netstandard2.1, compile từ Runtime/** của từng package
   Sim.Tests/ Protocol.Tests/  # xUnit
 server/
-  Server/                   # Program.cs, Lobby, MatchRoom, validate, rate limit
-  Server.Tests/             # xUnit: test tích hợp với client WebSocket giả
+  Server/                   # Program.cs, ChatAuth, Lobby, MatchRoom, validate, rate limit, static web
+  Server.Tests/             # xUnit: test tích hợp với client WebSocket giả và Chat giả
+Dockerfile                  # .NET publish linux-arm64 + chép bản build Web vào wwwroot
 client/                     # Unity project
   Packages/manifest.json    # "com.worms.sim": "file:../../shared/com.worms.sim"
   Assets/Game/
@@ -118,8 +127,11 @@ client/                     # Unity project
     Sandbox/    # chạy sim offline để test hình ảnh
   Assets/Editor/Build.cs    # điểm vào build ở batchmode cho từng target
   Assets/Tests/             # EditMode, PlayMode
-assets-src/                 # .blend, .wav (Git LFS)
-.github/workflows/ ci.yml (ubuntu) · build.yml (self-hosted macOS)
+assets-src/                 # file nguồn CC0 và file tự tạo (.wav, script sinh âm thanh), dùng Git LFS
+.github/workflows/
+  ci.yml                    # PR: dotnet test + Unity EditMode/PlayMode
+  build.yml                 # matrix các target (§3.13.1), upload artifact, tag thì tạo Release
+  image.yml                 # main: build Web → docker image arm64 → ghcr.io/quyenanh198/worms
 ```
 
 ### 3.3 Bất biến
@@ -129,6 +141,8 @@ assets-src/                 # .blend, .wav (Git LFS)
 4. Âm thanh và VFX **chỉ** được kích hoạt bởi Event.
 5. Mọi hằng số gameplay nằm trong `Constants.cs`.
 6. **Không dùng tính năng chỉ chạy được trên native** (§3.14). Tính năng nào chưa có trong danh sách cho phép thì phải được xác minh chạy trên Web trước khi dùng.
+7. **Danh tính người chơi chỉ lấy từ Chat `/api/me`.** Không bao giờ tin user id hay tên do client gửi lên.
+8. **Repo public nên chỉ chứa asset CC0 hoặc tự tạo.** Mỗi asset được ghi nguồn và license trong `assets-src/CREDITS.md`.
 
 ### 3.4 Luồng dữ liệu online
 Trong từng lớp, dữ liệu vẫn chảy một chiều: renderer chỉ đọc, sim chỉ nhận Command. Toàn hệ thống là **một vòng khép kín qua mạng** cộng với 3 luồng phụ.
@@ -142,12 +156,12 @@ Trong từng lớp, dữ liệu vẫn chảy một chiều: renderer chỉ đọ
 6. Event được phát **đúng tick của nó** theo cùng độ trễ, để âm thanh khớp hình.
 
 #### 3.4.2 Luồng phụ
-- **Lobby:** tạo phòng, nhận mã phòng, vào bằng mã hoặc quick match, bấm sẵn sàng, bắt đầu trận.
+- **Lobby:** đăng nhập (§3.15), tạo phòng, nhận mã phòng, vào bằng mã hoặc quick match, bấm sẵn sàng, bắt đầu trận. Link mời có dạng `chat.lazybutts.com/worms/?room=ABCD` để dán vào Chat.
 - **Resync:** khi vào lại trận, client nhận `FullState` gồm seed, toàn bộ carve op và snapshot hiện tại, rồi dựng lại địa hình.
 - **Thời gian:** đồng hồ lượt tính theo tick của server (`TurnEndsAtTick`). Client chỉ hiển thị.
 
 #### 3.4.3 Vì sao server authoritative
-Số thực dấu phẩy động (float) có thể cho kết quả khác nhau giữa IL2CPP (iOS, Web) và Mono hay .NET. Server authoritative không cần mọi máy tính ra kết quả giống hệt nhau, và chống được gian lận.
+Số thực dấu phẩy động (float) có thể cho kết quả khác nhau giữa IL2CPP (client) và .NET (server), và giữa các CPU khác nhau. Server authoritative không cần mọi máy tính ra kết quả giống hệt nhau, và chống được gian lận.
 
 #### 3.4.4 Độ trễ
 - **Ngắm và nạp lực chạy hoàn toàn trên client.** Chỉ khi bắn mới gửi một lệnh `Fire{angle, power, fuse, target}`. Góc ngắm được gửi thêm 10 lần/giây để đối thủ thấy tâm ngắm, nhưng chỉ để hiển thị.
@@ -252,7 +266,7 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
   - Shader Graph triplanar với các lớp đất, đá, cỏ theo theme, có normal map và AO lấy theo độ sâu vào trong khối đất.
   - Miệng hố có decal cháy xém (URP Decal, chế độ Screen Space).
 - **Chiều sâu cảnh:**
-  - Cảnh nền 3D (đồi, cây, nhà) ở `z < −50`, dùng ánh sáng bake và light probe.
+  - Cảnh nền 3D (đồi, cây, nhà) ở `z < −50`, dùng ánh sáng bake và light probe. Model lấy từ bộ CC0 của Quaternius (Stylized Nature) và Kenney (Nature Kit). Texture PBR và HDRI lấy từ Poly Haven và ambientCG.
   - Skybox gradient cộng mây billboard.
   - Camera phối cảnh (FOV khoảng 35°, dùng Cinemachine) nên tự có parallax.
   - Đạo cụ tiền cảnh, DOF ở tier High.
@@ -266,8 +280,18 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
 - **Theme MVP:** Đồng cỏ và Bãi biển.
 
 ### 3.10 Nhân vật và animation
-- **Model:** sâu dùng rig Generic, xuất `.fbx`. Có socket `hand_R`, `hand_L`, `shoulder`. **Aim offset** là blend tree 1D gồm 3 pose (−90°, 0°, +90°) theo góc ngắm, đặt ở layer thân trên với avatar mask.
-- **Animator state machine** được điều khiển bởi `worm.State` (từ snapshot) và các Event:
+- **Model dựng bằng code (không cần họa sĩ, không tốn tiền):** thân sâu là một ống mesh chạy dọc theo một spline khoảng 8 đốt. Có mắt lồi to (hình cầu, đồng tử tự nhìn về hướng ngắm), miệng, và đuôi thon. Màu theo đội, tô bằng Shader Graph (toon ramp, rim light, subsurface giả).
+- **Animation bằng code (procedural):** mỗi state là một hàm điều khiển các đốt của spline.
+  - Trườn: sóng sin chạy dọc thân.
+  - Nhảy: co giãn (squash and stretch).
+  - Ngắm: phần đầu và thân trên uốn theo góc ngắm.
+  - Lăn lộn: thân cuộn thành vòng tròn.
+  - Chết: phồng dần rồi nổ.
+  - Chuyển giữa các state bằng blend trọng số.
+  - Không dùng Animator và file `.anim`, nên mọi thứ là code: review được, test được, chạy giống nhau trên web.
+- **Tay cầm vũ khí:** sâu không có tay (giống Worms gốc). Vũ khí gắn vào socket ở phần thân trên, cạnh đầu, và xoay theo góc ngắm. Có 2 bàn tay nhỏ dạng hình cầu, xuất hiện khi cầm vũ khí.
+- **Model vũ khí:** lấy từ bộ CC0 (Kenney Blaster Kit, Quaternius), hoặc ghép từ hình khối cơ bản.
+- **State machine của nhân vật** được điều khiển bởi `worm.State` (từ snapshot) và các Event:
 
 | State | Animation |
 |---|---|
@@ -301,7 +325,10 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
   - `Turn`: chuông báo lượt
   - còn 5 giây: tiếng tích tắc
 - Nhạc nền loop theo theme. Trên web và iOS, audio chỉ mở khóa sau lần chạm đầu tiên, nên lobby phải có một thao tác chạm trước khi vào trận.
-- Nguồn: gói âm thanh trên Asset Store hoặc CC0. Giọng nói tự thu hoặc thuê.
+- **Nguồn (miễn phí):**
+  - SFX: Kenney Audio (CC0), Freesound (chỉ lấy file CC0), và âm thanh tự sinh bằng công cụ kiểu sfxr, có lưu kèm tham số để tạo lại được.
+  - Giọng nói: tạo bằng **TTS-Studio** đang chạy trên Mac mini (đổi cao độ cho ra giọng sâu), hoặc tự thu.
+  - Nhạc nền: nhạc CC0 trên OpenGameArt.
 
 ### 3.12 Input đa nền tảng
 - **Desktop:** `←/→` đi · `Enter` nhảy · `Backspace` lộn ngược · `↑/↓` ngắm · giữ `Space` để nạp lực, thả để bắn · `Tab` hoặc chuột phải mở menu vũ khí · `1–5` chỉnh ngòi · click để chọn mục tiêu Air Strike.
@@ -310,27 +337,48 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
 
 ### 3.13 Build, CI và deploy
 
-#### 3.13.1 Target
-| Target | Backend | Output | Ghi chú |
-|---|---|---|---|
-| iOS | IL2CPP | Xcode project, sau đó `xcodebuild archive` ra `.ipa` | Cần Apple Developer (99 USD/năm), phát hành thử qua TestFlight |
-| Android | IL2CPP, ARM64 | `.aab` và `.apk` | Cần Google Play Console (25 USD), phát hành thử qua Internal testing |
-| macOS | IL2CPP | `.app` (Apple Silicon và Intel) | Ký và notarize |
-| Windows | **Mono** | `.exe` | Build Windows bằng IL2CPP bắt buộc chạy trên máy Windows. Mono chậm hơn nhưng đủ nhanh cho game này |
-| Linux | **Mono** | x86_64 | Cùng lý do với Windows |
-| Web | IL2CPP → WebAssembly, WebGL2 | thư mục tĩnh, nén Brotli | Trên Cloudflare Pages cần file `_headers` đặt `Content-Encoding: br` |
-| Server | .NET 10 | Mac: `dotnet run` (arm64). Prod: Docker image linux-x64 | — |
+#### 3.13.1 Target (GitHub-hosted runners + GameCI)
+| Target | Runner | Backend | Output | Phát hành |
+|---|---|---|---|---|
+| Web | `ubuntu-latest` | IL2CPP → WebAssembly, WebGL2 | thư mục tĩnh, nén Brotli | Đóng gói vào image server (§3.13.2) |
+| Android | `ubuntu-latest` | IL2CPP, ARM64 | `.apk` | GitHub Release, và link tải tại `chat.lazybutts.com/worms/download`. Cài tay (sideload), không qua Play Store |
+| Linux | `ubuntu-latest` | IL2CPP | x86_64 | GitHub Release |
+| Windows | `windows-latest` | **IL2CPP** | `.exe` (zip) | GitHub Release. Chưa ký nên Windows SmartScreen sẽ cảnh báo, người dùng bấm "Run anyway" |
+| macOS | `macos-latest` | **IL2CPP** | `.app` Universal (zip) | GitHub Release. Chưa ký nên người dùng phải chuột phải → Open lần đầu |
+| iOS | — | — | — | Hoãn (D10) |
+| Server image | `ubuntu-latest` | .NET 10, `dotnet publish -r linux-arm64` (cross-compile, không cần QEMU) | `ghcr.io/quyenanh198/worms:latest` | Deploy lên Mac mini |
 
-#### 3.13.2 Mac mini M4 Pro
-- **Self-hosted GitHub Actions runner**, nhãn `[self-hosted, macOS, ARM64, unity]`.
-- Cài sẵn: Unity Hub, Unity 6 LTS kèm các module iOS, Android, Web, Windows (Mono), Linux (Mono), Mac (IL2CPP); Xcode; .NET 10 SDK. License Unity Personal kích hoạt trên máy.
-- `build.yml` chạy khi có PR hoặc tag:
-  1. `Unity -batchmode -runTests` (EditMode và PlayMode)
-  2. `Unity -batchmode -executeMethod Build.All`
-  3. Upload artifact
-  4. Web: tự deploy bản preview
-- **Server dev:** chạy như service launchd. Tester vào qua **Cloudflare Tunnel** (dùng được với WebSocket), không cần mở port router.
-- **Không** dùng làm server production: IP nhà, tốc độ upload, và khi mất điện hoặc mạng thì server sập.
+- **License Unity Personal cho CI:** lưu file `.ulf` (lấy sau khi kích hoạt Unity Hub trên một máy bất kỳ), `UNITY_EMAIL` và `UNITY_PASSWORD` vào GitHub Secrets. Secret không bị lộ cho PR từ fork.
+- **Cache:** thư mục `Library/` được cache bằng `actions/cache` theo từng target, để build lần sau nhanh hơn.
+- **Workflow:**
+  - `ci.yml` chạy mỗi PR: `dotnet test`, Unity EditMode và PlayMode (`game-ci/unity-test-runner`).
+  - `build.yml` chạy khi merge vào main (upload artifact) và khi có tag `v*` (tạo GitHub Release).
+  - `image.yml` chạy khi merge vào main: build Web, rồi build Docker image và push lên ghcr.
+
+#### 3.13.2 Server trên Mac mini (OrbStack + `macmini-hub`)
+Làm theo đúng mẫu của Gunny, vì Gunny cũng là game online có WebSocket và đăng nhập bằng Chat:
+
+- **Image:**
+  - Stage 1: .NET SDK publish cho linux-arm64.
+  - Stage 2: `mcr.microsoft.com/dotnet/aspnet` (arm64). Chép thêm bản build Web vào `wwwroot/`.
+  - Kestrel phục vụ file `.br` kèm `Content-Encoding: br` và Content-Type đúng, phục vụ `/ws`, `/healthz`, và `/download`.
+- **Các thay đổi trong repo `macmini-hub`** (Claude soạn PR riêng khi tới P8):
+  - Thêm service `worms` vào `docker-compose.yml`:
+    - image `ghcr.io/quyenanh198/worms:latest`, `restart: unless-stopped`, `mem_limit`
+    - healthcheck `/healthz`
+    - biến môi trường `CHAT_API_URL=http://chat:8082`, `BASE_PATH=/worms`, `ALLOWED_ORIGINS=https://chat.lazybutts.com`
+  - **Không dùng sablier**, cùng lý do với Gunny: phiên WebSocket không gia hạn sablier, nên container có thể bị tắt giữa trận.
+  - Trong `Caddyfile`, thêm vào block `@chat`:
+    ```
+    redir /worms /worms/
+    handle_path /worms/* {
+        reverse_proxy worms:8080
+    }
+    ```
+    Bản web phải nằm cùng host với Chat thì mới dùng chung được cookie `lb_session`, vì cookie này không đặt `Domain`.
+  - Deploy bằng `scripts/deploy.sh worms`. Lệnh này pull image `:latest` và giữ lại bản `:previous` để rollback. **Không dùng `--build`**, vì image cần bản build Unity Web do CI tạo ra.
+- **Dev và production dùng chung một container.** Khi cần thử bản mới mà không ảnh hưởng người đang chơi, chạy thêm container `worms-dev` (image tag `:pr-N`) tại `/worms-dev/*`.
+- **Rủi ro chấp nhận được:** mất điện hoặc mất mạng ở nhà thì game sập. Điều này giống mọi app khác trên hub.
 
 #### 3.13.3 Ngân sách hiệu năng
 | Thiết bị | Tier mặc định | FPS mục tiêu |
@@ -374,6 +422,38 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
 
 Lần chạy đầu tiên chạy benchmark 3 giây để chọn tier. Người chơi đổi được trong cài đặt.
 
+#### 3.14.1 Thay thế trình duyệt trên điện thoại
+| Cách | Hiệu năng | Chi phí | Kết luận |
+|---|---|---|---|
+| **App Android (APK cài tay)** | Native, tốt nhất | 0 | ✅ Người dùng Android dùng cách này |
+| App iOS native | Native | 99 USD/năm (Apple Developer). Cài miễn phí bằng tài khoản Apple thường thì app hết hạn sau 7 ngày và chỉ cài được qua cáp | ⏸ Hoãn (D10) |
+| PWA ("Thêm vào màn hình chính") | **Giống trình duyệt**: vẫn chạy bằng engine của Safari hoặc Chrome | 0 | Chỉ cải thiện trải nghiệm (toàn màn hình, có icon), không nhanh hơn. Vẫn làm, vì gần như không tốn công |
+| Cloud streaming (Mac mini render rồi stream video) | Mượt trên máy yếu | 0, nhưng Mac mini chỉ gánh được vài luồng; trễ khi điều khiển; rất phức tạp | ❌ Không làm |
+| App Clip (iOS) hoặc Instant App (Android) | Native | App Clip cũng cần Apple Developer; Unity không hỗ trợ chính thức | ❌ Không làm |
+
+**Kết luận:**
+- Android: dùng APK. Khi mở trang web trên Android, hiện banner "Cài app để chơi mượt hơn" với link tải `/worms/download`.
+- iPhone: chơi trên web, mặc định tier Low hoặc Medium. **Vì vậy web trên mobile vẫn là đường vào chính cho iPhone**, và toàn bộ quy tắc ở §3.14 vẫn giữ nguyên.
+- Khi có 99 USD/năm thì bật target iOS lên: code không phải đổi, chỉ thêm job build trên `macos-latest` và ký app.
+
+### 3.15 Tài khoản (dùng chung với Chat, D3)
+Làm theo cách Gunny, Garden và Farm đang dùng: game hỏi Chat "cookie `lb_session` này là ai". Không cần sửa code của Chat.
+
+- **Web:** game nằm tại `chat.lazybutts.com/worms/`, cùng host với Chat, nên trình duyệt tự gửi cookie `lb_session` khi mở kết nối WebSocket tới `/worms/ws`.
+- **Native (Android, desktop):**
+  1. Màn hình đăng nhập gửi `POST https://chat.lazybutts.com/api/auth/login {username, password}`.
+  2. Lấy giá trị `lb_session` từ header `Set-Cookie` và lưu lại. JWT này có hạn 30 ngày.
+  3. Khi mở WebSocket, gửi kèm header `Cookie: lb_session=…` (NativeWebSocket hỗ trợ header tùy chỉnh trên native).
+  4. Chưa có tài khoản thì mở trình duyệt tới trang đăng ký của Chat (Chat yêu cầu mã mời).
+  5. Nhận 401 thì quay lại màn hình đăng nhập.
+- **Server:**
+  - Khi có kết nối WebSocket, server gọi `GET http://chat:8082/api/me` kèm cookie. Nhận 200 thì được `{id, username, display_name, avatar_at}`; nhận 401 thì đóng kết nối.
+  - Kết quả được cache theo từng kết nối, không gọi Chat mỗi message.
+  - Avatar lấy qua `/api/users/:id/avatar` (server làm proxy).
+- **Chống CSRF qua WebSocket:** nếu request có header `Origin`, nó phải nằm trong `ALLOWED_ORIGINS`. Request không có `Origin` là client native, được phép.
+- **Lưu token trên native:** MVP lưu trong `PlayerPrefs`. Đây là rủi ro: người khác có quyền vào máy có thể đọc được token. Sau này chuyển sang Keystore (Android) và Keychain (macOS). Người dùng đăng xuất thì xóa token.
+- **Chat sập thì không đăng nhập được.** Trận đang chơi vẫn tiếp tục, vì danh tính đã được cache theo kết nối.
+
 ---
 
 ## 4. Implementation plan
@@ -381,69 +461,76 @@ Lần chạy đầu tiên chạy benchmark 3 giây để chọn tier. Người c
 Mỗi phase là **1 PR** (D7) và phải qua bước verify trước khi sang phase sau.
 
 - **Việc Claude tự verify được** trong container: toàn bộ `dotnet test` (sim, protocol, server).
-- **Việc chạy trên Mac mini:** test và build Unity, qua runner.
+- **Việc CI verify:** test và build Unity (GameCI).
 - **Việc cần bạn kiểm tra bằng mắt:** checklist hình ảnh, âm thanh, cảm giác chơi.
 
 | Phase | Nội dung | Verify |
 |---|---|---|
-| **P0** Khung dự án | Repo layout §3.2, 2 package dùng chung, server trả lời `hello`, Unity project có 1 scene, `Build.cs`, 2 workflow | CI Ubuntu `dotnet test` xanh · runner Mac build ra đủ 6 target · bản web mở được trên Chrome, Safari macOS và Safari iOS · client (web và native) kết nối server trên Mac, nhận `hello` |
+| **P0** Khung dự án | Repo layout §3.2, 2 package dùng chung, server có `/healthz` và WS `hello`, Unity project có 1 scene, `Build.cs`, 3 workflow, Dockerfile | CI xanh: `dotnet test` và Unity test · `build.yml` ra đủ 5 target (Web, Android, Linux, Windows, macOS) · image arm64 chạy được trên OrbStack · **bản Web chạy qua Cloudflare với Brotli** mở được trên Chrome, Safari macOS và Safari iOS (nếu Brotli lỗi qua Cloudflare thì chuyển sang Gzip) · client web và native nhận được `hello` |
 | **P1** Sim | `Rng`, `Terrain`, `Body`, `Worm`, Ballistic, `Explosion`, `Turn`, `World` | xUnit: cùng seed ra cùng mask · carve đúng bán kính · không xuyên tường ở `maxSpeed` · sâu đứng yên trên mặt phẳng · không leo dốc > `MAX_CLIMB` · rơi cao thì mất HP · trúng nổ thì văng lên rồi nghỉ · state machine lượt đúng §3.7 · dây chuyền chết dừng được |
-| **P2** Render offline | Sandbox scene: sim chạy local, TerrainMesher (Burst), sâu tạm là capsule, Cinemachine, bazooka, 3 tier, shader địa hình và nước bản đầu | EditMode test: dựng lại đúng các chunk bị giao · **đo trên Web**: dựng lại < 4 ms và FPS đạt §3.13.3 trên iPhone Safari và Chrome desktop · bạn xem screenshot của 3 tier |
-| **P3** Online core | Server: Lobby, MatchRoom, validate, rate limit, FullState, Snapshot, Event. Client: Net, nội suy, lập lịch Event, UI lobby | xUnit tích hợp: 2 client giả chơi hết 1 trận · Command sai lượt bị từ chối · vào lại trận thì dựng lại địa hình giống hệt · Thủ công: 1 web + 1 native chơi 1v1, giả lập 150 ms trễ và 2% mất gói bằng Network Link Conditioner trên Mac |
-| **P4** Vũ khí | 8 vũ khí, 5 behavior, menu vũ khí, giới hạn số lượng | Mỗi vũ khí có ít nhất 1 test xUnit (grenade không chịu gió, nổ đúng tick; bat văng đúng góc; cluster bung đúng 5 mảnh…) |
-| **P5** Nhân vật và VFX | Model sâu (placeholder → asset thật), Animator, aim offset, socket vũ khí, mọi state §3.10, VFX nổ, khói, số sát thương, decal, rung camera | PlayMode test: chuyển state đúng khi nhận Event · checklist nhìn trên web và native: mỗi state xuất hiện đúng lúc · FPS vẫn đạt |
-| **P6** Âm thanh | Map Event → SFX, pan theo vị trí, nhạc nền, âm lượng theo nhóm, mở khóa audio | Checklist: mọi Event có tiếng · lệch giữa âm thanh và hình < 50 ms · có tiếng trên iOS Safari và Android Chrome |
-| **P7** Đa nền tảng | Điều khiển cảm ứng, benchmark chọn tier, ký app, TestFlight, Play Internal testing, ký và notarize macOS | Bản build cài được và chơi được trên: iPhone (app + Safari), Android (app + Chrome), Windows, macOS, Linux · FPS theo §3.13.3 |
-| **P8** Hardening và deploy | Reconnect 60 s, rate limit, log, health check, Docker, deploy lên VPS + Caddy, Cloudflare Pages cho web, Cloudflare Tunnel cho server dev | Rút mạng 10 giây rồi vào lại, trận tiếp tục · load test 100 phòng giả lập < 50% CPU của VPS · vào được qua `wss://` |
-| **P9+** Sau MVP | Prediction, tài khoản và Postgres, xếp hạng, thêm vũ khí, bản đồ vẽ tay, sudden death, bot AI, WebGPU | Mỗi mục có tiêu chí riêng |
+| **P2** Render offline | Sandbox scene: sim chạy local, TerrainMesher (Burst), sâu tạm là capsule, Cinemachine, bazooka, 3 tier, shader địa hình và nước bản đầu, texture CC0 | EditMode test: dựng lại đúng các chunk bị giao · **đo trên Web**: dựng lại < 4 ms và FPS đạt §3.13.3 trên iPhone Safari và Chrome desktop · bạn xem screenshot của 3 tier |
+| **P3** Online core và tài khoản | Server: ChatAuth, Lobby, MatchRoom, validate, rate limit, FullState, Snapshot, Event. Client: màn hình đăng nhập (native), Net, nội suy, lập lịch Event, UI lobby, link mời | xUnit tích hợp dùng Chat giả: cookie hợp lệ thì vào được, 401 thì bị đóng kết nối, `Origin` lạ thì bị từ chối · 2 client giả chơi hết 1 trận · Command sai lượt bị từ chối · vào lại trận thì dựng lại địa hình giống hệt · Thủ công: 1 web + 1 Android chơi 1v1 bằng tài khoản Chat thật, giả lập 150 ms trễ và 2% mất gói |
+| **P4** Vũ khí | 8 vũ khí, 5 behavior, menu vũ khí, giới hạn số lượng, model vũ khí CC0 | Mỗi vũ khí có ít nhất 1 test xUnit (grenade không chịu gió, nổ đúng tick; bat văng đúng góc; cluster bung đúng 5 mảnh…) |
+| **P5** Nhân vật và VFX | Sâu dựng bằng code (mesh spline, mắt, shader toon), animation procedural cho mọi state §3.10, socket vũ khí, VFX nổ, khói, số sát thương, decal, rung camera | EditMode test: mesh sinh đúng số đỉnh, blend giữa các state liên tục (không giật) · PlayMode test: nhận Event thì đổi state đúng · checklist nhìn trên web và native · FPS vẫn đạt |
+| **P6** Âm thanh | SFX CC0 và tự sinh, giọng nói từ TTS-Studio, map Event → SFX, pan, nhạc nền, âm lượng theo nhóm, mở khóa audio, `CREDITS.md` | Checklist: mọi Event có tiếng · lệch giữa âm thanh và hình < 50 ms · có tiếng trên iOS Safari và Android Chrome · mỗi file có dòng nguồn trong `CREDITS.md` |
+| **P7** Đa nền tảng | Điều khiển cảm ứng, benchmark chọn tier, PWA manifest, banner tải APK, trang `/download`, GitHub Release khi có tag | Chơi được trên: iPhone (Safari), Android (APK + Chrome), Windows, macOS, Linux · FPS theo §3.13.3 |
+| **P8** Hardening và deploy | Reconnect 60 s, rate limit, log, `/healthz`. **PR vào `macmini-hub`**: service `worms`, route Caddy `/worms/*`. Deploy bằng `scripts/deploy.sh worms` | Rút mạng 10 giây rồi vào lại, trận tiếp tục · load test 100 phòng giả lập trong container với `mem_limit` · chạy được qua `https://chat.lazybutts.com/worms/` · rollback bằng `deploy.sh worms --rollback` |
+| **P9+** Sau MVP | Prediction, lịch sử trận và xếp hạng (DB), thêm vũ khí, bản đồ vẽ tay, sudden death, bot AI, iOS native (khi có ngân sách), WebGPU, thông báo mời qua Chat | Mỗi mục có tiêu chí riêng |
 
-**MVP xong** khi P0–P8 hoàn tất: 4 người trên 4 nền tảng khác nhau (trong đó có ít nhất 1 người chơi trên web) chơi trọn 1 trận qua internet mà không có lỗi và không lệch trạng thái.
+**MVP xong** khi P0–P8 hoàn tất: 4 người dùng tài khoản Chat, trên ít nhất 3 nền tảng (trong đó có 1 iPhone qua web và 1 Android qua APK), chơi trọn 1 trận qua `chat.lazybutts.com/worms/` mà không có lỗi và không lệch trạng thái.
 
 ---
 
 ## 5. Hand-off
 
-### 5.1 Việc bạn cần làm trên Mac mini (trước P0)
-1. Cài Xcode (App Store), rồi chạy `xcode-select --install`.
-2. Cài Unity Hub, Unity 6 LTS với các module: iOS, Android (kèm SDK, NDK, OpenJDK), Web, Windows Build Support (Mono), Linux Build Support (Mono). Đăng nhập và kích hoạt license Personal.
-3. Cài .NET 10 SDK (`brew install --cask dotnet-sdk`) và Git LFS (`brew install git-lfs && git lfs install`).
-4. GitHub repo → Settings → Actions → Runners → *New self-hosted runner* (macOS ARM64). Cài runner dạng service, thêm nhãn `unity`.
-5. (Làm ở P7) Đăng ký tài khoản Apple Developer và Google Play Console.
-6. (Làm ở P8) Tạo tài khoản Cloudflare và cài `cloudflared` cho Tunnel.
+### 5.1 Việc bạn cần làm (trước P0)
+1. **Unity license cho CI:** cài Unity Hub trên Mac mini (hoặc máy bất kỳ), đăng nhập, kích hoạt license Personal. Sau đó vào repo Worms → Settings → Secrets → Actions, thêm 3 secret:
+   - `UNITY_LICENSE`: nội dung file `/Library/Application Support/Unity/Unity_lic.ulf`
+   - `UNITY_EMAIL`
+   - `UNITY_PASSWORD`
+2. **ghcr:** sau lần push image đầu tiên, vào package `worms` trên GitHub và đặt visibility là public, để Mac mini pull được không cần đăng nhập. Hub đang dùng cách này cho các app khác.
+3. **(Không bắt buộc) Chạy Unity Editor trên Mac mini** để xem thử cảnh và tinh chỉnh bằng mắt khi PR ghi "cần bạn làm" (§5.4). Mac mini không còn làm máy build.
+4. **Khi tới P8:** review và merge PR vào `macmini-hub`, rồi chạy `scripts/deploy.sh worms` trên Mac mini.
 
 ### 5.2 Lệnh
 ```bash
-dotnet test shared/ server/                  # sim, protocol, server (chạy được cả trên Linux)
-dotnet run --project server/Server           # server dev, ws://localhost:5080
-# Trên Mac (runner cũng chạy các lệnh này):
+dotnet test shared/ server/                  # sim, protocol, server (chạy được trên Linux, macOS, CI)
+dotnet run --project server/Server           # server local, http://localhost:8080 (web) + ws://localhost:8080/ws
+CHAT_API_URL=http://localhost:8082 dotnet run --project server/Server   # chạy cùng Chat local
+docker build -t worms:dev . && docker run -p 8080:8080 worms:dev        # thử image trên OrbStack
+# Unity (local, không bắt buộc; CI chạy bằng GameCI):
 Unity -batchmode -quit -projectPath client -runTests -testPlatform EditMode
-Unity -batchmode -quit -projectPath client -executeMethod Build.All   # hoặc Build.Web, Build.iOS, ...
+Unity -batchmode -quit -projectPath client -executeMethod Build.Web     # hoặc Build.Android, Build.Windows, ...
 ```
 
 ### 5.3 Checklist thêm vũ khí
 1. Thêm dòng vào `Weapons.cs` (chọn behavior có sẵn). Chỉ khi hành vi thật sự mới thì mới thêm file vào `Behaviors/`.
 2. Viết test xUnit cho hành vi riêng của vũ khí đó.
-3. Thêm prefab model, khai báo socket và pose cầm trong `WeaponView`.
-4. Thêm clip animation bắn hoặc ném vào Animator.
-5. Thêm âm thanh và icon trong menu vũ khí.
+3. Thêm model vũ khí (CC0 hoặc ghép từ hình khối) và khai báo socket trong `WeaponView`.
+4. Thêm hàm pose và hàm động tác bắn hoặc ném vào animation procedural.
+5. Thêm âm thanh và icon trong menu vũ khí. Ghi nguồn vào `CREDITS.md`.
 6. Chạy bản build web để xác nhận không dùng tính năng bị cấm ở §3.14.
 
 ### 5.4 Làm việc khi không có Unity Editor (dành cho Claude)
 - Scene tối thiểu: chỉ có `Boot.unity` chứa một `Bootstrap` object. Mọi thứ khác được dựng runtime từ code, prefab hoặc Addressables.
 - Prefab và ScriptableObject được sinh bằng script trong `Assets/Editor/Generators/` và chạy ở batchmode. Không sửa tay file YAML.
-- Việc chỉ làm được trong Editor (chỉnh ánh sáng, material, animation bằng mắt) sẽ được ghi trong PR là **"cần bạn làm"**, kèm hướng dẫn từng bước.
+- Nhân vật và animation dựng bằng code (§3.10), nên không cần Editor để làm animation.
+- Việc chỉ làm được trong Editor (chỉnh ánh sáng, màu sắc bằng mắt) sẽ được ghi trong PR là **"cần bạn làm"**, kèm hướng dẫn từng bước.
 
 ### 5.5 Checklist đổi giao thức
-Sửa `com.worms.protocol` trước. Server và client phải cập nhật trong **cùng một PR**. Tăng `PROTOCOL_VERSION`, server từ chối client cũ.
+Sửa `com.worms.protocol` trước. Server và client phải cập nhật trong **cùng một PR**. Tăng `PROTOCOL_VERSION`, server từ chối client cũ. Người dùng Android phải cài APK mới.
 
 ### 5.6 Rủi ro
 | Rủi ro | Giảm thiểu |
 |---|---|
-| **Asset**: Claude không tạo được model có rig và animation chất lượng | Mua asset trên Asset Store, thuê làm nhân vật sâu (D4). Code không phụ thuộc vào asset cụ thể |
-| **Web ngang hàng**: iOS Safari hạn chế bộ nhớ và hiệu năng | Có danh sách tính năng cấm (§3.14) và tier đồ họa. Đo trên iPhone Safari **ngay từ P2** |
-| Claude không chạy được Unity Editor | Runner trên Mac, dựng scene bằng code (§5.4). Việc cần làm bằng mắt được ghi rõ trong từng PR |
-| Windows và Linux dùng Mono nên chậm hơn IL2CPP | Đủ nhanh cho game này. Nếu thiếu thì thêm một runner Windows sau |
-| Thay đổi điều khoản license của Unity | Code sim, protocol và server không phụ thuộc Unity, nên có thể đổi engine client nếu cần |
+| **Không có ngân sách asset:** chất lượng hình ảnh không bằng game thương mại | Chọn phong cách stylized hợp với asset CC0. Nhân vật dựng bằng code. Dồn công vào ánh sáng, shader và post-processing, vì các thứ này là code |
+| **Web ngang hàng:** iOS Safari hạn chế bộ nhớ và hiệu năng, mà iPhone chỉ vào được qua web | Có danh sách tính năng cấm (§3.14) và tier đồ họa. Đo trên iPhone Safari **ngay từ P2** |
+| Claude không chạy được Unity Editor | GameCI trên CI, dựng scene bằng code (§5.4). Việc cần làm bằng mắt được ghi rõ trong từng PR |
+| Build Unity trên GitHub-hosted runner chậm (mỗi target 15–40 phút) | Cache `Library/`. PR chỉ build Web, build đủ target khi merge vào main hoặc khi có tag |
+| License Unity Personal trên CI hết hạn hoặc bị đổi điều khoản | Cập nhật lại secret. Code sim, protocol và server không phụ thuộc Unity |
+| Brotli đi qua Cloudflare bị sai header | Kiểm tra ngay ở P0; nếu lỗi thì chuyển sang Gzip hoặc bật decompression fallback của Unity |
+| Token `lb_session` lưu trong `PlayerPrefs` trên native | Chấp nhận ở MVP; chuyển sang Keystore và Keychain ở P9 |
+| Server phụ thuộc Chat và Mac mini ở nhà | Giống các app khác trên hub. Trận đang chơi không phụ thuộc Chat (danh tính đã cache) |
+| App desktop và APK chưa ký nên hệ điều hành cảnh báo | Có hướng dẫn cài trên trang `/download` |
 | Đi bộ bị trễ do RTT | Ngắm và nạp lực chạy local; prediction ở P9 |
-| Server dev tại nhà | Chỉ dùng cho dev và test, production đặt trên VPS |
-| Quy mô | Làm tuần tự theo phase, mỗi phase đều test hoặc chơi được. Ước lượng thô: nhiều tháng cho 1 dev, chưa tính asset |
+| Quy mô | Làm tuần tự theo phase, mỗi phase đều test hoặc chơi được. Ước lượng thô: nhiều tháng cho 1 dev |
