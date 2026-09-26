@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Worms.Game.Audio;
 using Worms.Game.Core;
 using Worms.Game.Net;
 using Worms.Game.Render;
@@ -98,8 +99,22 @@ namespace Worms.Game.UI
             else if (Net.Session.InRoom) Room(ref y);
             else Main(ref y);
 
+            AudioSettings();
+
             if (_toast != null && Time.unscaledTime < _toastUntil)
                 GUI.Label(new Rect(0, Screen.height - _u * 3, Screen.width, _u * 2), "<color=#ff8866>" + _toast + "</color>", _text);
+        }
+
+        void AudioSettings()
+        {
+            var audio = AudioManager.Instance;
+            if (audio == null) return;
+            float w = _u * 9, x = Screen.width - w - _u, y = _u * 0.5f;
+            GUI.Label(new Rect(x, y, w, _u * 1.2f), "Nhạc", _small);
+            float music = GUI.HorizontalSlider(new Rect(x, y + _u * 1.2f, w, _u), audio.MusicVolume, 0, 1);
+            GUI.Label(new Rect(x, y + _u * 2.2f, w, _u * 1.2f), "Hiệu ứng", _small);
+            float sfx = GUI.HorizontalSlider(new Rect(x, y + _u * 3.4f, w, _u), audio.SfxVolume, 0, 1);
+            if (!Mathf.Approximately(music, audio.MusicVolume) || !Mathf.Approximately(sfx, audio.SfxVolume)) audio.SetVolumes(sfx, music);
         }
 
         void Outdated(ref float y)

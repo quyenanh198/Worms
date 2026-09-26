@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Worms.Game.Audio;
 using Worms.Game.Core;
 using Worms.Game.Net;
 using Worms.Game.Play;
@@ -34,6 +35,7 @@ namespace Worms.Game.Boot
             Application.targetFrameRate = 60;
             CreateMenuCamera();
 
+            gameObject.AddComponent<AudioManager>();
             _net = gameObject.AddComponent<NetClient>();
             _net.Connect(ServerUrl.Resolve(NetClient.IsWeb, Application.absoluteURL, CommandLineArg("-server")));
             _roomFromUrl = ServerUrl.QueryParam(Application.absoluteURL, "room");

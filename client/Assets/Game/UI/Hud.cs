@@ -152,6 +152,10 @@ namespace Worms.Game.UI
                 _weaponMenu = false;
             }
 
+            var audio = Audio.AudioManager.Instance;
+            if (audio != null && GUI.Button(new Rect(u * 0.5f, u * 0.5f, u * 6.5f, u * 1.6f), audio.Muted ? "Âm thanh: tắt" : "Âm thanh: bật", _button))
+                audio.SetMuted(!audio.Muted);
+
             if (s.Phase == Phase.GameOver) GameOverPanel(s, w, h, u);
         }
 

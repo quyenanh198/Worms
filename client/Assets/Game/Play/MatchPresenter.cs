@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Worms.Game.Audio;
+using Worms.Game.Core;
 using Worms.Game.Render;
 using Worms.Protocol;
 using Worms.Sim;
@@ -77,11 +79,19 @@ namespace Worms.Game.Play
                         Terrain.RefreshCircle(e.X, e.Y, e.Value);
                         Vfx.Explosion(at, e.Value * WorldSpace.Scale);
                         ShakeFrom(at, e.Value);
+                        Sound(e.Value < 25 ? Sfx.ExplosionSmall : e.Value < 60 ? Sfx.ExplosionMedium : Sfx.ExplosionLarge, at.x);
+                        break;
+                    case SimEventType.Turn:
+                        Sound(Sfx.TurnBell, CameraX, 0.7f);
+                        break;
+                    case SimEventType.GameOver:
+                        Sound(Sfx.TurnBell, CameraX, 1f);
                         break;
                     case SimEventType.Fire:
                     {
                         var shooter = Actors.WormPosition(e.Worm);
                         var worm = Current?.FindWorm(e.Worm);
+                        if (shooter.HasValue) FireSound(e.Weapon, shooter.Value.x);
                         if (shooter.HasValue && worm.HasValue && Weapons.Get(e.Weapon).Aims)
                         {
                             var dir = new Vector3(worm.Value.Facing * Mathf.Cos(worm.Value.Aim), Mathf.Sin(worm.Value.Aim), 0);
@@ -96,6 +106,7 @@ namespace Worms.Game.Play
                         {
                             var dir = (at - shooter.Value).normalized;
                             Vfx.Tracer(shooter.Value + dir * 0.7f, at);
+                            Sound(e.Weapon == WeaponId.Uzi ? Sfx.UziShot : Sfx.Shotgun, shooter.Value.x, e.Weapon == WeaponId.Uzi ? 0.7f : 1f);
                             if (e.Weapon == WeaponId.Uzi) Vfx.Muzzle(shooter.Value + dir * 0.7f, dir);
                         }
                         break;
@@ -104,6 +115,7 @@ namespace Worms.Game.Play
                     {
                         Actors.OnHit(e.Worm);
                         var pos = Actors.WormPosition(e.Worm);
+                        if (pos.HasValue) Sound(Sfx.Hurt, pos.Value.x, 0.8f, 0.15f);
                         if (pos.HasValue) Vfx.AddPopup(pos.Value + Vector3.up * 0.8f, "-" + e.Amount, new Color(1f, 0.45f, 0.35f));
                         Rig.Shake(0.05f + e.Amount * 0.004f);
                         break;
@@ -113,6 +125,7 @@ namespace Worms.Game.Play
                         var pos = Actors.WormPosition(e.Worm);
                         if (pos.HasValue)
                         {
+                            Sound(Sfx.Land, pos.Value.x);
                             Vfx.Dust(pos.Value + Vector3.down * 0.4f, 2f);
                             if (e.Amount > 0) Vfx.AddPopup(pos.Value + Vector3.up * 0.8f, "-" + e.Amount, new Color(1f, 0.7f, 0.35f));
                         }
@@ -120,17 +133,42 @@ namespace Worms.Game.Play
                     }
                     case SimEventType.Bounce:
                         if (e.Value > 120f) Vfx.Dust(at, 1f);
+                        Sound(Sfx.Bounce, at.x, Mathf.Clamp01(e.Value / 400f));
                         break;
                     case SimEventType.Splash:
                         Vfx.Splash(new Vector3(at.x, -WaterLevel * WorldSpace.Scale, WorldSpace.ActorZ));
+                        Sound(Sfx.Splash, at.x);
                         break;
                     case SimEventType.Death:
                     {
                         var pos = Actors.WormPosition(e.Worm) ?? at;
                         Actors.OnDeath(e.Worm, e.Cause, pos);
+                        if (e.Cause == DeathCause.Hp) Sound(Sfx.Death, pos.x);
                         break;
                     }
                 }
+            }
+        }
+
+        float CameraX => Rig.transform.position.x;
+
+        void Sound(Sfx sfx, float worldX, float volume = 1f, float jitter = 0.06f)
+        {
+            if (AudioManager.Instance == null) return;
+            float half = Rig.Distance * Mathf.Tan(Rig.Camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * Rig.Camera.aspect;
+            AudioManager.Instance.Play(sfx, AudioManager.PanFor(worldX, CameraX, half), volume, jitter);
+        }
+
+        void FireSound(WeaponId weapon, float x)
+        {
+            switch (weapon)
+            {
+                case WeaponId.Bazooka: Sound(Sfx.Launch, x); break;
+                case WeaponId.Grenade:
+                case WeaponId.ClusterBomb:
+                case WeaponId.Dynamite: Sound(Sfx.Throw, x); break;
+                case WeaponId.BaseballBat: Sound(Sfx.Swing, x); Sound(Sfx.Bonk, x, 0.8f); break;
+                case WeaponId.AirStrike: Sound(Sfx.AirRaid, x); break;
             }
         }
 
@@ -141,11 +179,28 @@ namespace Worms.Game.Play
         }
 
         /// <summary>Called every frame after the snapshots are up to date.</summary>
+        int _lastTickSecond = -1;
+        readonly System.Collections.Generic.Dictionary<int, WormState> _lastState = new System.Collections.Generic.Dictionary<int, WormState>();
+
         public void Render(float alpha, bool localTurn, float localAim)
         {
             if (Current == null) return;
             Actors.Render(Previous, Current, alpha, localTurn, localAim);
             Rig.Follow(FollowPoint(alpha));
+
+            // Last five seconds of our turn: tick.
+            int second = Mathf.CeilToInt(Current.TurnTicksLeft / (float)C.TicksPerSecond);
+            if (localTurn && Current.Phase == Phase.Aiming && second <= 5 && second > 0 && second != _lastTickSecond) Sound(Sfx.Tick, CameraX, 0.8f, 0f);
+            _lastTickSecond = second;
+
+            // Jumps are not events; hear them when a worm leaves the ground going up.
+            foreach (var w in Current.Worms)
+            {
+                _lastState.TryGetValue(w.Id, out var before);
+                if (w.State == WormState.Airborne && before != WormState.Airborne && w.Vy < -150f)
+                    Sound(Sfx.Jump, WorldSpace.ToWorld(w.X, w.Y).x, 0.7f);
+                _lastState[w.Id] = w.State;
+            }
         }
 
         Vector3? FollowPoint(float alpha)
