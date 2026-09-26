@@ -144,6 +144,7 @@ namespace Worms.Game.Core
             Send(ClientMsg.Input(new SimInput
             {
                 Kind = i.Kind, Dir = i.Dir, Angle = i.Angle, Power = i.Power, Fuse = i.Fuse, Weapon = i.Weapon,
+                TargetX = i.TargetX, TargetY = i.TargetY,
             }));
         }
     }

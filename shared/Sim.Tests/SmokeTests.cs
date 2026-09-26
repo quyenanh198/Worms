@@ -32,7 +32,7 @@ namespace Worms.Sim.Tests
                 SimInput[] input = null;
                 if (w.Phase == Phase.Aiming && w.PhaseTicks == 30)
                 {
-                    var weapon = ai.NextFloat() < 0.5f ? WeaponId.Bazooka : WeaponId.Grenade;
+                    var weapon = (WeaponId)ai.Range(0, Weapons.Count);
                     w.Step(new[] { new SimInput { Team = w.ActiveTeam, Kind = InputKind.Select, Weapon = weapon } });
                     ticks++;
                     input = new[]
@@ -41,8 +41,13 @@ namespace Worms.Sim.Tests
                         {
                             Team = w.ActiveTeam, Kind = InputKind.Fire,
                             Angle = ai.Range(-0.3f, 1.4f), Power = ai.Range(0.3f, 1f), Fuse = ai.Range(1, 6),
+                            TargetX = ai.Range(100f, w.Terrain.Width - 100f),
                         },
                     };
+                }
+                else if (w.Phase == Phase.Aiming && w.AttackInProgress && w.PhaseTicks % 20 == 0)
+                {
+                    input = new[] { new SimInput { Team = w.ActiveTeam, Kind = InputKind.Fire, Angle = ai.Range(-0.3f, 1.4f) } };
                 }
                 else if (w.Phase == Phase.Aiming && w.PhaseTicks == 5)
                 {

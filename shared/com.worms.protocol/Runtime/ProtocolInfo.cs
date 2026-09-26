@@ -3,7 +3,7 @@ namespace Worms.Protocol
     public static class ProtocolInfo
     {
         /// <summary>Bumped on every wire-format change; the server rejects other versions.</summary>
-        public const ushort Version = 2;
+        public const ushort Version = 3;
     }
 
     /// <summary>First byte after the version header of every message.</summary>

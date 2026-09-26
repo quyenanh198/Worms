@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Worms.Sim;
 
@@ -43,6 +44,10 @@ namespace Worms.Protocol
         public int RetreatTicksLeft;
         public int Winner = -1;
         public WeaponId ActiveWeapon;
+        /// <summary>Uses left of each weapon for the active team (-1 = unlimited), indexed by WeaponId.</summary>
+        public readonly int[] ActiveAmmo = new int[Weapons.Count];
+        /// <summary>A multi-shot weapon (shotgun, uzi) is mid-attack: no switching.</summary>
+        public bool AttackInProgress;
         public readonly List<WormSnap> Worms = new List<WormSnap>();
         public readonly List<ProjectileSnap> Projectiles = new List<ProjectileSnap>();
 
@@ -58,6 +63,8 @@ namespace Worms.Protocol
             s.RetreatTicksLeft = w.RetreatTicksLeft;
             s.Winner = w.Winner;
             s.ActiveWeapon = w.ActiveTeam >= 0 ? w.SelectedWeapon[w.ActiveTeam] : WeaponId.Bazooka;
+            for (int i = 0; i < Weapons.Count; i++) s.ActiveAmmo[i] = w.ActiveTeam >= 0 ? w.Ammo[w.ActiveTeam][i] : -1;
+            s.AttackInProgress = w.AttackInProgress;
             s.Worms.Clear();
             foreach (var m in w.Worms)
             {
@@ -86,7 +93,8 @@ namespace Worms.Protocol
         {
             w.U32(Tick).U8((byte)Phase).I8((sbyte)ActiveTeam).I16((short)ActiveWorm)
                 .F32(Wind).U16((ushort)TurnTicksLeft).U16((ushort)RetreatTicksLeft)
-                .I8((sbyte)Winner).U8((byte)ActiveWeapon);
+                .I8((sbyte)Winner).U8((byte)ActiveWeapon).Bool(AttackInProgress);
+            foreach (var a in ActiveAmmo) w.I8((sbyte)Math.Max(-1, Math.Min(100, a)));
             w.U8((byte)Worms.Count);
             foreach (var m in Worms)
             {
@@ -110,6 +118,8 @@ namespace Worms.Protocol
             s.RetreatTicksLeft = r.U16();
             s.Winner = r.I8();
             s.ActiveWeapon = (WeaponId)r.U8();
+            s.AttackInProgress = r.Bool();
+            for (int i = 0; i < Weapons.Count; i++) s.ActiveAmmo[i] = r.I8();
             s.Worms.Clear();
             int wormCount = r.U8();
             for (int i = 0; i < wormCount; i++)

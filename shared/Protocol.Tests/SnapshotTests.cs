@@ -18,7 +18,8 @@ namespace Worms.Protocol.Tests
             var b = Snapshot.Decode(new MsgReader(a.Encode()));
 
             Assert.Equal(a.Tick, b.Tick);
-            Assert.Equal(Phase.Flying, b.Phase);
+            Assert.Equal(Phase.Retreat, b.Phase);
+            Assert.Equal(a.ActiveAmmo, b.ActiveAmmo);
             Assert.Equal(a.ActiveWorm, b.ActiveWorm);
             Assert.Equal(a.Wind, b.Wind);
             Assert.Equal(a.Worms.Count, b.Worms.Count);

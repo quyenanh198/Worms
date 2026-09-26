@@ -24,6 +24,11 @@ namespace Worms.Game.Play
         public Action PlayAgain => () => Net.Session.Rematch();
         public Action Leave => () => Net.Session.LeaveRoom();
 
+        public void SelectWeapon(WeaponId weapon)
+        {
+            Net.Session.SendIntent(new Intent { Kind = InputKind.Select, Weapon = weapon });
+        }
+
         ClientMatch _match;
         readonly List<SimEvent> _due = new List<SimEvent>();
         readonly List<CellRect> _dirty = new List<CellRect>();
@@ -62,8 +67,9 @@ namespace Worms.Game.Play
             }
             if (!mine) _controlsForWorm = -1;
 
+            Controls.UseWeapon(latest.ActiveWeapon);
             _intents.Clear();
-            Controls.Update(KeyboardInput.Read(Time.deltaTime), aiming, canMove, _intents);
+            Controls.Update(KeyboardInput.Read(Time.deltaTime, Presenter.Rig.Camera), aiming, canMove, _intents);
             foreach (var i in _intents) Net.Session.SendIntent(i);
             KeyboardInput.CameraControls(Presenter.Rig);
 

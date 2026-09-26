@@ -170,7 +170,7 @@ Số thực dấu phẩy động (float) có thể cho kết quả khác nhau gi
 - **Đi và nhảy** trễ bằng RTT (khoảng 50–150 ms). Nếu playtest thấy khó chịu, bật prediction cho con sâu đang điều khiển. Client đã có sẵn cùng code sim nên làm được. Đây là việc của P9.
 
 ### 3.5 Giao thức (`com.worms.protocol`)
-Mỗi message có dạng `[PROTOCOL_VERSION:u16][MsgType:u8][payload]`, số nguyên little-endian. Hiện tại `PROTOCOL_VERSION = 2`.
+Mỗi message có dạng `[PROTOCOL_VERSION:u16][MsgType:u8][payload]`, số nguyên little-endian. Hiện tại `PROTOCOL_VERSION = 3`.
 
 | Hướng | Message | Nội dung |
 |---|---|---|
@@ -225,18 +225,21 @@ Mảnh vỡ, khói và vỏ đạn là particle trên client, không đồng b�
 | **Rơi và tiếp đất** | Nếu `|vn| > V_SAFE` thì chịu sát thương rơi, phát event `Land`, và **mất lượt** nếu là sâu đang điều khiển |
 | **Bắn đạn đạn đạo** | `v0 = power·maxSpeed·(cos a, −sin a)`. Đạn xuất hiện ở nòng súng, cách tâm sâu `WORM_R + 4`. Nổ khi chạm (`impact`) hoặc khi hết ngòi (`timer`) |
 | **Hitscan** | Dò tia từng 1 u. Dừng tại sâu đầu tiên hoặc tại địa hình, gây vụ nổ nhỏ ở điểm trúng |
-| **Cận chiến** | Tìm sâu trong hình quạt 60°, bán kính 20 u. Gây sát thương và đặt vận tốc văng theo góc ngắm |
+| **Cận chiến** | Tìm sâu trong hình quạt 90° (±45° quanh hướng ngắm), tầm 20 u tính từ mép thân. Gây sát thương và đặt vận tốc văng theo góc ngắm |
 | **Bị trúng nổ** | Với sâu cách tâm `d < r`: `dmg = round(maxDamage·(1−d/r))`, `v += dir·KB·dmg`, trong đó `dir` được nâng thành phần hướng lên ít nhất 0.6. Sâu chuyển sang `tumbling`, nảy và trượt cho đến khi nghỉ thì chuyển sang `getup` |
 | **Lăn lộn (hình ảnh)** | Client tự tính góc xoay: trên không thì `ω₀ = k·|v|·sign(vx)` và giảm dần; trên đất thì `ω = |vt|/WORM_R`. Không đồng bộ |
 | **Lựu đạn** | Vật thể tròn `r=3`, `e=0.5`, `μ=0.1`, `windFactor=0`, ngòi `fuse·60` tick |
 
 ### 3.7 Lượt chơi, sát thương và cái chết
 ```
-Lobby ─► TurnStart ─► Aiming ──fire──► Flying ─► Settling ─► Retreat(3s) ─► EndOfTurn ─► CheckWin
-          (random gió,  (45s)            (đồng hồ   (chờ mọi                   (sâu HP≤0     │
-           chọn sâu)     │                dừng)      thứ nghỉ)                  tự nổ)        ├─► TurnStart
-                         └── hết giờ / rơi đau / bị thương trong lượt mình ─► Settling       └─► GameOver
+Lobby ─► TurnStart ─► Aiming ──bắn──► Retreat(3s) ─► Flying ─► Settling ─► EndOfTurn ─► CheckWin
+          (random gió,  (45s)          (sâu chạy     (chờ đạn   (chờ mọi    (sâu HP≤0    │
+           chọn sâu)     │              trong lúc     còn bay)   thứ nghỉ)   tự nổ)       ├─► TurnStart
+                         │              đạn bay)                                           └─► GameOver
+                         └── hết giờ / rơi đau / bị thương trong lượt mình ─► Settling
 ```
+- Thời gian chạy lùi (Retreat) bắt đầu **ngay khi bắn**, lúc đạn vẫn đang bay, giống Worms thật. Nhờ vậy đặt Dynamite xong còn kịp chạy. Hết 3 giây mà đạn vẫn bay thì chuyển sang Flying.
+- Shotgun có 2 phát: giữa hai phát vẫn ở Aiming và được ngắm lại. Uzi bắn loạt 10 viên tự động. Trong lúc tấn công chưa xong thì không đổi được vũ khí.
 - **Sát thương hiển thị ngay** bằng số bay lên. **Thanh HP chỉ trừ ở EndOfTurn.**
 - **Chết:** ở EndOfTurn, sâu HP ≤ 0 lần lượt tự nổ (r 20, dmg 10), có thể gây dây chuyền nên quay lại Settling. Để lại bia mộ, bia mộ cũng bị văng được.
 - **Chết đuối** hoặc **rơi ra ngoài bản đồ:** chết ngay.
@@ -257,7 +260,8 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
 | Air Strike | airstrike | 5 tên lửa cách 30 u, r 30, dmg 30 | cầm bộ đàm | bấm nút, máy bay bay qua | không |
 
 - **Giật khi bắn chỉ là hình ảnh**, không đẩy sâu về mặt vật lý.
-- **Đổi vũ khí:** menu dạng lưới. Sâu cất vũ khí cũ rồi rút vũ khí mới. Có giới hạn số lượng mỗi trận.
+- **Đổi vũ khí:** menu dạng lưới (phím `Tab`, hoặc phím `1`–`8`). Sâu cất vũ khí cũ rồi rút vũ khí mới.
+- **Số lượng mỗi trận, mỗi đội:** Bazooka, Lựu đạn, Shotgun không giới hạn. Bom chùm 2, Uzi 3, Gậy 2, Dynamite 1, Không kích 1. Hết thì nút bị mờ; đầu lượt nếu vũ khí đang chọn đã hết thì tự về Bazooka.
 
 ### 3.9 Bản đồ và đồ họa 3D (Unity URP)
 - **Lớp gameplay:** mask 2D 2048×1024, sinh ngẫu nhiên từ `seed + theme` (phase sau có bản đồ vẽ tay từ PNG).
