@@ -104,8 +104,9 @@ namespace Worms.Game.Render
                 view.Body.localRotation = Quaternion.Euler(0, w.Facing > 0 ? -25f : 25f, view.Spin);
                 view.Body.localScale = new Vector3(1f / squash, squash, 1f / squash);
 
+                bool aims = Weapons.Get(cur.ActiveWeapon).Aims;
                 bool isActive = w.Id == cur.ActiveWorm && showAim && cur.Phase == Phase.Aiming;
-                view.Crosshair.gameObject.SetActive(isActive || (w.Id == cur.ActiveWorm && cur.Phase == Phase.Aiming));
+                view.Crosshair.gameObject.SetActive(aims && w.Id == cur.ActiveWorm && cur.Phase == Phase.Aiming);
                 float aim = isActive ? localAim : w.Aim;
                 var dir = new Vector3(w.Facing * Mathf.Cos(aim), Mathf.Sin(aim), 0);
                 view.Crosshair.position = view.Root.position + dir * 1.6f;

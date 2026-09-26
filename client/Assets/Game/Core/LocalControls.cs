@@ -18,6 +18,9 @@ namespace Worms.Game.Core
         /// <summary>Touch aiming: absolute angle and power set by dragging (NaN = not used).</summary>
         public float DragAngle, DragPower;
         public bool DragReleased;
+        /// <summary>A point on the map was picked (air strike), in simulation units.</summary>
+        public bool TargetPicked;
+        public float TargetX, TargetY;
     }
 
     /// <summary>What the local player asks for; sent as SimInput offline or Command online.</summary>
@@ -29,6 +32,7 @@ namespace Worms.Game.Core
         public float Power;
         public int Fuse;
         public WeaponId Weapon;
+        public float TargetX, TargetY;
     }
 
     /// <summary>
@@ -47,9 +51,23 @@ namespace Worms.Game.Core
         public int Fuse { get; private set; } = 3;
         public int MoveDir { get; private set; }
 
+        /// <summary>Set from the selected weapon each frame: hold to charge (thrown weapons) or fire on press.</summary>
+        public bool ChargeMode = true;
+        /// <summary>Set from the selected weapon each frame: fire by picking a point (air strike).</summary>
+        public bool TargetMode;
+        bool _fireWasHeld;
+
         float _aimSentAt = float.NegativeInfinity;
         float _lastSentAim = float.NaN;
         float _time;
+
+        /// <summary>Picks charge/target mode for a weapon.</summary>
+        public void UseWeapon(WeaponId weapon)
+        {
+            var def = Weapons.Get(weapon);
+            ChargeMode = def.NeedsPower;
+            TargetMode = def.Targets;
+        }
 
         public void Reset(float aim)
         {
@@ -79,6 +97,7 @@ namespace Worms.Game.Core
             {
                 Charging = false;
                 Power = 0;
+                _fireWasHeld = f.FireHeld;
                 return;
             }
 
@@ -95,6 +114,21 @@ namespace Worms.Game.Core
                 _lastSentAim = Aim;
             }
 
+            bool pressed = f.FireHeld && !_fireWasHeld;
+            _fireWasHeld = f.FireHeld;
+            if (TargetMode)
+            {
+                Charging = false;
+                if (f.TargetPicked)
+                    output.Add(new Intent { Kind = InputKind.Fire, Angle = Aim, TargetX = f.TargetX, TargetY = f.TargetY });
+                return;
+            }
+            if (!ChargeMode)
+            {
+                Charging = false;
+                if (pressed || f.DragReleased) Fire(output, 1f);
+                return;
+            }
             if (!float.IsNaN(f.DragPower))
             {
                 Power = Math.Max(0, Math.Min(1, f.DragPower));
@@ -117,9 +151,9 @@ namespace Worms.Game.Core
             }
         }
 
-        void Fire(List<Intent> output)
+        void Fire(List<Intent> output, float power = -1)
         {
-            output.Add(new Intent { Kind = InputKind.Fire, Angle = Aim, Power = Power, Fuse = Fuse });
+            output.Add(new Intent { Kind = InputKind.Fire, Angle = Aim, Power = power >= 0 ? power : Power, Fuse = Fuse });
             Charging = false;
             Power = 0;
         }

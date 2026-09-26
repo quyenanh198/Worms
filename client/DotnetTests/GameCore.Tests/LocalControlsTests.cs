@@ -93,3 +93,58 @@ namespace Worms.Game.Core.Tests
         }
     }
 }
+
+namespace Worms.Game.Core.Tests
+{
+    public class WeaponModeTests
+    {
+        static InputFrame Frame() { return new InputFrame { Dt = 1f / 60, DragAngle = float.NaN, DragPower = float.NaN }; }
+
+        [Fact]
+        public void InstantWeaponsFireOnceOnPress()
+        {
+            var c = new LocalControls();
+            c.UseWeapon(WeaponId.Shotgun);
+            var output = new List<Intent>();
+            var f = Frame();
+            f.FireHeld = true;
+            for (int i = 0; i < 30; i++) c.Update(f, true, true, output);
+            var shot = Assert.Single(output, x => x.Kind == InputKind.Fire);
+            Assert.Equal(1f, shot.Power);
+            f.FireHeld = false;
+            c.Update(f, true, true, output);
+            f.FireHeld = true;
+            c.Update(f, true, true, output);
+            Assert.Equal(2, output.Count(x => x.Kind == InputKind.Fire)); // second pull, second shot
+        }
+
+        [Fact]
+        public void AirStrikeFiresAtPickedPoint()
+        {
+            var c = new LocalControls();
+            c.UseWeapon(WeaponId.AirStrike);
+            var output = new List<Intent>();
+            var f = Frame();
+            f.FireHeld = true;
+            c.Update(f, true, true, output);
+            Assert.DoesNotContain(output, x => x.Kind == InputKind.Fire); // space does nothing
+            f.TargetPicked = true;
+            f.TargetX = 812;
+            f.TargetY = 300;
+            c.Update(f, true, true, output);
+            var shot = Assert.Single(output, x => x.Kind == InputKind.Fire);
+            Assert.Equal(812, shot.TargetX);
+        }
+
+        [Fact]
+        public void ThrownWeaponsCharge()
+        {
+            var c = new LocalControls();
+            c.UseWeapon(WeaponId.Grenade);
+            Assert.True(c.ChargeMode);
+            c.UseWeapon(WeaponId.Dynamite);
+            Assert.False(c.ChargeMode);
+            Assert.False(c.TargetMode);
+        }
+    }
+}

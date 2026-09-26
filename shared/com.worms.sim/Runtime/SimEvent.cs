@@ -11,6 +11,7 @@ namespace Worms.Sim
         Splash = 7,
         Death = 8,
         GameOver = 9,
+        Shot = 10,
     }
 
     public enum DeathCause : byte
@@ -32,6 +33,7 @@ namespace Worms.Sim
     /// Splash: Entity, X, Y.
     /// Death: Worm, Cause.
     /// GameOver: Team = winning team or -1 for a draw.
+    /// Shot: Worm (shooter), Weapon, X/Y = where the bullet stopped.
     /// </summary>
     public struct SimEvent
     {

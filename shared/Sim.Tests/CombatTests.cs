@@ -111,11 +111,12 @@ namespace Worms.Sim.Tests
             Assert.Contains(events, e => e.Type == SimEventType.Turn && e.Team == 0);
 
             w.Step(TestWorlds.Input(w, InputKind.Fire, angle: 1.2f, power: 0.4f));
-            Assert.Equal(Phase.Flying, w.Phase);
-            TestWorlds.RunUntil(w, x => x.Phase != Phase.Flying);
-            Assert.Equal(Phase.Settling, w.Phase);
-            TestWorlds.RunUntil(w, x => x.Phase != Phase.Settling);
-            Assert.Equal(Phase.Retreat, w.Phase);
+            Assert.Equal(Phase.Retreat, w.Phase); // retreat starts while the shot flies
+            Assert.Equal(C.RetreatTicks - 1, w.RetreatTicksLeft); // the firing tick already counts
+            TestWorlds.RunUntil(w, x => x.Phase != Phase.Retreat);
+            Assert.True(w.Phase == Phase.Flying || w.Phase == Phase.Settling);
+            TestWorlds.RunUntil(w, x => x.Phase != Phase.Flying && x.Phase != Phase.Settling);
+            Assert.Equal(Phase.EndOfTurn, w.Phase);
             TestWorlds.RunUntil(w, x => x.Phase == Phase.Aiming);
             Assert.Equal(1, w.ActiveTeam);
             Assert.Equal(1, w.ActiveWorm);

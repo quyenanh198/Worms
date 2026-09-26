@@ -29,7 +29,7 @@ namespace Worms.Sim
     /// The whole match state and its fixed-step update (60 Hz). Only the server's
     /// World is authoritative; clients render snapshots of it.
     /// </summary>
-    public sealed class World
+    public sealed partial class World
     {
         public readonly Rng Rng;
         public readonly Terrain Terrain;
@@ -51,13 +51,14 @@ namespace Worms.Sim
         public int RetreatTicksLeft;
         public int MoveDir;
         public WeaponId[] SelectedWeapon;
+        /// <summary>Remaining uses per team and weapon; -1 = unlimited.</summary>
+        public int[][] Ammo;
         public bool[] Forfeited;
         /// <summary>Winning team once GameOver: -1 = draw.</summary>
         public int Winner = -1;
 
         readonly int[] _nextWormOfTeam;
         readonly List<SimEvent> _events = new List<SimEvent>();
-        bool _retreatAfterSettle;
         int _stillTicks;
         int _activeDamageAtStart;
         int _nextEntityId = 1000;
@@ -72,6 +73,12 @@ namespace Worms.Sim
             _nextWormOfTeam = new int[TeamCount];
             SelectedWeapon = new WeaponId[TeamCount];
             Forfeited = new bool[TeamCount];
+            Ammo = new int[TeamCount][];
+            for (int team = 0; team < TeamCount; team++)
+            {
+                Ammo[team] = new int[Weapons.Count];
+                foreach (var def in Weapons.All) Ammo[team][(int)def.Id] = def.Ammo;
+            }
 
             int id = 0;
             var spawnRng = new Rng(setup.Seed ^ 0x9E3779B9u);
@@ -109,13 +116,13 @@ namespace Worms.Sim
         public void Forfeit(int team)
         {
             Forfeited[team] = true;
-            if (ActiveTeam == team && (Phase == Phase.Aiming || Phase == Phase.Retreat)) BeginSettling(false);
+            if (ActiveTeam == team && (Phase == Phase.Aiming || Phase == Phase.Retreat)) BeginSettling();
         }
 
         /// <summary>Ends the active team's turn early (its player is disconnected).</summary>
         public void SkipTurn(int team)
         {
-            if (ActiveTeam == team && (Phase == Phase.Aiming || Phase == Phase.Retreat)) BeginSettling(false);
+            if (ActiveTeam == team && (Phase == Phase.Aiming || Phase == Phase.Retreat)) BeginSettling();
         }
 
         /// <summary>Advances one tick and returns what happened during it.</summary>
@@ -163,20 +170,21 @@ namespace Worms.Sim
             switch (input.Kind)
             {
                 case InputKind.Move:
-                    if (canMove) MoveDir = Math.Sign(input.Dir);
+                    if (canMove && _burstLeft == 0) MoveDir = Math.Sign(input.Dir);
                     break;
                 case InputKind.Jump:
                 case InputKind.Backflip:
-                    if (canMove) worm.Jump(input.Kind == InputKind.Backflip);
+                    if (canMove && _burstLeft == 0) worm.Jump(input.Kind == InputKind.Backflip);
                     break;
                 case InputKind.Aim:
                     if (aiming) worm.Aim = ClampAngle(input.Angle);
                     break;
                 case InputKind.Select:
-                    if (aiming && Weapons.TryGet(input.Weapon, out _)) SelectedWeapon[ActiveTeam] = input.Weapon;
+                    if (aiming && !AttackInProgress && Weapons.TryGet(input.Weapon, out _) && Ammo[ActiveTeam][(int)input.Weapon] != 0)
+                        SelectedWeapon[ActiveTeam] = input.Weapon;
                     break;
                 case InputKind.Fire:
-                    if (aiming && worm.IsGrounded) Fire(worm, input);
+                    if (aiming && worm.IsGrounded && _burstLeft == 0) Fire(worm, input);
                     break;
             }
         }
@@ -186,39 +194,6 @@ namespace Worms.Sim
             const float half = (float)(Math.PI / 2);
             if (float.IsNaN(a)) return 0;
             return Math.Max(-half, Math.Min(half, a));
-        }
-
-        void Fire(Worm worm, SimInput input)
-        {
-            if (!Weapons.TryGet(SelectedWeapon[ActiveTeam], out var def)) return;
-            worm.Aim = ClampAngle(input.Angle);
-            float power = float.IsNaN(input.Power) ? 0 : Math.Max(0f, Math.Min(1f, input.Power));
-            var dir = new Vec2(worm.Facing * (float)Math.Cos(worm.Aim), -(float)Math.Sin(worm.Aim));
-            MoveDir = 0;
-            worm.StopWalking();
-            Emit(new SimEvent { Type = SimEventType.Fire, Worm = worm.Id, Weapon = def.Id });
-
-            switch (def.Behavior)
-            {
-                case Behavior.Ballistic:
-                {
-                    var p = new Projectile
-                    {
-                        Id = NewEntityId(),
-                        Weapon = def,
-                        OwnerWorm = worm.Id,
-                        FuseTicks = def.TimerFuse ? Math.Max(1, Math.Min(5, input.Fuse == 0 ? 3 : input.Fuse)) * C.TicksPerSecond : -1,
-                        Age = -1, // the firing tick does not count toward the fuse
-                        Body = new Body(worm.Pos + dir * C.MuzzleOffset, def.ProjectileRadius, def.Restitution, def.Friction, def.WindFactor),
-                    };
-                    p.Body.Vel = dir * (def.MaxSpeed * power);
-                    Projectiles.Add(p);
-                    // Muzzle already inside rock: point-blank explosion.
-                    if (Terrain.OverlapsCircle(p.Pos, p.Body.Radius)) ExplodeProjectile(p);
-                    break;
-                }
-            }
-            SetPhase(Phase.Flying);
         }
 
         void StepProjectiles()
@@ -266,6 +241,7 @@ namespace Worms.Sim
         {
             p.Alive = false;
             Explosion.Detonate(this, p.Pos, p.Weapon.BlastRadius, p.Weapon.MaxDamage);
+            if (p.Weapon.Fragments > 0) SpawnFragments(p);
         }
 
         void Drown(Worm worm)
@@ -300,10 +276,11 @@ namespace Worms.Sim
             PhaseTicks = 0;
         }
 
-        void BeginSettling(bool retreatAfter)
+        void BeginSettling()
         {
-            _retreatAfterSettle = retreatAfter;
             _stillTicks = 0;
+            _shotsLeft = 0;
+            _burstLeft = 0;
             MoveDir = 0;
             Active?.StopWalking();
             SetPhase(Phase.Settling);
@@ -319,38 +296,36 @@ namespace Worms.Sim
                     break;
 
                 case Phase.Aiming:
+                    if (_burstLeft > 0)
+                    {
+                        StepBurst(active);
+                        break;
+                    }
                     TurnTicksLeft--;
                     if (TurnTicksLeft <= 0 || active == null || !active.Alive || active.PendingDamage > _activeDamageAtStart
                         || active.State == WormState.Tumbling || Forfeited[ActiveTeam])
-                        BeginSettling(false);
+                        BeginSettling();
+                    break;
+
+                case Phase.Retreat:
+                    // Shots may still be in flight while the worm runs for cover.
+                    if (--RetreatTicksLeft <= 0 || active == null || !active.Alive || active.PendingDamage > _activeDamageAtStart
+                        || active.State == WormState.Tumbling || Forfeited[ActiveTeam])
+                    {
+                        MoveDir = 0;
+                        active?.StopWalking();
+                        if (Projectiles.Count > 0) SetPhase(Phase.Flying);
+                        else BeginSettling();
+                    }
                     break;
 
                 case Phase.Flying:
-                    if (Projectiles.Count == 0) BeginSettling(true);
+                    if (Projectiles.Count == 0) BeginSettling();
                     break;
 
                 case Phase.Settling:
                     _stillTicks = EverythingStill() ? _stillTicks + 1 : 0;
-                    if (_stillTicks >= C.SettleTicks || PhaseTicks >= C.MaxSettleTicks)
-                    {
-                        bool canRetreat = _retreatAfterSettle && active != null && active.Alive
-                            && active.PendingDamage == _activeDamageAtStart && !Forfeited[ActiveTeam];
-                        _retreatAfterSettle = false;
-                        if (canRetreat)
-                        {
-                            RetreatTicksLeft = C.RetreatTicks;
-                            SetPhase(Phase.Retreat);
-                        }
-                        else
-                        {
-                            SetPhase(Phase.EndOfTurn);
-                        }
-                    }
-                    break;
-
-                case Phase.Retreat:
-                    if (--RetreatTicksLeft <= 0 || active == null || !active.Alive || active.PendingDamage > _activeDamageAtStart)
-                        BeginSettling(false);
+                    if (_stillTicks >= C.SettleTicks || PhaseTicks >= C.MaxSettleTicks) SetPhase(Phase.EndOfTurn);
                     break;
 
                 case Phase.EndOfTurn:
@@ -374,7 +349,7 @@ namespace Worms.Sim
                 if (worm.Alive && worm.Hp <= 0)
                 {
                     Kill(worm, DeathCause.Hp);
-                    BeginSettling(false);
+                    BeginSettling();
                     return;
                 }
             }
@@ -421,6 +396,9 @@ namespace Worms.Sim
 
             Wind = (float)Math.Round(Rng.Range(-C.WindMax, C.WindMax));
             MoveDir = 0;
+            _shotsLeft = 0;
+            _burstLeft = 0;
+            if (Ammo[ActiveTeam][(int)SelectedWeapon[ActiveTeam]] == 0) SelectedWeapon[ActiveTeam] = WeaponId.Bazooka;
             TurnTicksLeft = C.TurnTicks;
             _activeDamageAtStart = Active.PendingDamage;
             SetPhase(Phase.Aiming);

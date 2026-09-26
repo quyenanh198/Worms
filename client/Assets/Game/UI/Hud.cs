@@ -20,13 +20,15 @@ namespace Worms.Game.UI
         /// <summary>Shown on the game-over panel; null hides the button.</summary>
         Action PlayAgain { get; }
         Action Leave { get; }
+        void SelectWeapon(WeaponId weapon);
     }
 
     /// <summary>Immediate-mode HUD (docs/PLAN.md §3.16): timer, wind, HP, weapon, power, labels.</summary>
     public sealed class Hud : MonoBehaviour
     {
         public IHudSource Source;
-        GUIStyle _label, _big, _small, _panel;
+        GUIStyle _label, _big, _small, _panel, _button;
+        bool _weaponMenu;
         Texture2D _white;
 
         static readonly string[] WeaponNames = { "Bazooka", "Lựu đạn", "Bom chùm", "Shotgun", "Uzi", "Dynamite", "Gậy bóng chày", "Không kích" };
@@ -47,6 +49,7 @@ namespace Worms.Game.UI
             _big = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 1.8f), fontStyle = FontStyle.Bold };
             _small = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 0.8f) };
             _panel = new GUIStyle(GUI.skin.box);
+            _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u * 0.85f), wordWrap = true };
         }
 
         void Box(Rect r, Color c)
@@ -118,20 +121,65 @@ namespace Worms.Game.UI
             }
 
             // Bottom left: weapon, fuse and power while it is our turn.
+            Play.KeyboardInput.BlockedArea = Rect.zero;
             if (Source.IsLocalTurn && s.Phase == Phase.Aiming)
             {
+                var def = Weapons.Get(s.ActiveWeapon);
                 string weapon = WeaponName(s.ActiveWeapon);
-                if (s.ActiveWeapon == WeaponId.Grenade || s.ActiveWeapon == WeaponId.ClusterBomb) weapon += "  •  ngòi " + Source.Controls.Fuse + "s";
-                Shadowed(new Rect(u, h - u * 3.4f, u * 14, u * 1.2f), weapon, _label, Color.white);
+                if (def.UsesFuse) weapon += "  •  ngòi " + Source.Controls.Fuse + "s (F1–F5)";
+                Shadowed(new Rect(u, h - u * 3.4f, u * 16, u * 1.2f), weapon, _label, Color.white);
+                if (def.Targets) Shadowed(new Rect(0, h - u * 5.5f, w, u * 1.2f), "Bấm chuột trái vào bản đồ để chọn mục tiêu", _label, Color.white);
                 if (Source.Controls.Charging)
                 {
                     var r = new Rect(w / 2 - u * 6, h - u * 4, u * 12, u * 0.8f);
                     Box(r, new Color(0, 0, 0, 0.5f));
                     Box(new Rect(r.x, r.y, r.width * Source.Controls.Power, r.height), Color.Lerp(Color.yellow, Color.red, Source.Controls.Power));
                 }
+                WeaponMenu(s, w, h, u);
+            }
+            else
+            {
+                _weaponMenu = false;
             }
 
             if (s.Phase == Phase.GameOver) GameOverPanel(s, w, h, u);
+        }
+
+        void WeaponMenu(Snapshot s, float w, float h, float u)
+        {
+            var toggle = new Rect(w - u * 7, h - u * 3.4f, u * 6, u * 1.8f);
+            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Tab)
+            {
+                _weaponMenu = !_weaponMenu;
+                Event.current.Use();
+            }
+            if (GUI.Button(toggle, _weaponMenu ? "Đóng" : "Vũ khí (Tab)", _button)) _weaponMenu = !_weaponMenu;
+            Play.KeyboardInput.BlockedArea = toggle;
+            if (!_weaponMenu) return;
+
+            const int cols = 4;
+            float cw = u * 6.2f, ch = u * 3f;
+            var panel = new Rect(w - cw * cols - u * 1.5f, h - u * 4.2f - ch * 2 - u, cw * cols + u, ch * 2 + u);
+            Box(panel, new Color(0, 0, 0, 0.55f));
+            Play.KeyboardInput.BlockedArea = new Rect(panel.x, panel.y, panel.width, toggle.yMax - panel.y);
+            for (int i = 0; i < Weapons.Count; i++)
+            {
+                var id = (WeaponId)i;
+                int ammo = s.ActiveAmmo[i];
+                string label = (i + 1) + ". " + WeaponName(id) + "\n" + (ammo < 0 ? "∞" : "còn " + ammo);
+                var r = new Rect(panel.x + u * 0.5f + (i % cols) * cw, panel.y + u * 0.5f + (i / cols) * ch, cw - u * 0.3f, ch - u * 0.3f);
+                var old = GUI.enabled;
+                GUI.enabled = ammo != 0 && !s.AttackInProgress;
+                var oldColor = GUI.backgroundColor;
+                if (id == s.ActiveWeapon) GUI.backgroundColor = new Color(1f, 0.85f, 0.4f);
+                if (GUI.Button(r, label, _button))
+                {
+                    Source.SelectWeapon(id);
+                    _weaponMenu = false;
+                }
+                GUI.backgroundColor = oldColor;
+                GUI.enabled = old;
+            }
         }
 
         void GameOverPanel(Snapshot s, float w, float h, float u)

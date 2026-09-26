@@ -45,14 +45,15 @@ namespace Worms.Game.Play
                 _lastActiveWorm = World.ActiveWorm;
                 Controls.Reset(0.35f);
             }
+            Controls.UseWeapon(World.SelectedWeapon[Math.Max(0, World.ActiveTeam)]);
             _intents.Clear();
-            Controls.Update(KeyboardInput.Read(Time.deltaTime), aiming, canMove, _intents);
+            Controls.Update(KeyboardInput.Read(Time.deltaTime, Presenter.Rig.Camera), aiming, canMove, _intents);
             foreach (var i in _intents)
             {
                 _pending.Add(new SimInput
                 {
                     Team = World.ActiveTeam, Kind = i.Kind, Dir = i.Dir, Angle = i.Angle,
-                    Power = i.Power, Fuse = i.Fuse, Weapon = i.Weapon,
+                    Power = i.Power, Fuse = i.Fuse, Weapon = i.Weapon, TargetX = i.TargetX, TargetY = i.TargetY,
                 });
             }
             KeyboardInput.CameraControls(Presenter.Rig);
@@ -75,6 +76,11 @@ namespace Worms.Game.Play
         public bool IsLocalTurn => true;
         public string TeamName(int team) { return "Đội " + (team + 1); }
         public Action PlayAgain => Restart;
+
+        public void SelectWeapon(WeaponId weapon)
+        {
+            _pending.Add(new SimInput { Team = World.ActiveTeam, Kind = InputKind.Select, Weapon = weapon });
+        }
         public Action Leave { get; set; }
 
         public void Restart()
