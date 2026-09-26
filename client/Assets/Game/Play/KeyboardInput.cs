@@ -31,7 +31,8 @@ namespace Worms.Game.Play
 
             var mouse = (Vector2)Input.mousePosition;
             var guiPoint = new Vector2(mouse.x, Screen.height - mouse.y);
-            if (Input.GetMouseButtonDown(0) && camera != null && !BlockedArea.Contains(guiPoint) && TryPick(camera, mouse, out var sim))
+            // On touch screens the touch path picks targets (Unity also fakes mouse clicks from touches).
+            if (Input.touchCount == 0 && Input.GetMouseButtonDown(0) && camera != null && !BlockedArea.Contains(guiPoint) && TryPick(camera, mouse, out var sim))
             {
                 f.TargetPicked = true;
                 f.TargetX = sim.x;
@@ -55,6 +56,7 @@ namespace Worms.Game.Play
         /// <summary>Mouse wheel zoom and right/middle-drag pan.</summary>
         public static void CameraControls(Render.CameraRig rig)
         {
+            if (Input.touchCount > 0) return;
             float wheel = Input.mouseScrollDelta.y;
             if (Mathf.Abs(wheel) > 0.01f) rig.Zoom(Mathf.Pow(0.9f, wheel));
             if (Input.GetMouseButton(1) || Input.GetMouseButton(2))

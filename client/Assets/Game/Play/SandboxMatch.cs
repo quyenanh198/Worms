@@ -17,6 +17,7 @@ namespace Worms.Game.Play
         public World World { get; private set; }
         public MatchPresenter Presenter { get; private set; }
         public LocalControls Controls { get; } = new LocalControls();
+        public TouchInput Touch { get; } = new TouchInput();
 
         readonly List<Intent> _intents = new List<Intent>();
         readonly List<SimInput> _pending = new List<SimInput>();
@@ -47,7 +48,10 @@ namespace Worms.Game.Play
             }
             Controls.UseWeapon(World.SelectedWeapon[Math.Max(0, World.ActiveTeam)]);
             _intents.Clear();
-            Controls.Update(KeyboardInput.Read(Time.deltaTime, Presenter.Rig.Camera), aiming, canMove, _intents);
+            var frame = KeyboardInput.Read(Time.deltaTime, Presenter.Rig.Camera);
+            var active = World.Active;
+            Touch.Apply(ref frame, TouchInput.Context(aiming, Controls, Presenter.Actors.WormPosition(World.ActiveWorm), active != null ? active.Facing : 1, Presenter.Rig.Camera), Presenter.Rig);
+            Controls.Update(frame, aiming, canMove, _intents);
             foreach (var i in _intents)
             {
                 _pending.Add(new SimInput

@@ -20,6 +20,7 @@ namespace Worms.Game.Play
         public Snapshot Current { get; private set; }
         public MatchPresenter Presenter { get; private set; }
         public LocalControls Controls { get; } = new LocalControls();
+        public TouchInput Touch { get; } = new TouchInput();
         public bool IsLocalTurn => _match != null && !_match.IsSpectator && Current != null && Current.ActiveTeam == _match.YourTeam;
         public Action PlayAgain => () => Net.Session.Rematch();
         public Action Leave => () => Net.Session.LeaveRoom();
@@ -69,7 +70,10 @@ namespace Worms.Game.Play
 
             Controls.UseWeapon(latest.ActiveWeapon);
             _intents.Clear();
-            Controls.Update(KeyboardInput.Read(Time.deltaTime, Presenter.Rig.Camera), aiming, canMove, _intents);
+            var frame = KeyboardInput.Read(Time.deltaTime, Presenter.Rig.Camera);
+            var me = latest.FindWorm(latest.ActiveWorm);
+            Touch.Apply(ref frame, TouchInput.Context(aiming, Controls, mine ? Presenter.Actors.WormPosition(latest.ActiveWorm) : null, me.HasValue ? me.Value.Facing : 1, Presenter.Rig.Camera), Presenter.Rig);
+            Controls.Update(frame, aiming, canMove, _intents);
             foreach (var i in _intents) Net.Session.SendIntent(i);
             KeyboardInput.CameraControls(Presenter.Rig);
 

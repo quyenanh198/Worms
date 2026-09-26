@@ -115,6 +115,10 @@ namespace Worms.Game.UI
             GUI.Label(new Rect(x, y + _u * 2.2f, w, _u * 1.2f), "Hiệu ứng", _small);
             float sfx = GUI.HorizontalSlider(new Rect(x, y + _u * 3.4f, w, _u), audio.SfxVolume, 0, 1);
             if (!Mathf.Approximately(music, audio.MusicVolume) || !Mathf.Approximately(sfx, audio.SfxVolume)) audio.SetVolumes(sfx, music);
+
+            int choice = Render.QualitySettingsManager.Choice;
+            if (GUI.Button(new Rect(x, y + _u * 4.8f, w, _u * 1.6f), "Đồ họa: " + Render.QualitySettingsManager.Label(choice), _small))
+                Render.QualitySettingsManager.Choice = choice >= 2 ? -1 : choice + 1;
         }
 
         void Outdated(ref float y)

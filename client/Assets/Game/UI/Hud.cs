@@ -14,6 +14,7 @@ namespace Worms.Game.UI
         Snapshot Current { get; }
         MatchPresenter Presenter { get; }
         LocalControls Controls { get; }
+        Play.TouchInput Touch { get; }
         /// <summary>True when this device controls the active worm.</summary>
         bool IsLocalTurn { get; }
         string TeamName(int team);
@@ -152,11 +153,33 @@ namespace Worms.Game.UI
                 _weaponMenu = false;
             }
 
+            if (Play.TouchInput.Visible && Source.IsLocalTurn && (s.Phase == Phase.Aiming || s.Phase == Phase.Retreat)) TouchButtons(s, h);
+
             var audio = Audio.AudioManager.Instance;
             if (audio != null && GUI.Button(new Rect(u * 0.5f, u * 0.5f, u * 6.5f, u * 1.6f), audio.Muted ? "Âm thanh: tắt" : "Âm thanh: bật", _button))
                 audio.SetMuted(!audio.Muted);
 
             if (s.Phase == Phase.GameOver) GameOverPanel(s, w, h, u);
+        }
+
+        /// <summary>Draws the on-screen buttons (input itself is read from touches in TouchInput).</summary>
+        void TouchButtons(Snapshot s, float h)
+        {
+            var l = Source.Touch.Layout;
+            void Pad(RectF r, string text)
+            {
+                var gui = new Rect(r.X, h - r.Y - r.H, r.W, r.H);
+                Box(gui, new Color(0, 0, 0, 0.35f));
+                Shadowed(gui, text, _label, Color.white);
+            }
+            Pad(l.Left, "<");
+            Pad(l.Right, ">");
+            Pad(l.Jump, "Nhảy");
+            Pad(l.Backflip, "Lộn");
+            var def = Weapons.Get(s.ActiveWeapon);
+            if (s.Phase == Phase.Aiming && !def.NeedsPower && !def.Targets) Pad(l.Fire, "Bắn");
+            if (s.Phase == Phase.Aiming && def.NeedsPower)
+                Shadowed(new Rect(0, h * 0.18f, Screen.width, _label.fontSize * 1.4f), "Kéo từ con sâu để ngắm, thả tay để bắn", _small, Color.white);
         }
 
         void WeaponMenu(Snapshot s, float w, float h, float u)

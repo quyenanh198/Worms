@@ -90,6 +90,12 @@ jobs:
           buildMethod: Worms.Editor.Build.CI
           versioning: Semantic
           androidExportType: androidPackage
+          # Optional release keystore (docs/PLAN.md §5.1): with it, new APKs install over old ones.
+          androidKeystoreName: worms.keystore
+          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
       - uses: actions/upload-artifact@v4
         with:
           name: Worms-${{ matrix.target }}
@@ -141,11 +147,14 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
-      - name: Zip each platform
+      - name: Zip each platform, keep the APK installable as is
         run: |
           cd dist
+          find Worms-Android -name '*.apk' -exec cp {} Worms.apk \; || true
           for d in */; do (cd "$d" && zip -qr "../${d%/}.zip" .); done
           ls -la
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.zip
+          files: |
+            dist/*.zip
+            dist/Worms.apk

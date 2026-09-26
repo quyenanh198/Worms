@@ -336,7 +336,13 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
 
 ### 3.12 Input đa nền tảng
 - **Desktop:** `←/→` đi · `Enter` nhảy · `Backspace` lộn ngược · `↑/↓` ngắm · giữ `Space` để nạp lực, thả để bắn · `Tab` hoặc chuột phải mở menu vũ khí · `1–5` chỉnh ngòi · click để chọn mục tiêu Air Strike.
-- **Mobile (native và web):** nút ◀ ▶ và nút nhảy bên trái. **Kéo từ con sâu** để ngắm (hướng là góc, độ dài là lực, thả là bắn). Nút vũ khí bên phải. Pinch để zoom, 2 ngón để pan.
+- **Mobile (native và web):**
+  - Góc trái dưới: nút `<` `>` để đi, `Nhảy`, `Lộn`.
+  - **Kéo từ con sâu** để ngắm: hướng kéo là góc, độ dài kéo là lực, thả tay là bắn; kéo quá ngắn thì huỷ.
+  - Vũ khí không cần nạp lực (shotgun, uzi, gậy, dynamite): nút `Bắn` bên phải. Không kích: chạm vào bản đồ để chọn mục tiêu.
+  - Nút vũ khí bên phải. Một ngón ở chỗ trống để kéo camera, hai ngón để pinch zoom.
+  - Logic nằm trong `Core/TouchInterpreter.cs` (engine-free, có test).
+- **Mức đồ họa:** mặc định là Cao cho desktop, Vừa cho app mobile, Thấp cho trình duyệt mobile. Trận đầu tiên đo FPS trong 3 giây rồi hạ mức nếu máy yếu, và lưu lại lựa chọn. Người chơi đổi được ở menu (Tự động, Thấp, Vừa, Cao).
 - Dùng `UnityEngine.Input` (Input Manager cũ, chạy giống nhau trên mọi target kể cả Web). `ProjectSetup` tự đặt Active Input Handling. Cả hai kiểu điều khiển đều chuyển thành cùng một kiểu `Command`.
 
 ### 3.13 Build, CI và deploy
@@ -500,9 +506,15 @@ Mỗi phase là **1 PR** (D7) và phải qua bước verify trước khi sang ph
    - `UNITY_LICENSE`: nội dung file `/Library/Application Support/Unity/Unity_lic.ulf`
    - `UNITY_EMAIL`
    - `UNITY_PASSWORD`
-2. **ghcr:** sau lần push image đầu tiên, vào package `worms` trên GitHub và đặt visibility là public, để Mac mini pull được không cần đăng nhập. Hub đang dùng cách này cho các app khác.
-3. **(Không bắt buộc) Chạy Unity Editor trên Mac mini** để xem thử cảnh và tinh chỉnh bằng mắt khi PR ghi "cần bạn làm" (§5.4). Mac mini không còn làm máy build.
-4. **Khi tới P8:** review và merge PR vào `macmini-hub`, rồi chạy `scripts/deploy.sh worms` trên Mac mini.
+2. **(Không bắt buộc) Keystore Android:** để APK mới cài đè lên bản cũ mà không phải gỡ app, tạo một keystore một lần:
+   ```bash
+   keytool -genkeypair -v -keystore worms.keystore -alias worms -keyalg RSA -keysize 2048 -validity 10000
+   base64 -w0 worms.keystore   # macOS: base64 -i worms.keystore
+   ```
+   Thêm 4 secret: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASS`, `ANDROID_KEYALIAS_NAME` (`worms`), `ANDROID_KEYALIAS_PASS`. **Giữ file keystore cẩn thận**: mất file thì người dùng phải gỡ app cũ mới cài được bản mới.
+3. **ghcr:** sau lần push image đầu tiên, vào package `worms` trên GitHub và đặt visibility là public, để Mac mini pull được không cần đăng nhập. Hub đang dùng cách này cho các app khác.
+4. **(Không bắt buộc) Chạy Unity Editor trên Mac mini** để xem thử cảnh và tinh chỉnh bằng mắt khi PR ghi "cần bạn làm" (§5.4). Mac mini không còn làm máy build.
+5. **Khi tới P8:** review và merge PR vào `macmini-hub`, rồi chạy `scripts/deploy.sh worms` trên Mac mini.
 
 ### 5.2 Lệnh
 ```bash

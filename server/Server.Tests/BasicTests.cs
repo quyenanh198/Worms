@@ -33,6 +33,14 @@ namespace Worms.Server.Tests
         }
 
         [Fact]
+        public async Task DownloadPageLinksTheApk()
+        {
+            var res = await _factory.CreateClient().GetAsync("/download");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+            Assert.Contains("Worms.apk", await res.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
         public async Task GuestGetsHelloAndEmptyLobby()
         {
             await using var c = await TestClient.ConnectAsync(_factory, "?name=Ánh");
