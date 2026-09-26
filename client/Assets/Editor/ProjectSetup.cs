@@ -2,6 +2,8 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Worms.Editor
 {
@@ -12,11 +14,13 @@ namespace Worms.Editor
     public static class ProjectSetup
     {
         public const string BootScene = "Assets/Scenes/Boot.unity";
+        public const string UrpAsset = "Assets/Settings/URP.asset";
 
         [MenuItem("Worms/Apply Project Setup")]
         public static void Apply()
         {
             EnsureBootScene();
+            EnsureUrp();
             UseLegacyInputManager();
             ConfigureCommonPlayerSettings();
             AssetDatabase.SaveAssets();
@@ -28,10 +32,40 @@ namespace Worms.Editor
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(BootScene));
                 var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                // With "Automatic" fog stripping Unity keeps fog shader variants only
+                // if a scene in the build uses fog; the match turns fog on at runtime.
+                RenderSettings.fog = true;
+                RenderSettings.fogMode = FogMode.Linear;
                 EditorSceneManager.SaveScene(scene, BootScene);
                 AssetDatabase.ImportAsset(BootScene);
             }
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(BootScene, true) };
+        }
+
+        // URP asset and renderer created from code. The settings here are the
+        // High tier; UrpSetup lowers them at runtime for Medium and Low.
+        static void EnsureUrp()
+        {
+            var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(UrpAsset);
+            if (urp == null)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(UrpAsset));
+                urp = UniversalRenderPipelineAsset.Create();
+                AssetDatabase.CreateAsset(urp, UrpAsset);
+                urp.LoadBuiltinRendererData();
+            }
+            urp.supportsHDR = true;
+            urp.msaaSampleCount = 4;
+            urp.shadowDistance = 60f;
+            urp.shadowCascadeCount = 2;
+            urp.mainLightShadowmapResolution = 2048;
+            // No public setter for soft shadows.
+            var so = new SerializedObject(urp);
+            var soft = so.FindProperty("m_SoftShadowsSupported");
+            if (soft != null) soft.boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(urp);
+            GraphicsSettings.defaultRenderPipeline = urp;
         }
 
         // Keyboard and touch are read through UnityEngine.Input, which works the

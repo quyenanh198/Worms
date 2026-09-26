@@ -23,4 +23,6 @@ docker build -t worms:dev .               # image server (+ trang tạm nếu ch
 python3 tools/gen_meta.py                 # sinh .meta cho file mới trong client/Assets và shared/
 ```
 
+Bản build desktop có thể chạy thẳng vào trận offline bằng tham số `-sandbox`, và chỉ định server bằng `-server ws://host:8080/ws`.
+
 Build Unity chạy trên GitHub Actions (GameCI) sau khi thêm secret `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD`.

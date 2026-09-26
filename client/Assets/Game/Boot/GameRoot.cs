@@ -1,19 +1,23 @@
 using System;
 using UnityEngine;
 using Worms.Game.Net;
+using Worms.Game.Play;
+using Worms.Game.UI;
 using Worms.Protocol;
 
 namespace Worms.Game.Boot
 {
     /// <summary>
-    /// Entry point. The Boot scene is empty; this object is created at startup
-    /// and builds everything else from code.
+    /// Entry point. The Boot scene is empty; this object is created at startup,
+    /// shows the menu and builds everything else from code.
     /// </summary>
     public sealed class GameRoot : MonoBehaviour
     {
         IWsTransport _socket;
         string _status = "Đang kết nối…";
-        GUIStyle _style;
+        GUIStyle _title, _text, _button;
+        Camera _menuCamera;
+        SandboxMatch _sandbox;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -27,18 +31,40 @@ namespace Worms.Game.Boot
         void Start()
         {
             Application.targetFrameRate = 60;
-            if (Camera.main == null)
-            {
-                var cam = new GameObject("Main Camera").AddComponent<Camera>();
-                cam.tag = "MainCamera";
-                cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.06f, 0.08f, 0.11f);
-            }
+            CreateMenuCamera();
 
             bool isWeb = Application.platform == RuntimePlatform.WebGLPlayer;
             string url = ServerUrl.Resolve(isWeb, Application.absoluteURL, CommandLineArg("-server"));
             _socket = WsTransport.Create();
             _socket.Connect(url, null);
+
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sandbox") >= 0) StartSandbox();
+        }
+
+        void CreateMenuCamera()
+        {
+            _menuCamera = new GameObject("Menu Camera").AddComponent<Camera>();
+            _menuCamera.clearFlags = CameraClearFlags.SolidColor;
+            _menuCamera.backgroundColor = new Color(0.08f, 0.11f, 0.16f);
+        }
+
+        void StartSandbox()
+        {
+            if (_menuCamera != null) Destroy(_menuCamera.gameObject);
+            var go = new GameObject("Sandbox");
+            _sandbox = go.AddComponent<SandboxMatch>();
+            _sandbox.Leave = LeaveSandbox;
+            _sandbox.Begin((uint)UnityEngine.Random.Range(1, int.MaxValue), 2, 4);
+            go.AddComponent<Hud>().Source = _sandbox;
+        }
+
+        void LeaveSandbox()
+        {
+            if (_sandbox == null) return;
+            Destroy(_sandbox.Presenter.gameObject);
+            Destroy(_sandbox.gameObject);
+            _sandbox = null;
+            CreateMenuCamera();
         }
 
         void Update()
@@ -69,16 +95,20 @@ namespace Worms.Game.Boot
 
         void OnGUI()
         {
-            if (_style == null)
+            if (_sandbox != null) return;
+            float u = Mathf.Max(12f, Screen.height / 36f);
+            if (_title == null)
             {
-                _style = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleCenter,
-                    fontSize = Mathf.RoundToInt(Screen.height * 0.04f),
-                };
-                _style.normal.textColor = Color.white;
+                _title = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(u * 3), fontStyle = FontStyle.Bold };
+                _title.normal.textColor = new Color(1f, 0.8f, 0.4f);
+                _text = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(u) };
+                _text.normal.textColor = Color.white;
+                _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u) };
             }
-            GUI.Label(new Rect(0, 0, Screen.width, Screen.height), "WORMS\n" + _status, _style);
+            float w = Screen.width, h = Screen.height;
+            GUI.Label(new Rect(0, h * 0.18f, w, u * 4), "WORMS", _title);
+            GUI.Label(new Rect(0, h * 0.18f + u * 4, w, u * 1.5f), _status, _text);
+            if (GUI.Button(new Rect(w / 2 - u * 7, h * 0.55f, u * 14, u * 2.2f), "Chơi thử offline", _button)) StartSandbox();
         }
 
         void OnDestroy()

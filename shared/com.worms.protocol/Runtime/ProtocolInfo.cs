@@ -12,5 +12,6 @@ namespace Worms.Protocol
         // Server -> Client
         Hello = 1,
         Error = 2,
+        Snapshot = 3,
     }
 }

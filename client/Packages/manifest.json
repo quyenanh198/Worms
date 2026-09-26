@@ -1,13 +1,14 @@
 {
   "dependencies": {
-    "com.worms.sim": "file:../../shared/com.worms.sim",
     "com.worms.protocol": "file:../../shared/com.worms.protocol",
-    "com.unity.test-framework": "1.6.0",
+    "com.worms.sim": "file:../../shared/com.worms.sim",
     "com.unity.modules.audio": "1.0.0",
     "com.unity.modules.imgui": "1.0.0",
     "com.unity.modules.jsonserialize": "1.0.0",
     "com.unity.modules.particlesystem": "1.0.0",
-    "com.unity.modules.unitywebrequest": "1.0.0"
+    "com.unity.modules.unitywebrequest": "1.0.0",
+    "com.unity.render-pipelines.universal": "17.3.0",
+    "com.unity.test-framework": "1.6.0"
   },
   "testables": []
 }
