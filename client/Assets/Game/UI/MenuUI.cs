@@ -34,6 +34,10 @@ namespace Worms.Game.UI
         /// <summary>Center of the menu column: left of center on wide screens, so the squad shows on the right.</summary>
         float Cx => Screen.width >= Screen.height * 1.3f ? Screen.width * 0.3f : Screen.width / 2f;
 
+        // Squad naming.
+        bool _naming;
+        readonly string[] _nameEdit = new string[WormNames.PerTeam];
+
         // Store state.
         bool _store;
         int _tab;
@@ -170,9 +174,11 @@ namespace Worms.Game.UI
             else if (!Net.Connected || !Net.Session.HasHello) Offline(ref y);
             else if (Net.Session.InRoom) Room(ref y);
             else if (_store) Store(ref y);
+            else if (_naming) Naming(ref y);
             else Main(ref y);
 
             GoldBadge();
+            SquadNames();
 
             AudioSettings();
 
@@ -244,6 +250,7 @@ namespace Worms.Game.UI
         void Main(ref float y)
         {
             _store = false;
+            _naming = false;
             Line(ref y, Net.Status);
             y += _u * 0.5f;
             if (Button(ref y, "Ghép trận nhanh")) Net.Session.QuickMatch();
@@ -265,11 +272,67 @@ namespace Worms.Game.UI
                 _store = true;
                 _preview = 0;
             }
+            if (Button(ref y, "Đặt tên biệt đội", Net.Session.Profile != null))
+            {
+                _naming = true;
+                var names = Net.Session.Profile.WormNames;
+                for (int i = 0; i < _nameEdit.Length; i++) _nameEdit[i] = i < names.Count ? names[i] : string.Empty;
+            }
             if (Button(ref y, "Chơi thử offline")) StartSandbox?.Invoke();
             if (!NetClient.IsWeb && Button(ref y, "Đăng xuất"))
             {
                 ChatLogin.Logout();
                 Net.Reconnect();
+            }
+        }
+
+        /// <summary>Four text fields, one per worm; saved on the server with the profile.</summary>
+        void Naming(ref float y)
+        {
+            var profile = Net.Session.Profile;
+            if (profile == null) { _naming = false; return; }
+            Line(ref y, "Đặt tên cho 4 con sâu của bạn (tối đa " + WormNames.MaxLength + " ký tự)", _small, 1.4f);
+            float w = _u * 14, h = _u * 2f;
+            for (int i = 0; i < _nameEdit.Length; i++)
+            {
+                GUI.Label(new Rect(Cx - w / 2 - _u * 2.2f, y, _u * 2f, h), (i + 1) + ".", _small);
+                _nameEdit[i] = GUI.TextField(new Rect(Cx - w / 2, y, w, h), _nameEdit[i] ?? string.Empty, WormNames.MaxLength, _field);
+                y += h + _u * 0.35f;
+            }
+            y += _u * 0.3f;
+            if (Button(ref y, "Tên ngẫu nhiên"))
+            {
+                var pick = WormNames.Pick((uint)UnityEngine.Random.Range(1, int.MaxValue));
+                for (int i = 0; i < _nameEdit.Length; i++) _nameEdit[i] = pick[i];
+            }
+            if (Button(ref y, "Lưu"))
+            {
+                Net.Session.SetWormNames(_nameEdit);
+                _naming = false;
+                _toast = "Đã lưu tên biệt đội";
+                _toastUntil = Time.unscaledTime + 2.5f;
+            }
+            if (Button(ref y, "Quay lại")) _naming = false;
+        }
+
+        /// <summary>The squad's names over their heads in the menu scene (the player's own names).</summary>
+        void SquadNames()
+        {
+            var scene = MenuScene.Instance;
+            var profile = Net.Session.Profile;
+            if (scene == null || profile == null) return;
+            for (int i = 0; i < WormNames.PerTeam && i < profile.WormNames.Count; i++)
+            {
+                if (!scene.TryGetLabel(i, out var at)) continue;
+                string name = _naming && !string.IsNullOrEmpty(_nameEdit[i]) ? WormNames.Clean(_nameEdit[i]) : profile.WormNames[i];
+                var size = _smallLeft.CalcSize(new GUIContent(name));
+                var r = new Rect(at.x - size.x / 2 - _u * 0.5f, at.y - _u * 1.3f, size.x + _u, _u * 1.3f);
+                UiSkin.Pill(r, new Color(0.05f, 0.07f, 0.1f, 0.8f));
+                UiSkin.Pill(new Rect(r.x + _u * 0.3f, r.yMax - 3, r.width - _u * 0.6f, 3), TeamColors.Of(i));
+                var old = _smallLeft.normal.textColor;
+                _smallLeft.normal.textColor = TeamColors.Of(i);
+                GUI.Label(new Rect(r.x + _u * 0.5f, r.y, size.x + 2, r.height), name, _smallLeft);
+                _smallLeft.normal.textColor = old;
             }
         }
 

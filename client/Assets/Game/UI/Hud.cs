@@ -24,6 +24,8 @@ namespace Worms.Game.UI
         void SelectWeapon(WeaponId weapon);
         /// <summary>Gold earned in the match that just ended, for the game-over panel; null if none.</summary>
         string RewardText { get; }
+        /// <summary>The worm's own name (null: fall back to its team's name).</summary>
+        string WormName(int wormId);
     }
 
     /// <summary>Immediate-mode HUD (docs/PLAN.md §3.16): timer, wind, HP, weapon, power, labels.</summary>
@@ -118,7 +120,7 @@ namespace Worms.Game.UI
         /// <summary>A rounded tag at <paramref name="anchor"/> (screen, y down): name over HP, in the team's color.</summary>
         void NameTag(WormSnap worm, Vector2 anchor, float u, bool active)
         {
-            string name = Source.TeamName(worm.Team);
+            string name = Source.WormName(worm.Id) ?? Source.TeamName(worm.Team);
             string hp = worm.Hp.ToString();
             if (worm.PendingDamage > 0) hp += " <color=#ff7766>-" + worm.PendingDamage + "</color>";
             var nameSize = _tagName.CalcSize(new GUIContent(name));

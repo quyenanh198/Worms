@@ -49,6 +49,8 @@ namespace Worms.Game.Play
         readonly List<Intent> _intents = new List<Intent>();
         int _controlsForWorm = -1;
 
+        public string WormName(int wormId) { return _match?.WormName(wormId); }
+
         public string TeamName(int team)
         {
             return _match != null && team >= 0 && team < _match.TeamNames.Count ? _match.TeamNames[team] : "Đội " + (team + 1);

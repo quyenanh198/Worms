@@ -60,16 +60,23 @@ namespace Worms.Protocol
         public readonly List<string> TeamNames = new List<string>();
         /// <summary>What each team wears, in team order.</summary>
         public readonly List<Loadout> Loadouts = new List<Loadout>();
+        /// <summary>Each team's worm names, in worm order within the team.</summary>
+        public readonly List<List<string>> WormNames = new List<List<string>>();
         public readonly List<CarveOp> TerrainOps = new List<CarveOp>();
         public Snapshot Snapshot = new Snapshot();
 
         public int Teams => TeamNames.Count;
 
-        public static MatchStartMsg FromWorld(World w, IReadOnlyList<string> teamNames, int yourTeam, IReadOnlyList<Loadout> loadouts = null)
+        public static MatchStartMsg FromWorld(World w, IReadOnlyList<string> teamNames, int yourTeam, IReadOnlyList<Loadout> loadouts = null,
+            IReadOnlyList<List<string>> wormNames = null)
         {
             var m = new MatchStartMsg { Seed = w.Seed, WormsPerTeam = w.Worms.Count / w.TeamCount, YourTeam = yourTeam };
             m.TeamNames.AddRange(teamNames);
-            for (int i = 0; i < teamNames.Count; i++) m.Loadouts.Add(loadouts != null && i < loadouts.Count ? loadouts[i] : default);
+            for (int i = 0; i < teamNames.Count; i++)
+            {
+                m.Loadouts.Add(loadouts != null && i < loadouts.Count ? loadouts[i] : default);
+                m.WormNames.Add(wormNames != null && i < wormNames.Count ? wormNames[i] : new List<string>());
+            }
             m.TerrainOps.AddRange(w.TerrainOps);
             Snapshot.FromWorld(w, m.Snapshot);
             return m;
@@ -82,6 +89,7 @@ namespace Worms.Protocol
             {
                 w.Str(TeamNames[i]);
                 (i < Loadouts.Count ? Loadouts[i] : default).WriteTo(w);
+                WormNamesCodec.Write(w, i < WormNames.Count ? WormNames[i] : null);
             }
             w.I32(TerrainOps.Count);
             foreach (var op in TerrainOps) w.I16(op.X).I16(op.Y).I16(op.R);
@@ -97,6 +105,7 @@ namespace Worms.Protocol
             {
                 m.TeamNames.Add(r.Str());
                 m.Loadouts.Add(Loadout.Read(r));
+                m.WormNames.Add(WormNamesCodec.Read(r));
             }
             int ops = r.I32();
             if (ops < 0 || ops > 100000) throw new ProtocolException("too many terrain ops");
@@ -143,6 +152,13 @@ namespace Worms.Protocol
         public static byte[] RemoveBot(int userId) { return new MsgWriter(MsgType.RemoveBot).I32(userId).ToArray(); }
         public static byte[] Buy(byte item) { return new MsgWriter(MsgType.Buy).U8(item).ToArray(); }
         public static byte[] Equip(CosmeticSlot slot, byte item) { return new MsgWriter(MsgType.Equip).U8((byte)slot).U8(item).ToArray(); }
+
+        public static byte[] SetWormNames(IReadOnlyList<string> names)
+        {
+            var w = new MsgWriter(MsgType.SetWormNames);
+            WormNamesCodec.Write(w, names);
+            return w.ToArray();
+        }
 
         public static byte[] Input(SimInput i)
         {

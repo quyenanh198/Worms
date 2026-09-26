@@ -13,6 +13,8 @@ namespace Worms.Game.Core
         public readonly IReadOnlyList<string> TeamNames;
         /// <summary>What each team wears.</summary>
         public readonly IReadOnlyList<Loadout> Loadouts;
+        /// <summary>Each team's worm names, in worm order within the team.</summary>
+        public readonly IReadOnlyList<List<string>> WormNames;
         public readonly int WormsPerTeam;
         public readonly Terrain Terrain;
         public readonly float WaterLevel;
@@ -30,6 +32,7 @@ namespace Worms.Game.Core
             YourTeam = m.YourTeam;
             TeamNames = m.TeamNames.ToArray();
             Loadouts = m.Loadouts.ToArray();
+            WormNames = m.WormNames.ToArray();
             WormsPerTeam = m.WormsPerTeam;
             Terrain = MapGenerator.Generate(m.Seed);
             foreach (var op in m.TerrainOps) Terrain.CarveCircle(op.X, op.Y, op.R);
@@ -72,6 +75,14 @@ namespace Worms.Game.Core
         }
 
         public int PendingEvents => _pending.Count;
+
+        /// <summary>The name of a worm (ids run team by team), or null if the server sent none.</summary>
+        public string WormName(int wormId)
+        {
+            if (WormsPerTeam <= 0) return null;
+            int team = wormId / WormsPerTeam, index = wormId % WormsPerTeam;
+            return team < WormNames.Count && index < WormNames[team].Count ? WormNames[team][index] : null;
+        }
     }
 
     /// <summary>
@@ -159,6 +170,7 @@ namespace Worms.Game.Core
 
         public void Buy(byte item) { Send(ClientMsg.Buy(item)); }
         public void Equip(CosmeticSlot slot, byte item) { Send(ClientMsg.Equip(slot, item)); }
+        public void SetWormNames(IReadOnlyList<string> names) { Send(ClientMsg.SetWormNames(names)); }
 
         public void SendIntent(Intent i)
         {

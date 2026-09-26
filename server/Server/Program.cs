@@ -199,6 +199,9 @@ namespace Worms.Server
                         conn.Send(profile.Encode());
                         break;
                     }
+                    case MsgType.SetWormNames:
+                        conn.Send(store.SetWormNames(conn.User.UserId, WormNamesCodec.Read(r)).Encode());
+                        break;
                     case MsgType.Equip:
                     {
                         var slot = (CosmeticSlot)r.U8();

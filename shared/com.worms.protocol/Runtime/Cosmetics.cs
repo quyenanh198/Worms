@@ -126,12 +126,13 @@ namespace Worms.Protocol
         }
     }
 
-    /// <summary>Server -> Client: the player's gold, what they own and what they wear.</summary>
+    /// <summary>Server -> Client: the player's gold, what they own, what they wear and their worms' names.</summary>
     public sealed class ProfileMsg
     {
         public int Gold;
         public readonly List<byte> Owned = new List<byte>();
         public Loadout Loadout;
+        public readonly List<string> WormNames = new List<string>();
 
         public bool Owns(byte id) { return Owned.Contains(id); }
 
@@ -140,6 +141,7 @@ namespace Worms.Protocol
             var w = new MsgWriter(MsgType.Profile).I32(Gold).U8((byte)Owned.Count);
             foreach (var id in Owned) w.U8(id);
             Loadout.WriteTo(w);
+            WormNamesCodec.Write(w, WormNames);
             return w.ToArray();
         }
 
@@ -149,7 +151,82 @@ namespace Worms.Protocol
             int n = r.U8();
             for (int i = 0; i < n; i++) m.Owned.Add(r.U8());
             m.Loadout = Loadout.Read(r);
+            m.WormNames.AddRange(WormNamesCodec.Read(r));
             return m;
+        }
+    }
+
+    /// <summary>
+    /// Every worm has its own name. Players name their squad of <see cref="PerTeam"/> (kept
+    /// with their profile); until they do, and for computer players, names come from a pool.
+    /// </summary>
+    public static class WormNames
+    {
+        public const int PerTeam = 4;
+        public const int MaxLength = 12;
+
+        public static readonly string[] Pool =
+        {
+            "Tèo", "Tí", "Bin", "Bo", "Sún", "Mập", "Còi", "Tũn", "Xoài", "Bơ", "Đậu", "Nấm",
+            "Cốm", "Kem", "Mít", "Bắp", "Khoai", "Tôm", "Ốc", "Chuối", "Mèo", "Gấu", "Sóc", "Bống",
+            "Rambo", "Ninja", "Pháo", "Sấm", "Bão", "Lửa", "Đen", "Vàng",
+        };
+
+        /// <summary>Four distinct names picked from the pool, the same for the same seed.</summary>
+        public static List<string> Pick(uint seed)
+        {
+            var rng = new Worms.Sim.Rng(seed ^ 0x5A0E5u);
+            var names = new List<string>();
+            while (names.Count < PerTeam)
+            {
+                var n = Pool[rng.Range(0, Pool.Length)];
+                if (!names.Contains(n)) names.Add(n);
+            }
+            return names;
+        }
+
+        /// <summary>A safe name: no control characters, trimmed, at most <see cref="MaxLength"/> characters; empty stays empty.</summary>
+        public static string Clean(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return string.Empty;
+            var chars = new System.Text.StringBuilder();
+            foreach (char c in name)
+                if (!char.IsControl(c) && c != '\u2028' && c != '\u2029') chars.Append(c);
+            var s = System.Text.RegularExpressions.Regex.Replace(chars.ToString(), "\\s+", " ").Trim();
+            // Rich-text markup is not a name.
+            s = s.Replace("<", "").Replace(">", "");
+            return s.Length > MaxLength ? s.Substring(0, MaxLength).TrimEnd() : s;
+        }
+
+        /// <summary>Exactly <see cref="PerTeam"/> clean names; blanks take the default for that slot.</summary>
+        public static List<string> Complete(IReadOnlyList<string> names, IReadOnlyList<string> defaults)
+        {
+            var result = new List<string>();
+            for (int i = 0; i < PerTeam; i++)
+            {
+                string n = names != null && i < names.Count ? Clean(names[i]) : string.Empty;
+                result.Add(n.Length > 0 ? n : defaults[i]);
+            }
+            return result;
+        }
+    }
+
+    public static class WormNamesCodec
+    {
+        public static void Write(MsgWriter w, IReadOnlyList<string> names)
+        {
+            int n = names == null ? 0 : System.Math.Min(names.Count, 8);
+            w.U8((byte)n);
+            for (int i = 0; i < n; i++) w.Str(names[i]);
+        }
+
+        public static List<string> Read(MsgReader r)
+        {
+            int n = r.U8();
+            if (n > 8) throw new ProtocolException("too many worm names");
+            var names = new List<string>();
+            for (int i = 0; i < n; i++) names.Add(r.Str());
+            return names;
         }
     }
 

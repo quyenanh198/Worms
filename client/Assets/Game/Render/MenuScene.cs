@@ -108,6 +108,17 @@ namespace Worms.Game.Render
             UrpSetup.CreateVolume(transform);
         }
 
+        /// <summary>Where to draw squad member <paramref name="i"/>'s name (GUI space, y down); false while it has not landed.</summary>
+        public bool TryGetLabel(int i, out Vector2 gui)
+        {
+            gui = default;
+            if (_cam == null || i < 0 || i >= Squad || !_landed[i]) return false;
+            var sp = _cam.WorldToScreenPoint(_worms[i].Root.position + Vector3.up * 1.35f);
+            if (sp.z <= 0) return false;
+            gui = new Vector2(sp.x, Screen.height - sp.y);
+            return true;
+        }
+
         void OnDestroy()
         {
             if (Instance == this) Instance = null;

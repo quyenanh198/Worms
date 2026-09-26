@@ -35,6 +35,7 @@ namespace Worms.Server
         public World World;
         public List<string> TeamNames = new List<string>();
         public List<Loadout> Loadouts = new List<Loadout>();
+        public List<List<string>> WormNames = new List<List<string>>();
         /// <summary>Per team, this match: damage dealt to enemies and enemy worms finished off.</summary>
         public int[] Damage = new int[0], Kills = new int[0];
         public readonly ConcurrentQueue<SimInput> Inputs = new ConcurrentQueue<SimInput>();
@@ -115,7 +116,7 @@ namespace Worms.Server
                         conn.Room = room;
                         BroadcastLobby(room);
                         if (room.State != RoomState.Lobby && room.World != null)
-                            conn.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, seat.Team, room.Loadouts).Encode());
+                            conn.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, seat.Team, room.Loadouts, room.WormNames).Encode());
                     }
                     return;
                 }
@@ -385,14 +386,29 @@ namespace Worms.Server
             room.TeamNames = room.Seats.Select(s => s.User.DisplayName).ToList();
             // Players wear what they bought; computer players dress up at random.
             var rng = new Rng(seed ^ 0xC0575EEDu);
-            room.Loadouts = room.Seats.Select(s => s.IsBot ? RandomLoadout(rng) : _store.LoadoutOf(s.User.UserId)).ToList();
+            room.Loadouts = new List<Loadout>();
+            room.WormNames = new List<List<string>>();
+            foreach (var s in room.Seats)
+            {
+                if (s.IsBot)
+                {
+                    room.Loadouts.Add(RandomLoadout(rng));
+                    room.WormNames.Add(Worms.Protocol.WormNames.Pick(rng.NextUInt()));
+                }
+                else
+                {
+                    var profile = _store.Get(s.User.UserId);
+                    room.Loadouts.Add(profile.Loadout);
+                    room.WormNames.Add(profile.WormNames.ToList());
+                }
+            }
             room.Damage = new int[room.Seats.Count];
             room.Kills = new int[room.Seats.Count];
             room.State = RoomState.Playing;
             while (room.Inputs.TryDequeue(out _)) { }
             BroadcastLobby(room);
             foreach (var s in room.Seats)
-                s.Conn?.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, s.Team, room.Loadouts).Encode());
+                s.Conn?.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, s.Team, room.Loadouts, room.WormNames).Encode());
             room.Loop?.Cancel();
             room.Loop = new CancellationTokenSource();
             var token = room.Loop.Token;

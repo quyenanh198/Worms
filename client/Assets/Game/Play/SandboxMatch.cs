@@ -27,6 +27,10 @@ namespace Worms.Game.Play
 
         /// <summary>The player's own look for team 1 (the others dress at random, like bots online).</summary>
         public Worms.Protocol.Loadout PlayerLoadout;
+        /// <summary>The player's squad names for team 1 (others get names from the pool).</summary>
+        public System.Collections.Generic.IReadOnlyList<string> PlayerWormNames;
+        readonly System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<string>> _names = new System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<string>>();
+        int _perTeam = 1;
 
         public void Begin(uint seed, int teams, int wormsPerTeam)
         {
@@ -37,6 +41,10 @@ namespace Worms.Game.Play
             looks[0] = PlayerLoadout;
             for (int t = 1; t < teams; t++) looks[t] = Render.CosmeticLooks.Random(seed + (uint)t);
             Presenter.SetLoadouts(looks);
+            _perTeam = wormsPerTeam;
+            _names.Clear();
+            for (int t = 0; t < teams; t++)
+                _names.Add(t == 0 && PlayerWormNames != null ? PlayerWormNames : Worms.Protocol.WormNames.Pick(seed + 17u * (uint)t));
             Snapshot.FromWorld(World, _cur);
             Snapshot.FromWorld(World, _prev);
             Presenter.SetSnapshots(_prev, _cur);
@@ -87,6 +95,12 @@ namespace Worms.Game.Play
         public bool IsLocalTurn => true;
         public string TeamName(int team) { return "Đội " + (team + 1); }
         public string RewardText => null;
+
+        public string WormName(int wormId)
+        {
+            int team = wormId / _perTeam, index = wormId % _perTeam;
+            return team < _names.Count && index < _names[team].Count ? _names[team][index] : null;
+        }
         public Action PlayAgain => Restart;
 
         public void SelectWeapon(WeaponId weapon)

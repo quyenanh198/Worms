@@ -3,7 +3,7 @@ namespace Worms.Protocol
     public static class ProtocolInfo
     {
         /// <summary>Bumped on every wire-format change; the server rejects other versions.</summary>
-        public const ushort Version = 6;
+        public const ushort Version = 7;
     }
 
     /// <summary>First byte after the version header of every message.</summary>
@@ -38,6 +38,8 @@ namespace Worms.Protocol
         Buy = 30,
         /// <summary>Wear a cosmetic (payload: slot, item id; 0 takes the slot off).</summary>
         Equip = 31,
+        /// <summary>Name the squad (payload: count, names).</summary>
+        SetWormNames = 32,
     }
 
     /// <summary>Codes sent in <see cref="ErrorMsg"/>.</summary>

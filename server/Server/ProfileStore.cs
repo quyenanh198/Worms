@@ -36,7 +36,22 @@ namespace Worms.Server
                    CREATE TABLE IF NOT EXISTS owned(
                      user_id INTEGER NOT NULL, item INTEGER NOT NULL, bought_at TEXT NOT NULL,
                      PRIMARY KEY(user_id, item));");
+            // Added after the first release: the squad's names, one per line ('' = defaults).
+            if (!HasColumn("players", "worm_names"))
+                Exec("ALTER TABLE players ADD COLUMN worm_names TEXT NOT NULL DEFAULT ''");
         }
+
+        bool HasColumn(string table, string column)
+        {
+            using var cmd = Command($"PRAGMA table_info({table})", null, new (string, object)[0]);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                if (string.Equals(r.GetString(1), column, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        /// <summary>Default names for a player's squad (stable per account).</summary>
+        public static System.Collections.Generic.List<string> DefaultNames(int userId) { return WormNames.Pick((uint)userId * 2654435761u); }
 
         public void Dispose() { lock (_lock) _db.Dispose(); }
 
@@ -67,11 +82,12 @@ namespace Worms.Server
         {
             Ensure(userId, tx);
             var p = new ProfileMsg();
-            using (var cmd = Command("SELECT gold, hat, armor, bazooka, grenade, bat FROM players WHERE user_id = $u", tx, new[] { ("$u", (object)userId) }))
+            using (var cmd = Command("SELECT gold, hat, armor, bazooka, grenade, bat, worm_names FROM players WHERE user_id = $u", tx, new[] { ("$u", (object)userId) }))
             using (var r = cmd.ExecuteReader())
             {
                 r.Read();
                 p.Gold = r.GetInt32(0);
+                p.WormNames.AddRange(WormNames.Complete(r.GetString(6).Split('\n'), DefaultNames(userId)));
                 p.Loadout = new Loadout
                 {
                     Hat = (byte)r.GetInt32(1), Armor = (byte)r.GetInt32(2), Bazooka = (byte)r.GetInt32(3),
@@ -137,6 +153,22 @@ namespace Worms.Server
                 profile = Read(userId, tx);
                 tx.Commit();
                 return null;
+            }
+        }
+
+        /// <summary>Renames the squad; names are cleaned, blanks fall back to the defaults.</summary>
+        public ProfileMsg SetWormNames(int userId, System.Collections.Generic.IReadOnlyList<string> names)
+        {
+            lock (_lock)
+            {
+                using var tx = _db.BeginTransaction();
+                Ensure(userId, tx);
+                var clean = WormNames.Complete(names, DefaultNames(userId));
+                Exec("UPDATE players SET worm_names = $n, updated_at = $t WHERE user_id = $u", tx,
+                    ("$n", string.Join("\n", clean)), ("$t", Now()), ("$u", userId));
+                var p = Read(userId, tx);
+                tx.Commit();
+                return p;
             }
         }
 

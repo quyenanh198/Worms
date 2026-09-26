@@ -102,7 +102,11 @@ namespace Worms.Game.Boot
             _sandbox = go.AddComponent<SandboxMatch>();
             _sandbox.Leave = LeaveSandbox;
             var profile = _net.Session.Profile;
-            if (profile != null) _sandbox.PlayerLoadout = profile.Loadout;
+            if (profile != null)
+            {
+                _sandbox.PlayerLoadout = profile.Loadout;
+                _sandbox.PlayerWormNames = profile.WormNames;
+            }
             _sandbox.Begin((uint)UnityEngine.Random.Range(1, int.MaxValue), 2, 4);
             go.AddComponent<Hud>().Source = _sandbox;
         }
