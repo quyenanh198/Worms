@@ -10,6 +10,7 @@ namespace Worms.Server.Tests
         {
             builder.UseSetting("ALLOWED_ORIGINS", "https://chat.lazybutts.com");
             builder.UseSetting("SIM_SPEED", "6");
+            builder.UseSetting("STATUS_TOKEN", "test-token");
         }
     }
 }

@@ -33,6 +33,17 @@ namespace Worms.Server.Tests
         }
 
         [Fact]
+        public async Task StatusNeedsTheToken()
+        {
+            var client = _factory.CreateClient();
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/status")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/status?token=wrong")).StatusCode);
+            var res = await client.GetAsync("/status?token=test-token");
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+            Assert.Contains("\"rooms\"", await res.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
         public async Task DownloadPageLinksTheApk()
         {
             var res = await _factory.CreateClient().GetAsync("/download");

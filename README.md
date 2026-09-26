@@ -2,7 +2,7 @@
 
 Game bắn pháo theo lượt kiểu *Worms*, chơi online. Đồ họa 3D, gameplay trên mặt phẳng 2D. Client Unity 6 (Web, Android, Windows, macOS, Linux), server .NET 10 chạy trên Mac mini tại `chat.lazybutts.com/worms/`.
 
-Kế hoạch đầy đủ: [docs/PLAN.md](docs/PLAN.md).
+Kế hoạch đầy đủ: [docs/PLAN.md](docs/PLAN.md). Deploy: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Cấu trúc
 
