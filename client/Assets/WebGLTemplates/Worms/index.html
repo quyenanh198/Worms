@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes, viewport-fit=cover">
+    <meta name="theme-color" content="#10141c">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Worms">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #10141c; overflow: hidden; touch-action: none; }
+      #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+      #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #e8ecf2; font: 16px system-ui, sans-serif; }
+      #loading .box { width: min(360px, 80vw); text-align: center; }
+      #loading h1 { color: #ffcc66; font-size: 40px; margin: 0 0 16px; letter-spacing: 4px; }
+      #bar { height: 8px; background: #26303f; border-radius: 4px; overflow: hidden; }
+      #fill { height: 100%; width: 0; background: #ffcc66; transition: width 0.2s; }
+      #banner { position: fixed; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 8px; align-items: center; justify-content: space-between;
+                background: #1a2130ee; color: #e8ecf2; font: 14px system-ui, sans-serif; padding: 10px 12px; border-radius: 10px; }
+      #banner a { color: #10141c; background: #ffcc66; padding: 6px 10px; border-radius: 6px; text-decoration: none; font-weight: 600; white-space: nowrap; }
+      #banner button { background: none; border: 0; color: #9aa6b8; font-size: 18px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" tabindex="-1"></canvas>
+    <div id="loading"><div class="box"><h1>WORMS</h1><div id="bar"><div id="fill"></div></div><p id="status">Đang tải…</p></div></div>
+    <div id="banner" hidden>
+      <span>Chơi mượt hơn với app Android.</span>
+      <a href="download">Cài app</a>
+      <button id="close" aria-label="Đóng">×</button>
+    </div>
+    <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+    <script>
+      var isAndroid = /Android/i.test(navigator.userAgent);
+      var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      try {
+        if (isAndroid && !localStorage.getItem("worms.noApkBanner")) document.getElementById("banner").hidden = false;
+      } catch (e) {}
+      document.getElementById("close").onclick = function () {
+        document.getElementById("banner").hidden = true;
+        try { localStorage.setItem("worms.noApkBanner", "1"); } catch (e) {}
+      };
+
+      // Phones: go fullscreen in landscape on the first tap (browsers only allow it after a gesture).
+      if (isMobile) {
+        document.addEventListener("touchend", function once() {
+          document.removeEventListener("touchend", once);
+          var el = document.documentElement;
+          var req = el.requestFullscreen || el.webkitRequestFullscreen;
+          if (req) {
+            Promise.resolve(req.call(el)).then(function () {
+              if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function () {});
+            }).catch(function () {});
+          }
+        });
+      }
+
+      createUnityInstance(document.getElementById("game"), {
+        arguments: [],
+        dataUrl: "Build/{{{ DATA_FILENAME }}}",
+        frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_THREADS
+        workerUrl: "Build/{{{ WORKER_FILENAME }}}",
+#endif
+#if USE_WASM
+        codeUrl: "Build/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+        symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
+#endif
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+        // Phones render at most 2x to keep the frame rate up.
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2),
+      }, function (progress) {
+        document.getElementById("fill").style.width = (progress * 100) + "%";
+      }).then(function () {
+        document.getElementById("loading").remove();
+      }).catch(function (message) {
+        document.getElementById("status").textContent = "Không tải được game: " + message;
+      });
+    </script>
+  </body>
+</html>

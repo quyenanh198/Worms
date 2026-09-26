@@ -64,13 +64,34 @@ namespace Worms.Editor
                     PlayerSettings.WebGL.decompressionFallback = true;
                     PlayerSettings.WebGL.nameFilesAsHashes = true;
                     PlayerSettings.WebGL.dataCaching = true;
+                    // Assets/WebGLTemplates/Worms: full-screen canvas, PWA manifest, APK banner on Android.
+                    PlayerSettings.WebGL.template = "PROJECT:Worms";
                     break;
                 case BuildTarget.Android:
                     PlayerSettings.SetApplicationIdentifier(named, AndroidId);
                     PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
                     if (int.TryParse(Arg("-androidVersionCode"), out int code)) PlayerSettings.Android.bundleVersionCode = code;
+                    ConfigureKeystore();
                     break;
             }
+        }
+
+        // GameCI writes the keystore from the ANDROID_KEYSTORE_BASE64 secret and passes
+        // its name and passwords as arguments. Without it the APK gets a debug signature,
+        // which cannot install over a previous build signed with another key.
+        static void ConfigureKeystore()
+        {
+            string name = Arg("-androidKeystoreName");
+            if (string.IsNullOrEmpty(name) || !System.IO.File.Exists(name))
+            {
+                PlayerSettings.Android.useCustomKeystore = false;
+                return;
+            }
+            PlayerSettings.Android.useCustomKeystore = true;
+            PlayerSettings.Android.keystoreName = System.IO.Path.GetFullPath(name);
+            PlayerSettings.Android.keystorePass = Arg("-androidKeystorePass");
+            PlayerSettings.Android.keyaliasName = Arg("-androidKeyaliasName");
+            PlayerSettings.Android.keyaliasPass = Arg("-androidKeyaliasPass");
         }
 
         static string Arg(string name)

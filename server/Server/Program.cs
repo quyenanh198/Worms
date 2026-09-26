@@ -45,6 +45,11 @@ namespace Worms.Server
             app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(20) });
 
             app.MapGet("/healthz", () => Results.Text("ok"));
+            app.MapGet("/download", (HttpContext ctx) =>
+            {
+                var file = System.IO.Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "download.html");
+                return System.IO.File.Exists(file) ? Results.File(file, "text/html; charset=utf-8") : Results.NotFound();
+            });
             app.Map("/ws", (HttpContext ctx, IIdentityProvider ids, RoomManager rooms) => HandleSocket(ctx, config, ids, rooms));
 
             WebStatic.Use(app);

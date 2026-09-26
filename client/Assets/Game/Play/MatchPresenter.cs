@@ -58,7 +58,7 @@ namespace Worms.Game.Play
             Rig.Init(new Rect(0, focusBottom, mapWidth, -2f - focusBottom));
             UrpSetup.ConfigureCamera(Rig.Camera);
             UrpSetup.CreateVolume(transform);
-            UrpSetup.ApplyTier(QualityTier.High, Sun);
+            QualitySettingsManager.Apply(this);
         }
 
         public void SetSnapshots(Snapshot previous, Snapshot current)
@@ -185,6 +185,7 @@ namespace Worms.Game.Play
         public void Render(float alpha, bool localTurn, float localAim)
         {
             if (Current == null) return;
+            if (QualitySettingsManager.Sample(Time.unscaledDeltaTime)) QualitySettingsManager.Apply(this);
             Actors.Render(Previous, Current, alpha, localTurn, localAim);
             Rig.Follow(FollowPoint(alpha));
 

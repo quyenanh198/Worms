@@ -1,0 +1,14 @@
+{
+  "name": "Worms",
+  "short_name": "Worms",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#10141c",
+  "theme_color": "#10141c",
+  "description": "Game bắn pháo theo lượt, chơi online với cả nhà.",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
