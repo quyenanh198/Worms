@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NU1900 = vulnerability feed unreachable; not a code problem. -->
+    <WarningsNotAsErrors>NU1900</WarningsNotAsErrors>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+</Project>

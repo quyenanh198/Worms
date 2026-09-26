@@ -1,0 +1,14 @@
+{
+  "name": "Worms.Protocol",
+  "rootNamespace": "Worms.Protocol",
+  "references": ["Worms.Sim"],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Unity.props" />
+  <ItemGroup>
+    <Compile Include="$(Root)client/Assets/Game/**/*.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,18 @@
+<Project>
+  <!-- Compile-only check of the Unity scripts against the editor's managed DLLs,
+       for machines without a Unity license (e.g. Claude's container).
+       Set UNITY_DATA to <Unity>/Editor/Data. Not part of the solution. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>$(NoWarn);CS0649;CS0414</NoWarn>
+    <UnityData>$(UNITY_DATA)</UnityData>
+    <DefineConstants>$(DefineConstants);UNITY_2023_1_OR_NEWER;UNITY_6000_0_OR_NEWER;UNITY_6000_3_OR_NEWER</DefineConstants>
+    <Root>$(MSBuildThisFileDirectory)../../</Root>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(UnityData)/Managed/UnityEngine/UnityEngine*.dll" Private="false" />
+    <ProjectReference Include="$(Root)shared/Protocol/Protocol.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,7 @@
+{
+  "name": "com.worms.sim",
+  "version": "0.1.0",
+  "displayName": "Worms Sim",
+  "description": "Pure C# game simulation shared by the Unity client and the .NET server.",
+  "unity": "6000.3"
+}

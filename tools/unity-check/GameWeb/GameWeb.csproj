@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Unity.props" />
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);UNITY_WEBGL</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(Root)client/Assets/Game/**/*.cs" />
+  </ItemGroup>
+</Project>

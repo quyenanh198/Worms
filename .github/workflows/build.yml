@@ -1,0 +1,151 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+  UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
+jobs:
+  unity-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        run: |
+          if [ -n "$UNITY_LICENSE" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::UNITY_LICENSE secret is not set, Unity builds are skipped (the image ships a placeholder page)"
+          fi
+
+  web:
+    needs: unity-gate
+    if: needs.unity-gate.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/cache@v4
+        with:
+          path: client/Library
+          key: Library-WebGL-${{ hashFiles('client/Packages/manifest.json', 'client/ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-WebGL-
+      - uses: game-ci/unity-builder@v4
+        with:
+          projectPath: client
+          targetPlatform: WebGL
+          buildName: Worms
+          buildMethod: Worms.Editor.Build.CI
+          versioning: Semantic
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Worms-WebGL
+          path: build/WebGL/Worms
+          retention-days: 14
+
+  native:
+    needs: unity-gate
+    if: needs.unity-gate.outputs.enabled == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: Android, os: ubuntu-latest }
+          - { target: StandaloneLinux64, os: ubuntu-latest }
+          - { target: StandaloneWindows64, os: windows-2022 }
+          - { target: StandaloneOSX, os: macos-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Free disk space (Android image is large)
+        if: matrix.target == 'Android'
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+      - uses: actions/cache@v4
+        with:
+          path: client/Library
+          key: Library-${{ matrix.target }}-${{ hashFiles('client/Packages/manifest.json', 'client/ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-${{ matrix.target }}-
+      - uses: game-ci/unity-builder@v4
+        with:
+          projectPath: client
+          targetPlatform: ${{ matrix.target }}
+          buildName: Worms
+          buildMethod: Worms.Editor.Build.CI
+          versioning: Semantic
+          androidExportType: androidPackage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Worms-${{ matrix.target }}
+          path: build/${{ matrix.target }}
+          retention-days: 14
+
+  # Server image for the Mac mini (docs/PLAN.md §3.13.2). Built even without
+  # the Unity secrets: the Web build is then replaced by a placeholder page.
+  image:
+    needs: [unity-gate, web]
+    if: ${{ !cancelled() && needs.web.result != 'failure' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        if: needs.web.result == 'success'
+        with:
+          name: Worms-WebGL
+          path: web-dist
+      - name: Fall back to the placeholder page
+        run: |
+          if [ ! -f web-dist/index.html ]; then
+            rm -rf web-dist
+            cp -r server/Server/wwwroot web-dist
+          fi
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64,linux/amd64
+          build-args: WEB_DIR=web-dist
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/worms:latest
+            ghcr.io/${{ github.repository_owner }}/worms:sha-${{ github.sha }}
+          cache-from: type=gha,scope=worms
+          cache-to: type=gha,mode=max,scope=worms
+
+  release:
+    needs: [web, native]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Zip each platform
+        run: |
+          cd dist
+          for d in */; do (cd "$d" && zip -qr "../${d%/}.zip" .); done
+          ls -la
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip

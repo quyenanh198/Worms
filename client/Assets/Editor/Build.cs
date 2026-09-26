@@ -1,0 +1,91 @@
+using System;
+using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
+using UnityEngine;
+
+namespace Worms.Editor
+{
+    /// <summary>
+    /// Batchmode build entry points. CI calls <see cref="CI"/> through GameCI's
+    /// buildMethod; the other methods are for local builds from the menu.
+    /// </summary>
+    public static class Build
+    {
+        public const string AndroidId = "com.lazybutts.worms";
+
+        /// <summary>GameCI entry: target from -buildTarget, output from -customBuildPath.</summary>
+        public static void CI()
+        {
+            string path = Arg("-customBuildPath");
+            if (string.IsNullOrEmpty(path)) Fail("missing -customBuildPath");
+            Run(EditorUserBuildSettings.activeBuildTarget, path);
+        }
+
+        [MenuItem("Worms/Build/Web")] public static void Web() { Run(BuildTarget.WebGL, "Builds/Web"); }
+        [MenuItem("Worms/Build/Android")] public static void Android() { Run(BuildTarget.Android, "Builds/Android/Worms.apk"); }
+        [MenuItem("Worms/Build/Windows")] public static void Windows() { Run(BuildTarget.StandaloneWindows64, "Builds/Windows/Worms.exe"); }
+        [MenuItem("Worms/Build/macOS")] public static void MacOS() { Run(BuildTarget.StandaloneOSX, "Builds/macOS/Worms.app"); }
+        [MenuItem("Worms/Build/Linux")] public static void Linux() { Run(BuildTarget.StandaloneLinux64, "Builds/Linux/Worms"); }
+
+        public static void Run(BuildTarget target, string path)
+        {
+            ProjectSetup.Apply();
+            Configure(target);
+
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { ProjectSetup.BootScene },
+                locationPathName = path,
+                target = target,
+                options = BuildOptions.None,
+            });
+            Debug.Log($"Build {target}: {report.summary.result}, {report.summary.totalSize} bytes, {report.summary.totalErrors} errors");
+            if (report.summary.result != BuildResult.Succeeded) Fail("build failed");
+        }
+
+        static void Configure(BuildTarget target)
+        {
+            var group = BuildPipeline.GetBuildTargetGroup(target);
+            var named = NamedBuildTarget.FromBuildTargetGroup(group);
+
+            string version = Arg("-buildVersion");
+            if (!string.IsNullOrEmpty(version)) PlayerSettings.bundleVersion = version;
+
+            if (target != BuildTarget.WebGL)
+                PlayerSettings.SetScriptingBackend(named, ScriptingImplementation.IL2CPP);
+
+            switch (target)
+            {
+                case BuildTarget.WebGL:
+                    // Brotli with the loader's own decompressor: works behind any
+                    // proxy or CDN without Content-Encoding headers (server/WebStatic.cs).
+                    PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+                    PlayerSettings.WebGL.decompressionFallback = true;
+                    PlayerSettings.WebGL.nameFilesAsHashes = true;
+                    PlayerSettings.WebGL.dataCaching = true;
+                    break;
+                case BuildTarget.Android:
+                    PlayerSettings.SetApplicationIdentifier(named, AndroidId);
+                    PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+                    if (int.TryParse(Arg("-androidVersionCode"), out int code)) PlayerSettings.Android.bundleVersionCode = code;
+                    break;
+            }
+        }
+
+        static string Arg(string name)
+        {
+            var args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+                if (args[i] == name) return args[i + 1];
+            return null;
+        }
+
+        static void Fail(string message)
+        {
+            Debug.LogError(message);
+            if (Application.isBatchMode) EditorApplication.Exit(1);
+            throw new BuildFailedException(message);
+        }
+    }
+}
