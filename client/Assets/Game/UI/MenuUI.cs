@@ -135,7 +135,7 @@ namespace Worms.Game.UI
             if (!Mathf.Approximately(music, audio.MusicVolume) || !Mathf.Approximately(sfx, audio.SfxVolume)) audio.SetVolumes(sfx, music);
 
             int choice = Render.QualitySettingsManager.Choice;
-            if (GUI.Button(new Rect(x, y + _u * 5.1f, w, _u * 1.7f), "Đồ họa: " + Render.QualitySettingsManager.Label(choice), _smallButton))
+            if (GUI.Button(new Rect(x - _u * 4f, y + _u * 5.1f, w + _u * 4f, _u * 1.7f), "Đồ họa: " + Render.QualitySettingsManager.Label(choice), _smallButton))
                 Render.QualitySettingsManager.Choice = choice >= 2 ? -1 : choice + 1;
         }
 
