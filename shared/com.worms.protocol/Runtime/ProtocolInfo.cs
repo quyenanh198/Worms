@@ -40,5 +40,6 @@ namespace Worms.Protocol
         public const string NotHost = "not_host";
         public const string NotReady = "not_ready";
         public const string BadMessage = "bad_message";
+        public const string ServerFull = "server_full";
     }
 }

@@ -48,6 +48,8 @@ namespace Worms.Server
         public double EmptyRoomSeconds { get; init; } = 60;
         /// <summary>Simulation speed multiplier (tests only).</summary>
         public double Speed { get; init; } = 1;
+        /// <summary>Rooms beyond this are refused with server_full.</summary>
+        public int MaxRooms { get; init; } = 200;
     }
 
     /// <summary>
@@ -74,6 +76,7 @@ namespace Worms.Server
         }
 
         public int RoomCount { get { lock (_lock) return _rooms.Count; } }
+        public int PlayingCount { get { lock (_lock) return _rooms.Values.Count(r => r.State == RoomState.Playing); } }
 
         public void Dispose()
         {
@@ -143,6 +146,7 @@ namespace Worms.Server
         {
             lock (_lock)
             {
+                if (_rooms.Count >= _options.MaxRooms) { conn.Send(Error(ErrorCodes.ServerFull)); return; }
                 LeaveCurrent(conn);
                 var room = NewRoom(false);
                 lock (room) Seat(room, conn);
@@ -173,6 +177,7 @@ namespace Worms.Server
                 LeaveCurrent(conn);
                 var room = _rooms.Values.FirstOrDefault(r => r.IsQuick && r.State == RoomState.Lobby && r.Seats.Count < r.MaxPlayers
                                                              && r.Seats.All(s => s.Conn != null));
+                if (room == null && _rooms.Count >= _options.MaxRooms) { conn.Send(Error(ErrorCodes.ServerFull)); return; }
                 room ??= NewRoom(true);
                 lock (room)
                 {

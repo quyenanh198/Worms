@@ -63,7 +63,7 @@ namespace Worms.Server
                 if (_socket.State == WebSocketState.Open || _socket.State == WebSocketState.CloseReceived)
                     await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", ct);
             }
-            catch (Exception e) when (e is WebSocketException || e is OperationCanceledException || e is ObjectDisposedException)
+            catch (Exception e) when (e is WebSocketException || e is OperationCanceledException || e is ObjectDisposedException || e is System.IO.IOException)
             {
             }
         }

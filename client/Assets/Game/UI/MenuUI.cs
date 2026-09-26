@@ -49,6 +49,7 @@ namespace Worms.Game.UI
                 case ErrorCodes.NotHost: return "Chỉ chủ phòng mới bắt đầu được";
                 case ErrorCodes.NotReady: return "Cần ít nhất 2 người và mọi người sẵn sàng";
                 case ErrorCodes.RateLimited: return "Thao tác quá nhanh";
+                case ErrorCodes.ServerFull: return "Server đang đầy, thử lại sau ít phút";
                 default: return "Lỗi: " + code;
             }
         }
