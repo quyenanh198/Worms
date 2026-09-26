@@ -340,7 +340,7 @@ namespace Worms.Game.UI
                     var id = (WeaponId)i;
                     int ammo = s.ActiveAmmo[i];
                     // Uses left, and the turn delay it costs (lower comes back around sooner).
-                    string label = WeaponName(id) + "\n<size=" + Mathf.RoundToInt(u * 0.7f) + ">" + (ammo < 0 ? "∞" : "còn " + ammo) + " · trễ " + Weapons.Get(id).Delay + "</size>";
+                    string label = WeaponName(id) + "\n<size=" + Mathf.RoundToInt(u * 0.7f) + ">" + (ammo < 0 ? "" : "còn " + ammo + " · ") + "trễ " + Weapons.Get(id).Delay + "</size>";
                     var r = new Rect(panel.x + u * 0.5f + (i % cols) * cw, panel.y + u * 0.5f + (i / cols) * ch, cw - u * 0.3f, ch - u * 0.3f);
                     GUI.enabled = ammo != 0 && !s.AttackInProgress;
                     if (GUI.Button(r, label, id == s.ActiveWeapon ? _buttonOn : _button))

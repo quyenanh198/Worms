@@ -27,7 +27,7 @@ namespace Worms.Game.UI
         bool _wantBot;
         string _toast;
         float _toastUntil;
-        GUIStyle _title, _text, _small, _button, _smallButton, _field, _track, _thumb, _buttonOn, _smallLeft;
+        GUIStyle _title, _text, _small, _button, _smallButton, _field, _track, _thumb, _buttonOn, _smallLeft, _smallCenterOneLine;
         float _sliderH;
         float _u;
 
@@ -88,6 +88,7 @@ namespace Worms.Game.UI
             _smallButton = new GUIStyle(_button) { fontSize = Mathf.RoundToInt(u * 0.8f) };
             _buttonOn = new GUIStyle(_smallButton);
             _smallLeft = new GUIStyle(_small) { alignment = TextAnchor.MiddleLeft, wordWrap = false, richText = true };
+            _smallCenterOneLine = new GUIStyle(_small) { wordWrap = false, richText = true, clipping = TextClipping.Clip };
             UiSkin.Button(_button);
             UiSkin.Button(_smallButton);
             UiSkin.Button(_buttonOn);
@@ -95,7 +96,7 @@ namespace Worms.Game.UI
             _buttonOn.hover = _buttonOn.onHover;
             UiSkin.Field(_field);
             (_track, _thumb, _sliderH) = UiSkin.Slider(u);
-            UiFont.Apply(_title, _text, _small, _button, _smallButton, _field, _buttonOn, _smallLeft);
+            UiFont.Apply(_title, _text, _small, _button, _smallButton, _field, _buttonOn, _smallLeft, _smallCenterOneLine);
         }
 
         bool Button(ref float y, string label, bool enabled = true)
@@ -373,7 +374,8 @@ namespace Worms.Game.UI
                 GUI.Label(new Rect(Cx - _u * 10f, y, _u * 20f, _u * 3), lobby.Code, _title);
                 y += _u * 3;
                 string link = ServerUrl.InviteLink(Net.Url, lobby.Code);
-                Line(ref y, link, _small, 1.4f);
+                GUI.Label(new Rect(Cx - _u * 10.4f, y, _u * 20.8f, _u * 1.4f), "<size=" + Mathf.RoundToInt(_u * 0.66f) + ">" + link + "</size>", _smallCenterOneLine);
+                y += _u * 1.4f;
                 if (Button(ref y, "Sao chép link mời"))
                 {
                     GUIUtility.systemCopyBuffer = link;

@@ -149,9 +149,10 @@ namespace Worms.Game.Render
         /// <summary>Burning napalm: licking flames and a little black smoke (call every frame while it burns).</summary>
         public void Flame(Vector3 pos)
         {
-            if (Random.value < 0.8f * Density)
-                Emit(_fire, pos + new Vector3(Random.Range(-0.08f, 0.08f), 0.02f, Random.Range(-0.05f, 0.05f)),
-                    new Vector3(Random.Range(-0.2f, 0.2f), Random.Range(0.6f, 1.3f), 0), Random.Range(0.14f, 0.26f), Random.Range(0.25f, 0.45f), Color.white);
+            for (int i = 0; i < 2; i++)
+                if (Random.value < 0.8f * Density)
+                    Emit(_fire, pos + new Vector3(Random.Range(-0.12f, 0.12f), 0.05f, Random.Range(-0.06f, 0.06f)),
+                        new Vector3(Random.Range(-0.25f, 0.25f), Random.Range(0.9f, 1.8f), 0), Random.Range(0.22f, 0.38f), Random.Range(0.3f, 0.55f), Color.white);
             if (Random.value < 0.12f * Density)
                 Emit(_smoke, pos + Vector3.up * 0.25f, new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(0.4f, 0.8f), 0), Random.Range(0.18f, 0.3f), Random.Range(0.8f, 1.3f), new Color(0.25f, 0.22f, 0.2f, 1f));
         }
