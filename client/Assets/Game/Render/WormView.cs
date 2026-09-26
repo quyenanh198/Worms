@@ -50,7 +50,7 @@ namespace Worms.Game.Render
             _mesh.MarkDynamic();
             _body.gameObject.AddComponent<MeshFilter>().sharedMesh = _mesh;
             _renderer = _body.gameObject.AddComponent<MeshRenderer>();
-            _renderer.sharedMaterial = Materials.Toon(teamColor);
+            _renderer.sharedMaterial = Materials.Toon(teamColor, segments: true);
 
             _eyeL = Ball(_body, "EyeL", _white, 0.16f);
             _eyeR = Ball(_body, "EyeR", _white, 0.16f);
@@ -125,18 +125,20 @@ namespace Worms.Game.Render
             _blinkAt -= dt;
             float blink = _blinkAt < 0.12f ? 0.15f : 1f;
             if (_blinkAt < 0) _blinkAt = Random.Range(2f, 5f);
-            _eyeL.localPosition = head + up * r * 0.35f + side * r * 0.45f + Vector3.back * r * 0.75f;
-            _eyeR.localPosition = head + up * r * 0.35f + side * r * 0.95f + Vector3.back * r * 0.35f;
-            _eyeL.localScale = _eyeR.localScale = new Vector3(0.16f, 0.16f * blink, 0.16f);
+            // Big eyes on the side of the head that faces the camera, turned a little toward
+            // the way the worm looks, so the face reads from the playing view.
+            _eyeL.localPosition = head + up * r * 0.28f + side * r * 0.12f + Vector3.back * r * 0.86f;
+            _eyeR.localPosition = head + up * r * 0.28f + side * r * 0.66f + Vector3.back * r * 0.66f;
+            _eyeL.localScale = _eyeR.localScale = new Vector3(0.2f, 0.22f * blink, 0.2f);
             var look = new Vector3(Mathf.Cos(aim), Mathf.Sin(aim), -0.6f).normalized * 0.28f;
             _pupilL.localPosition = _pupilR.localPosition = look;
 
             // Mouth: a small smile, a round "O" when hit or tumbling. A rosy cheek on the near side.
             bool shocked = _flash > 0.05f || w.State == WormState.Tumbling;
-            _mouth.localPosition = head - up * r * 0.42f + side * r * 0.78f + Vector3.back * r * 0.7f;
+            _mouth.localPosition = head - up * r * 0.36f + side * r * 0.45f + Vector3.back * r * 0.86f;
             _mouth.localRotation = Quaternion.LookRotation(Vector3.forward, up);
             _mouth.localScale = shocked ? new Vector3(0.07f, 0.08f, 0.04f) : new Vector3(0.12f, 0.035f, 0.04f);
-            _cheek.localPosition = head - up * r * 0.2f + side * r * 1.02f + Vector3.back * r * 0.55f;
+            _cheek.localPosition = head - up * r * 0.12f + side * r * 0.86f + Vector3.back * r * 0.52f;
             _cheek.localRotation = _mouth.localRotation;
             _cheek.localScale = new Vector3(0.08f, 0.05f, 0.03f);
 

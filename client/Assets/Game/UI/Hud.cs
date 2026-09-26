@@ -28,7 +28,7 @@ namespace Worms.Game.UI
     public sealed class Hud : MonoBehaviour
     {
         public IHudSource Source;
-        GUIStyle _label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze;
+        GUIStyle _label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine;
         bool _weaponMenu;
         Texture2D _white;
 
@@ -58,7 +58,8 @@ namespace Worms.Game.UI
             _tagName = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 0.72f), fontStyle = FontStyle.Bold };
             _tagHp = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 0.72f) };
             _kamikaze = new GUIStyle(_big) { fontStyle = FontStyle.Bold };
-            UiFont.Apply(_label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze);
+            _oneLine = new GUIStyle(_label) { wordWrap = false, alignment = TextAnchor.MiddleLeft };
+            UiFont.Apply(_label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine);
         }
 
         void Box(Rect r, Color c)
@@ -150,7 +151,7 @@ namespace Worms.Game.UI
                 UiSkin.Pill(frac >= 0 ? new Rect(mid, windRect.y, windRect.width / 2 * frac, windRect.height)
                                       : new Rect(mid + windRect.width / 2 * frac, windRect.y, -windRect.width / 2 * frac, windRect.height),
                     new Color(0.55f, 0.85f, 1f));
-            string windText = Mathf.Abs(frac) < 0.05f ? "Gió: lặng" : frac > 0 ? "Gió  →" : "←  Gió";
+            string windText = Mathf.Abs(frac) < 0.05f ? "Gió: lặng" : frac > 0 ? "Gió  »" : "«  Gió";
             Shadowed(new Rect(windBadge.x, windBadge.y + u * 0.15f, windBadge.width, u * 1.2f), windText, _small, Color.white);
 
             // Bottom: one rounded HP bar per team, the playing team's lit up.
@@ -181,10 +182,10 @@ namespace Worms.Game.UI
             {
                 var def = Weapons.Get(s.ActiveWeapon);
                 string weapon = WeaponName(s.ActiveWeapon);
-                if (def.UsesFuse) weapon += "  •  ngòi " + Source.Controls.Fuse + "s (F1–F5)";
-                var weaponSize = _label.CalcSize(new GUIContent(weapon));
-                UiSkin.Pill(new Rect(u * 0.6f, h - u * 3.55f, weaponSize.x + u * 1.2f, u * 1.5f), new Color(0.07f, 0.09f, 0.13f, 0.8f));
-                Shadowed(new Rect(u * 1.2f, h - u * 3.4f, weaponSize.x, u * 1.2f), weapon, _label, Color.white);
+                if (def.UsesFuse) weapon += "  ·  ngòi " + Source.Controls.Fuse + "s";
+                var weaponSize = _oneLine.CalcSize(new GUIContent(weapon));
+                UiSkin.Pill(new Rect(u * 0.6f, h - u * 3.55f, weaponSize.x + u * 1.4f, u * 1.5f), new Color(0.07f, 0.09f, 0.13f, 0.8f));
+                Shadowed(new Rect(u * 1.3f, h - u * 3.4f, weaponSize.x + 4, u * 1.2f), weapon, _oneLine, Color.white);
                 if (def.Targets) Shadowed(new Rect(0, h - u * 5.5f, w, u * 1.2f), "Bấm chuột trái vào bản đồ để chọn mục tiêu", _label, Color.white);
                 if (Source.Controls.Charging)
                 {
@@ -253,7 +254,7 @@ namespace Worms.Game.UI
             var grenade = new Rect(toggle.x - u * 5.4f, toggle.y, u * 5f, bh);
             float top = toggle.y;
 
-            if (GUI.Button(toggle, _weaponMenu ? "Đóng" : "Vũ khí ▾", _button)) _weaponMenu = !_weaponMenu;
+            if (GUI.Button(toggle, _weaponMenu ? "Đóng" : "Vũ khí", _button)) _weaponMenu = !_weaponMenu;
             int grenadeAmmo = s.ActiveAmmo[(int)WeaponId.Grenade];
             var old = GUI.enabled;
             GUI.enabled = grenadeAmmo != 0 && !s.AttackInProgress;

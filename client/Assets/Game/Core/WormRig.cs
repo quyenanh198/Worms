@@ -76,7 +76,7 @@ namespace Worms.Game.Core
             {
                 float s = (float)i / (Points - 1);
                 // Radius: thin tail, fat body, round head.
-                _tr[i] = 2.1f + 2.0f * Smooth(0f, 0.55f, s) + (i == Points - 1 ? 0.6f : 0f);
+                _tr[i] = 2.1f + 2.2f * Smooth(0f, 0.55f, s) + (i == Points - 1 ? 1.7f : i == Points - 2 ? 0.8f : 0f);
 
                 if (a.State == WormState.Tumbling)
                 {

@@ -71,10 +71,11 @@ namespace Worms.Game.Render
             return m;
         }
 
-        public static Material Toon(Color color)
+        public static Material Toon(Color color, bool segments = false)
         {
             var m = Create("Worms/Toon", "Toon");
             m.SetColor("_BaseColor", color);
+            m.SetFloat("_Segments", segments ? 1f : 0f);
             return m;
         }
 
