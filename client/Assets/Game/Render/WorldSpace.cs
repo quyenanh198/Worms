@@ -12,7 +12,7 @@ namespace Worms.Game.Render
     {
         public const float Scale = 0.05f;
         public const float TerrainFrontZ = 0f;
-        public const float TerrainBackZ = 2.2f;
+        public const float TerrainBackZ = 0.6f;
         public const float ActorZ = -0.35f;
 
         public static Vector3 ToWorld(float x, float y, float z = ActorZ)

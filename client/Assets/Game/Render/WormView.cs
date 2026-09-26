@@ -119,8 +119,9 @@ namespace Worms.Game.Render
             _rig.HeadDirection(out float hx, out float hy);
             float s = WorldSpace.Scale;
             var head = new Vector3(_rig.HeadX * s, _rig.HeadY * s, 0);
-            var up = new Vector3(hx, hy, 0);
-            var side = new Vector3(hy, -hx, 0);
+            // The face follows the head only partly, so it stays upright and readable.
+            var up = Vector3.Slerp(Vector3.up, new Vector3(hx, hy, 0), 0.35f).normalized;
+            var side = new Vector3(up.y, -up.x, 0);
             float r = _rig.HeadR * s;
             _blinkAt -= dt;
             float blink = _blinkAt < 0.12f ? 0.15f : 1f;
