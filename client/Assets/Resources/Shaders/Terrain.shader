@@ -13,6 +13,9 @@ Shader "Worms/Terrain"
 
     HLSLINCLUDE
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+    // Scorch marks around recent explosions (xy = world center, z = radius, w = strength), set by Vfx.cs.
+    float4 _WormsScorch[32];
+    float _WormsScorchCount;
     CBUFFER_START(UnityPerMaterial)
         half4 _GrassColor;
         half4 _DirtColor;
@@ -94,6 +97,17 @@ Shader "Worms/Terrain"
                     float pebble = step(0.78, WormsValueNoise(ws.xy * _NoiseScale * 7.0));
                     albedo = lerp(albedo, _RockColor.rgb, pebble * 0.35 * smoothstep(2.0, 4.0, d));
                 }
+
+                half burn = 0;
+                int scorches = (int)_WormsScorchCount;
+                for (int k = 0; k < 32; k++)
+                {
+                    if (k >= scorches) break;
+                    float4 sc = _WormsScorch[k];
+                    float dist = distance(ws.xy, sc.xy);
+                    burn = max(burn, (1.0 - smoothstep(sc.z * 0.85, sc.z * 1.35, dist)) * sc.w);
+                }
+                albedo = lerp(albedo, albedo * 0.22 + half3(0.03, 0.025, 0.02), burn * (0.75 + 0.25 * noise));
 
                 Light light = GetMainLight(TransformWorldToShadowCoord(ws));
                 half ndl = saturate(dot(n, light.direction));
