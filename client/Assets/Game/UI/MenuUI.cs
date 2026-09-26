@@ -27,9 +27,18 @@ namespace Worms.Game.UI
         bool _wantBot;
         string _toast;
         float _toastUntil;
-        GUIStyle _title, _text, _small, _button, _smallButton, _field, _track, _thumb;
+        GUIStyle _title, _text, _small, _button, _smallButton, _field, _track, _thumb, _buttonOn, _smallLeft;
         float _sliderH;
         float _u;
+
+        /// <summary>Center of the menu column: left of center on wide screens, so the squad shows on the right.</summary>
+        float Cx => Screen.width >= Screen.height * 1.3f ? Screen.width * 0.3f : Screen.width / 2f;
+
+        // Store state.
+        bool _store;
+        int _tab;
+        byte _preview;
+        static readonly string[] Tabs = { "Mũ", "Áo giáp", "Vũ khí" };
 
         void Update()
         {
@@ -77,11 +86,16 @@ namespace Worms.Game.UI
             _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u) };
             _field = new GUIStyle(GUI.skin.textField) { fontSize = Mathf.RoundToInt(u), alignment = TextAnchor.MiddleCenter };
             _smallButton = new GUIStyle(_button) { fontSize = Mathf.RoundToInt(u * 0.8f) };
+            _buttonOn = new GUIStyle(_smallButton);
+            _smallLeft = new GUIStyle(_small) { alignment = TextAnchor.MiddleLeft, wordWrap = false, richText = true };
             UiSkin.Button(_button);
             UiSkin.Button(_smallButton);
+            UiSkin.Button(_buttonOn);
+            _buttonOn.normal = _buttonOn.onNormal;
+            _buttonOn.hover = _buttonOn.onHover;
             UiSkin.Field(_field);
             (_track, _thumb, _sliderH) = UiSkin.Slider(u);
-            UiFont.Apply(_title, _text, _small, _button, _smallButton, _field);
+            UiFont.Apply(_title, _text, _small, _button, _smallButton, _field, _buttonOn, _smallLeft);
         }
 
         bool Button(ref float y, string label, bool enabled = true)
@@ -89,7 +103,7 @@ namespace Worms.Game.UI
             float w = _u * 14, h = _u * 2.2f;
             var old = GUI.enabled;
             GUI.enabled = enabled;
-            bool clicked = GUI.Button(new Rect(Screen.width / 2f - w / 2, y, w, h), label, _button);
+            bool clicked = GUI.Button(new Rect(Cx - w / 2, y, w, h), label, _button);
             GUI.enabled = old;
             y += h + _u * 0.5f;
             return clicked;
@@ -98,8 +112,30 @@ namespace Worms.Game.UI
         void Line(ref float y, string text, GUIStyle style = null, float lines = 1.5f)
         {
             style = style ?? _text;
-            GUI.Label(new Rect(_u, y, Screen.width - _u * 2, _u * lines), text, style);
+            GUI.Label(new Rect(Cx - _u * 9.5f, y, _u * 19f, _u * lines), text, style);
             y += _u * lines;
+        }
+
+        void LateUpdate()
+        {
+            // The squad leader wears the player's outfit, or the item being tried on in the store.
+            var scene = MenuScene.Instance;
+            if (scene == null) return;
+            var profile = Net.Session.Profile;
+            var look = profile != null ? profile.Loadout : default;
+            scene.LeaderWeapon = null;
+            if (_store && _preview != 0)
+            {
+                var item = Cosmetics.Get(_preview);
+                if (item != null)
+                {
+                    look[item.Slot] = item.Id;
+                    scene.LeaderWeapon = item.Slot == CosmeticSlot.Grenade ? Worms.Sim.WeaponId.Grenade
+                        : item.Slot == CosmeticSlot.Bat ? Worms.Sim.WeaponId.BaseballBat
+                        : item.Slot == CosmeticSlot.Bazooka ? Worms.Sim.WeaponId.Bazooka : (Worms.Sim.WeaponId?)null;
+                }
+            }
+            scene.LeaderLoadout = look;
         }
 
         void OnGUI()
@@ -107,15 +143,35 @@ namespace Worms.Game.UI
             UiFont.UseForSkin();
             if (Hidden) return;
             Styles();
-            float y = Screen.height * 0.08f;
-            GUI.Label(new Rect(0, y, Screen.width, _u * 4), "WORMS", _title);
-            y += _u * 4.5f;
+
+            // A soft panel behind the menu column keeps it readable over the 3D scene.
+            UiSkin.Pill(new Rect(Cx - _u * 10.5f, Screen.height * 0.04f, _u * 21f, Screen.height * 0.92f), new Color(0.05f, 0.07f, 0.1f, 0.55f));
+
+            // The title drops in with a bounce; the squad's name follows once they have landed.
+            float age = MenuScene.Instance != null ? MenuScene.Instance.Age : 10f;
+            float drop = Mathf.Clamp01(age / 0.7f);
+            float bounce = 1f - Mathf.Pow(1f - drop, 3f) + Mathf.Sin(drop * Mathf.PI) * 0.12f;
+            float y = Screen.height * 0.07f - (1f - bounce) * _u * 6f;
+            GUI.Label(new Rect(Cx - _u * 10f, y, _u * 20f, _u * 4), "WORMS", _title);
+            y += _u * 3.6f;
+            float squadAlpha = Mathf.Clamp01((age - MenuScene.SquadReady) / 0.6f);
+            if (squadAlpha > 0)
+            {
+                var old = GUI.color;
+                GUI.color = new Color(1, 1, 1, squadAlpha);
+                GUI.Label(new Rect(Cx - _u * 10f, y, _u * 20f, _u * 1.2f), "BIỆT ĐỘI SÂU", _small);
+                GUI.color = old;
+            }
+            y += _u * 1.6f;
 
             if (Net.Outdated) Outdated(ref y);
             else if (Net.Unauthorized) Login(ref y);
             else if (!Net.Connected || !Net.Session.HasHello) Offline(ref y);
             else if (Net.Session.InRoom) Room(ref y);
+            else if (_store) Store(ref y);
             else Main(ref y);
+
+            GoldBadge();
 
             AudioSettings();
 
@@ -166,9 +222,9 @@ namespace Worms.Game.UI
                 Line(ref y, "Đăng nhập bằng tài khoản Chat (" + new Uri(chat).Host + ")");
                 float w = _u * 14, h = _u * 2;
                 GUI.SetNextControlName("user");
-                _username = GUI.TextField(new Rect(Screen.width / 2f - w / 2, y, w, h), _username, 32, _field);
+                _username = GUI.TextField(new Rect(Cx - w / 2, y, w, h), _username, 32, _field);
                 y += h + _u * 0.4f;
-                _password = GUI.PasswordField(new Rect(Screen.width / 2f - w / 2, y, w, h), _password, '•', 128, _field);
+                _password = GUI.PasswordField(new Rect(Cx - w / 2, y, w, h), _password, '•', 128, _field);
                 y += h + _u * 0.6f;
                 if (Button(ref y, _loggingIn ? "Đang đăng nhập…" : "Đăng nhập", !_loggingIn && _username.Length > 0 && _password.Length > 0))
                 {
@@ -186,6 +242,7 @@ namespace Worms.Game.UI
 
         void Main(ref float y)
         {
+            _store = false;
             Line(ref y, Net.Status);
             y += _u * 0.5f;
             if (Button(ref y, "Ghép trận nhanh")) Net.Session.QuickMatch();
@@ -196,17 +253,110 @@ namespace Worms.Game.UI
             }
             if (Button(ref y, "Tạo phòng")) Net.Session.CreateRoom();
             float w = _u * 14, h = _u * 2.2f;
-            _code = GUI.TextField(new Rect(Screen.width / 2f - w / 2, y, w * 0.45f, h), _code.ToUpperInvariant(), 4, _field);
+            _code = GUI.TextField(new Rect(Cx - w / 2, y, w * 0.45f, h), _code.ToUpperInvariant(), 4, _field);
             var old = GUI.enabled;
             GUI.enabled = _code.Length == 4;
-            if (GUI.Button(new Rect(Screen.width / 2f - w / 2 + w * 0.5f, y, w * 0.5f, h), "Vào phòng", _button)) Net.Session.JoinRoom(_code);
+            if (GUI.Button(new Rect(Cx - w / 2 + w * 0.5f, y, w * 0.5f, h), "Vào phòng", _button)) Net.Session.JoinRoom(_code);
             GUI.enabled = old;
             y += h + _u * 0.5f;
+            if (Button(ref y, "Cửa hàng", Net.Session.Profile != null))
+            {
+                _store = true;
+                _preview = 0;
+            }
             if (Button(ref y, "Chơi thử offline")) StartSandbox?.Invoke();
             if (!NetClient.IsWeb && Button(ref y, "Đăng xuất"))
             {
                 ChatLogin.Logout();
                 Net.Reconnect();
+            }
+        }
+
+        /// <summary>Top-left: the player's gold.</summary>
+        void GoldBadge()
+        {
+            var profile = Net.Session.Profile;
+            if (profile == null) return;
+            string text = profile.Gold.ToString("N0").Replace(",", ".") + " vàng";
+            float w = _small.CalcSize(new GUIContent(text)).x + _u * 2.6f;
+            var r = new Rect(_u * 0.6f, _u * 0.6f, w, _u * 1.8f);
+            UiSkin.Pill(r, new Color(0.05f, 0.07f, 0.1f, 0.85f));
+            UiSkin.Pill(new Rect(r.x + _u * 0.5f, r.y + _u * 0.45f, _u * 0.9f, _u * 0.9f), CosmeticProps.Gold);
+            GUI.Label(new Rect(r.x + _u * 1.6f, r.y, w - _u * 1.8f, r.height), text, _smallLeft);
+        }
+
+        /// <summary>
+        /// The store: tabs, a row per item with its price or state, buy / wear / take off.
+        /// Tapping a row tries it on the squad leader behind the menu.
+        /// </summary>
+        void Store(ref float y)
+        {
+            var profile = Net.Session.Profile;
+            if (profile == null) { _store = false; return; }
+            Line(ref y, "Cửa hàng · chỉ để đẹp, không đổi sức mạnh", _small, 1.3f);
+
+            float w = _u * 18f, x0 = Cx - w / 2;
+            float tw = w / Tabs.Length;
+            for (int t = 0; t < Tabs.Length; t++)
+                if (GUI.Button(new Rect(x0 + t * tw + 2, y, tw - 4, _u * 1.8f), Tabs[t], t == _tab ? _buttonOn : _smallButton))
+                {
+                    _tab = t;
+                    _preview = 0;
+                }
+            y += _u * 2.3f;
+
+            foreach (var item in Cosmetics.All)
+            {
+                int tab = item.Slot == CosmeticSlot.Hat ? 0 : item.Slot == CosmeticSlot.Armor ? 1 : 2;
+                if (tab != _tab) continue;
+                bool owned = profile.Owns(item.Id);
+                bool worn = profile.Loadout[item.Slot] == item.Id;
+                var row = new Rect(x0, y, w, _u * 2.5f);
+                UiSkin.Pill(row, _preview == item.Id ? new Color(0.2f, 0.25f, 0.34f, 0.95f) : new Color(0.1f, 0.12f, 0.17f, 0.85f));
+                // The whole row (except its button) previews the item.
+                if (GUI.Button(new Rect(row.x, row.y, row.width - _u * 6.4f, row.height), GUIContent.none, GUIStyle.none)) _preview = item.Id;
+                string slot = _tab == 2 ? SlotName(item.Slot) + " · " : "";
+                GUI.Label(new Rect(row.x + _u * 0.7f, row.y + _u * 0.2f, row.width - _u * 7f, _u * 1.2f), "<b>" + item.Name + "</b>", _smallLeft);
+                GUI.Label(new Rect(row.x + _u * 0.7f, row.y + _u * 1.2f, row.width - _u * 7f, _u * 1.1f), "<size=" + Mathf.RoundToInt(_u * 0.66f) + ">" + slot + item.Blurb + "</size>", _smallLeft);
+
+                var buy = new Rect(row.xMax - _u * 6.1f, row.y + _u * 0.35f, _u * 5.7f, _u * 1.8f);
+                var old = GUI.enabled;
+                if (worn)
+                {
+                    if (GUI.Button(buy, "Bỏ ra", _buttonOn)) Net.Session.Equip(item.Slot, 0);
+                }
+                else if (owned)
+                {
+                    if (GUI.Button(buy, "Mặc", _smallButton)) Net.Session.Equip(item.Slot, item.Id);
+                }
+                else
+                {
+                    GUI.enabled = profile.Gold >= item.Price;
+                    if (GUI.Button(buy, item.Price + " vàng", _smallButton))
+                    {
+                        Net.Session.Buy(item.Id);
+                        _preview = item.Id;
+                    }
+                }
+                GUI.enabled = old;
+                y += _u * 2.8f;
+            }
+            y += _u * 0.3f;
+            if (Button(ref y, "Quay lại"))
+            {
+                _store = false;
+                _preview = 0;
+            }
+        }
+
+        static string SlotName(CosmeticSlot slot)
+        {
+            switch (slot)
+            {
+                case CosmeticSlot.Bazooka: return "Bazooka";
+                case CosmeticSlot.Grenade: return "Lựu đạn";
+                case CosmeticSlot.Bat: return "Gậy";
+                default: return "";
             }
         }
 
@@ -220,7 +370,7 @@ namespace Worms.Game.UI
             else
             {
                 Line(ref y, "Mã phòng", _small, 1.2f);
-                GUI.Label(new Rect(0, y, Screen.width, _u * 3), lobby.Code, _title);
+                GUI.Label(new Rect(Cx - _u * 10f, y, _u * 20f, _u * 3), lobby.Code, _title);
                 y += _u * 3;
                 string link = ServerUrl.InviteLink(Net.Url, lobby.Code);
                 Line(ref y, link, _small, 1.4f);
@@ -244,7 +394,7 @@ namespace Worms.Game.UI
                 {
                     // Right edge of the button column (buttons are 14u wide, centered).
                     float bw = _u * 3f, bh = _u * 1.2f;
-                    if (GUI.Button(new Rect(Screen.width / 2f + _u * 7f - bw, rowY + (_u * 1.4f - bh) / 2f, bw, bh), "Bỏ", _small))
+                    if (GUI.Button(new Rect(Cx + _u * 7f - bw, rowY + (_u * 1.4f - bh) / 2f, bw, bh), "Bỏ", _small))
                         Net.Session.RemoveBot(p.UserId);
                 }
             }

@@ -25,11 +25,18 @@ namespace Worms.Game.Play
         float _accumulator;
         int _lastActiveWorm = -1;
 
+        /// <summary>The player's own look for team 1 (the others dress at random, like bots online).</summary>
+        public Worms.Protocol.Loadout PlayerLoadout;
+
         public void Begin(uint seed, int teams, int wormsPerTeam)
         {
             World = new World(new MatchSetup { Seed = seed, Teams = teams, WormsPerTeam = wormsPerTeam });
             Presenter = new GameObject("Match").AddComponent<MatchPresenter>();
             Presenter.Init(World.Terrain, World.WaterLevel, seed, teams);
+            var looks = new Worms.Protocol.Loadout[teams];
+            looks[0] = PlayerLoadout;
+            for (int t = 1; t < teams; t++) looks[t] = Render.CosmeticLooks.Random(seed + (uint)t);
+            Presenter.SetLoadouts(looks);
             Snapshot.FromWorld(World, _cur);
             Snapshot.FromWorld(World, _prev);
             Presenter.SetSnapshots(_prev, _cur);
@@ -79,6 +86,7 @@ namespace Worms.Game.Play
         public Snapshot Current => _cur;
         public bool IsLocalTurn => true;
         public string TeamName(int team) { return "Đội " + (team + 1); }
+        public string RewardText => null;
         public Action PlayAgain => Restart;
 
         public void SelectWeapon(WeaponId weapon)

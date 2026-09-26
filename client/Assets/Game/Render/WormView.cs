@@ -26,6 +26,10 @@ namespace Worms.Game.Render
         readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         Transform _prop;
         WeaponId _propId;
+        byte _propSkin;
+        Loadout _loadout;
+        Transform _hat, _armor, _cloth;
+        int _armorPoint;
         float _spin, _flash, _blinkAt, _sinkT = -1;
         Vector3 _sinkFrom;
 
@@ -83,6 +87,38 @@ namespace Worms.Game.Render
         }
 
         public void Flash() { _flash = 1f; }
+
+        /// <summary>Puts on a set of store cosmetics (replacing what the worm wore).</summary>
+        public void SetLoadout(Loadout loadout)
+        {
+            bool hatChanged = _hat == null ? loadout.Hat != 0 : loadout.Hat != _loadout.Hat;
+            bool armorChanged = _armor == null ? loadout.Armor != 0 : loadout.Armor != _loadout.Armor;
+            _loadout = loadout;
+            if (hatChanged)
+            {
+                if (_hat != null) Object.Destroy(_hat.gameObject);
+                _hat = CosmeticProps.BuildHat(loadout.Hat, _body);
+            }
+            if (armorChanged)
+            {
+                if (_armor != null) Object.Destroy(_armor.gameObject);
+                _armor = CosmeticProps.BuildArmor(loadout.Armor, _body);
+                _armorPoint = CosmeticProps.ArmorSpinePoint(loadout.Armor);
+                _cloth = _armor != null ? _armor.Find("Cloth") : null;
+            }
+            _propSkin = 255; // rebuild the held weapon with the new skin
+        }
+
+        static byte SkinFor(Loadout l, WeaponId weapon)
+        {
+            switch (weapon)
+            {
+                case WeaponId.Bazooka: return l.Bazooka;
+                case WeaponId.Grenade: return l.Grenade;
+                case WeaponId.BaseballBat: return l.Bat;
+                default: return 0;
+            }
+        }
 
         public void StartSinking(Vector3 at)
         {
@@ -143,13 +179,38 @@ namespace Worms.Game.Render
             _cheek.localRotation = _mouth.localRotation;
             _cheek.localScale = new Vector3(0.08f, 0.05f, 0.03f);
 
+            // Cosmetics ride on the head and the spine, scaled by their radii.
+            if (_hat != null)
+            {
+                _hat.localPosition = head;
+                _hat.localRotation = Quaternion.FromToRotation(Vector3.up, up);
+                _hat.localScale = Vector3.one * r;
+            }
+            if (_armor != null)
+            {
+                int k = Mathf.Clamp(_armorPoint, 1, WormRig.Points - 2);
+                var tangent = new Vector3(_rig.X[k + 1] - _rig.X[k - 1], _rig.Y[k + 1] - _rig.Y[k - 1], 0);
+                if (tangent.sqrMagnitude < 1e-6f) tangent = Vector3.up;
+                _armor.localPosition = new Vector3(_rig.X[k] * s, _rig.Y[k] * s, 0);
+                _armor.localRotation = Quaternion.FromToRotation(Vector3.up, tangent.normalized);
+                _armor.localScale = Vector3.one * (_rig.R[k] * s);
+                if (_cloth != null)
+                {
+                    // The cape streams back, more when moving.
+                    float speed = Mathf.Clamp(new Vector2(w.Vx, w.Vy).magnitude / 200f, 0f, 1f);
+                    _cloth.localRotation = Quaternion.Euler(0, 0, 12f + 25f * speed + 6f * Mathf.Sin(Time.time * 5f + _blinkAt));
+                }
+            }
+
             // Weapon in hand (grenade or dynamite: only the item, no gun).
             bool show = holding && w.State != WormState.Tumbling;
-            if (show && (_prop == null || _propId != weapon))
+            byte skin = SkinFor(_loadout, weapon);
+            if (show && (_prop == null || _propId != weapon || _propSkin != skin))
             {
                 if (_prop != null) Object.Destroy(_prop.gameObject);
-                _prop = WeaponProps.Build(weapon, _weaponPivot);
+                _prop = WeaponProps.Build(weapon, _weaponPivot, skin);
                 _propId = weapon;
+                _propSkin = skin;
             }
             _weaponPivot.gameObject.SetActive(show);
             _handL.gameObject.SetActive(show);

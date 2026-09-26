@@ -23,6 +23,8 @@ namespace Worms.Game.Core.Tests
 
         [Fact] public void SphereFacesOutward() { AssertOutward(Shapes.Sphere(1f)); }
         [Fact] public void CapsuleFacesOutward() { AssertOutward(Shapes.Capsule(0.4f, 1.2f)); }
+        [Fact] public void CylinderFacesOutward() { AssertOutward(Shapes.Cylinder(0.5f, 1f)); }
+        [Fact] public void ConeFacesOutward() { AssertOutward(Shapes.Cone(0.5f, 1f)); }
 
         [Fact]
         public void GridFacesUp()

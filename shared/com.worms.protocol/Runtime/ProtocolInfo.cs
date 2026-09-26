@@ -3,7 +3,7 @@ namespace Worms.Protocol
     public static class ProtocolInfo
     {
         /// <summary>Bumped on every wire-format change; the server rejects other versions.</summary>
-        public const ushort Version = 4;
+        public const ushort Version = 5;
     }
 
     /// <summary>First byte after the version header of every message.</summary>
@@ -16,6 +16,10 @@ namespace Worms.Protocol
         Events = 4,
         Lobby = 5,
         MatchStart = 6,
+        /// <summary>Gold, owned cosmetics and loadout (after Hello, and after every change).</summary>
+        Profile = 7,
+        /// <summary>Gold earned in the match that just ended.</summary>
+        Reward = 8,
 
         // Client -> Server
         CreateRoom = 20,
@@ -30,6 +34,10 @@ namespace Worms.Protocol
         AddBot = 28,
         /// <summary>Host removes a computer player (payload: its user id).</summary>
         RemoveBot = 29,
+        /// <summary>Buy a cosmetic (payload: item id).</summary>
+        Buy = 30,
+        /// <summary>Wear a cosmetic (payload: slot, item id; 0 takes the slot off).</summary>
+        Equip = 31,
     }
 
     /// <summary>Codes sent in <see cref="ErrorMsg"/>.</summary>
@@ -45,5 +53,7 @@ namespace Worms.Protocol
         public const string NotReady = "not_ready";
         public const string BadMessage = "bad_message";
         public const string ServerFull = "server_full";
+        public const string NotEnoughGold = "not_enough_gold";
+        public const string NotOwned = "not_owned";
     }
 }

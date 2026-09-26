@@ -22,6 +22,8 @@ namespace Worms.Game.UI
         Action PlayAgain { get; }
         Action Leave { get; }
         void SelectWeapon(WeaponId weapon);
+        /// <summary>Gold earned in the match that just ended, for the game-over panel; null if none.</summary>
+        string RewardText { get; }
     }
 
     /// <summary>Immediate-mode HUD (docs/PLAN.md §3.16): timer, wind, HP, weapon, power, labels.</summary>
@@ -337,6 +339,8 @@ namespace Worms.Game.UI
             GUI.Box(r, GUIContent.none, _panel);
             string text = s.Winner >= 0 ? Source.TeamName(s.Winner) + " thắng!" : "Hòa!";
             Shadowed(new Rect(r.x, r.y + u, r.width, u * 2), text, _big, s.Winner >= 0 ? TeamColors.Of(s.Winner) : Color.white);
+            string reward = Source.RewardText;
+            if (reward != null) Shadowed(new Rect(r.x, r.y + u * 3f, r.width, u * 1.2f), reward, _small, new Color(1f, 0.82f, 0.35f));
             float bw = u * 8;
             if (Source.PlayAgain != null && GUI.Button(new Rect(r.center.x - bw - u * 0.5f, r.yMax - u * 2.6f, bw, u * 1.8f), "Chơi lại", _button)) Source.PlayAgain();
             if (Source.Leave != null && GUI.Button(new Rect(r.center.x + u * 0.5f, r.yMax - u * 2.6f, bw, u * 1.8f), "Về menu", _button)) Source.Leave();

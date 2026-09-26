@@ -16,7 +16,7 @@ namespace Worms.Game.Boot
     {
         NetClient _net;
         MenuUI _menu;
-        Camera _menuCamera;
+        Render.MenuScene _menuScene;
         SandboxMatch _sandbox;
         NetMatch _netMatch;
         string _roomFromUrl;
@@ -65,18 +65,17 @@ namespace Worms.Game.Boot
             _menu.Hidden = _sandbox != null || _netMatch != null;
         }
 
+        /// <summary>The menu's 3D backdrop: the Worms squad on its island (it brings its own camera).</summary>
         void CreateMenuCamera()
         {
-            if (_menuCamera != null) return;
-            _menuCamera = new GameObject("Menu Camera").AddComponent<Camera>();
-            _menuCamera.clearFlags = CameraClearFlags.SolidColor;
-            _menuCamera.backgroundColor = new Color(0.08f, 0.11f, 0.16f);
+            if (_menuScene != null) return;
+            _menuScene = Render.MenuScene.Create();
         }
 
         void DestroyMenuCamera()
         {
-            if (_menuCamera != null) Destroy(_menuCamera.gameObject);
-            _menuCamera = null;
+            if (_menuScene != null) Destroy(_menuScene.gameObject);
+            _menuScene = null;
         }
 
         void StartNetMatch()
@@ -102,6 +101,8 @@ namespace Worms.Game.Boot
             var go = new GameObject("Sandbox");
             _sandbox = go.AddComponent<SandboxMatch>();
             _sandbox.Leave = LeaveSandbox;
+            var profile = _net.Session.Profile;
+            if (profile != null) _sandbox.PlayerLoadout = profile.Loadout;
             _sandbox.Begin((uint)UnityEngine.Random.Range(1, int.MaxValue), 2, 4);
             go.AddComponent<Hud>().Source = _sandbox;
         }

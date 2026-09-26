@@ -23,6 +23,19 @@ namespace Worms.Game.Play
         public TouchInput Touch { get; } = new TouchInput();
         public bool IsLocalTurn => _match != null && !_match.IsSpectator && Current != null && Current.ActiveTeam == _match.YourTeam;
         public Action PlayAgain => () => Net.Session.Rematch();
+
+        /// <summary>"+85 vàng" and why, once the server has paid out this match.</summary>
+        public string RewardText
+        {
+            get
+            {
+                var r = Net.Session.LastReward;
+                if (!r.HasValue) return null;
+                var v = r.Value;
+                string why = (v.Won ? "thắng, " : "") + "gây " + v.Damage + " sát thương" + (v.Kills > 0 ? ", hạ " + v.Kills : "");
+                return "+" + v.Gold + " vàng  (" + why + (v.OnlyBots ? ", đấu máy ×½" : "") + ")";
+            }
+        }
         public Action Leave => () => Net.Session.LeaveRoom();
 
         public void SelectWeapon(WeaponId weapon)
@@ -88,6 +101,7 @@ namespace Worms.Game.Play
             Presenter = new GameObject("Match").AddComponent<MatchPresenter>();
             Presenter.Init(m.Terrain, m.WaterLevel, m.Seed, m.Teams);
             Presenter.LocalTeam = m.IsSpectator ? -1 : m.YourTeam;
+            Presenter.SetLoadouts(m.Loadouts);
         }
 
         void OnDestroy()

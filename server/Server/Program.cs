@@ -35,6 +35,8 @@ namespace Worms.Server
                 MaxRooms = int.TryParse(builder.Configuration["MAX_ROOMS"], out var maxRooms) && maxRooms > 0 ? maxRooms : 200,
             });
             builder.Services.AddSingleton<ServerStats>();
+            // Gold and cosmetics; WORMS_DB unset keeps them in memory (development, tests).
+            builder.Services.AddSingleton(new ProfileStore(builder.Configuration["WORMS_DB"] ?? string.Empty));
             builder.Services.AddSingleton<RoomManager>();
             if (string.IsNullOrEmpty(config.ChatApiUrl))
                 builder.Services.AddSingleton<IIdentityProvider, GuestIdentityProvider>();
@@ -65,13 +67,13 @@ namespace Worms.Server
                 var file = System.IO.Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "download.html");
                 return System.IO.File.Exists(file) ? Results.File(file, "text/html; charset=utf-8") : Results.NotFound();
             });
-            app.Map("/ws", (HttpContext ctx, IIdentityProvider ids, RoomManager rooms, ServerStats stats) => HandleSocket(ctx, config, ids, rooms, stats));
+            app.Map("/ws", (HttpContext ctx, IIdentityProvider ids, RoomManager rooms, ServerStats stats, ProfileStore store) => HandleSocket(ctx, config, ids, rooms, stats, store));
 
             WebStatic.Use(app);
             return app;
         }
 
-        static async Task HandleSocket(HttpContext ctx, ServerConfig config, IIdentityProvider ids, RoomManager rooms, ServerStats stats)
+        static async Task HandleSocket(HttpContext ctx, ServerConfig config, IIdentityProvider ids, RoomManager rooms, ServerStats stats, ProfileStore store)
         {
             if (!ctx.WebSockets.IsWebSocketRequest)
             {
@@ -107,10 +109,11 @@ namespace Worms.Server
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted);
             var writer = conn.RunWriterAsync(cts.Token);
             conn.Send(new HelloMsg { Server = "worms", UserId = who.UserId, DisplayName = who.DisplayName }.Encode());
+            conn.Send(store.Get(who.UserId).Encode());
             rooms.Connected(conn);
             try
             {
-                await ReadLoop(socket, conn, rooms, cts.Token);
+                await ReadLoop(socket, conn, rooms, store, cts.Token);
             }
             finally
             {
@@ -135,7 +138,7 @@ namespace Worms.Server
             }
         }
 
-        static async Task ReadLoop(WebSocket socket, Connection conn, RoomManager rooms, CancellationToken ct)
+        static async Task ReadLoop(WebSocket socket, Connection conn, RoomManager rooms, ProfileStore store, CancellationToken ct)
         {
             var buffer = new byte[MaxMessageBytes];
             while (socket.State == WebSocketState.Open && !ct.IsCancellationRequested)
@@ -156,11 +159,11 @@ namespace Worms.Server
                     return; // client went away
                 }
                 if (result.MessageType == WebSocketMessageType.Close) return;
-                if (!Dispatch(buffer, count, conn, rooms)) return;
+                if (!Dispatch(buffer, count, conn, rooms, store)) return;
             }
         }
 
-        static bool Dispatch(byte[] buffer, int count, Connection conn, RoomManager rooms)
+        static bool Dispatch(byte[] buffer, int count, Connection conn, RoomManager rooms, ProfileStore store)
         {
             try
             {
@@ -189,6 +192,21 @@ namespace Worms.Server
                     case MsgType.AddBot: rooms.AddBot(conn); break;
                     case MsgType.RemoveBot: rooms.RemoveBot(conn, r.I32()); break;
                     case MsgType.Input: rooms.Input(conn, ClientMsg.ReadInput(r)); break;
+                    case MsgType.Buy:
+                    {
+                        string error = store.Buy(conn.User.UserId, r.U8(), out var profile);
+                        if (error != null) conn.Send(new ErrorMsg { Code = error }.Encode());
+                        conn.Send(profile.Encode());
+                        break;
+                    }
+                    case MsgType.Equip:
+                    {
+                        var slot = (CosmeticSlot)r.U8();
+                        string error = store.Equip(conn.User.UserId, slot, r.U8(), out var profile);
+                        if (error != null) conn.Send(new ErrorMsg { Code = error }.Encode());
+                        conn.Send(profile.Encode());
+                        break;
+                    }
                 }
             }
             catch (ProtocolException)

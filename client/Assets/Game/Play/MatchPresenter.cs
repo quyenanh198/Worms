@@ -26,6 +26,12 @@ namespace Worms.Game.Play
         public int TeamCount { get; private set; }
         /// <summary>The team this client plays, or -1 (sandbox, spectator): picks the victory or defeat tune.</summary>
         public int LocalTeam = -1;
+
+        /// <summary>What each team wears (from the server, or the player's own look offline).</summary>
+        public void SetLoadouts(IReadOnlyList<Loadout> loadouts)
+        {
+            Actors.Loadouts = loadouts;
+        }
         /// <summary>Time.time of the last kamikaze blast (the shooter and an enemy both done for), for the HUD.</summary>
         public float KamikazeAt { get; private set; } = -100f;
 

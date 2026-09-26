@@ -34,6 +34,9 @@ namespace Worms.Server
         public readonly List<Seat> Seats = new List<Seat>();
         public World World;
         public List<string> TeamNames = new List<string>();
+        public List<Loadout> Loadouts = new List<Loadout>();
+        /// <summary>Per team, this match: damage dealt to enemies and enemy worms finished off.</summary>
+        public int[] Damage = new int[0], Kills = new int[0];
         public readonly ConcurrentQueue<SimInput> Inputs = new ConcurrentQueue<SimInput>();
         public CancellationTokenSource Loop;
         public DateTime EmptySince = DateTime.UtcNow;
@@ -69,12 +72,14 @@ namespace Worms.Server
         readonly Dictionary<int, Room> _byUser = new Dictionary<int, Room>();
         readonly MatchOptions _options;
         readonly ILogger<RoomManager> _log;
+        readonly ProfileStore _store;
         readonly Timer _cleanup;
 
-        public RoomManager(MatchOptions options, ILogger<RoomManager> log)
+        public RoomManager(MatchOptions options, ILogger<RoomManager> log, ProfileStore store)
         {
             _options = options;
             _log = log;
+            _store = store;
             _cleanup = new Timer(_ => Cleanup(), null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
         }
 
@@ -110,7 +115,7 @@ namespace Worms.Server
                         conn.Room = room;
                         BroadcastLobby(room);
                         if (room.State != RoomState.Lobby && room.World != null)
-                            conn.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, seat.Team).Encode());
+                            conn.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, seat.Team, room.Loadouts).Encode());
                     }
                     return;
                 }
@@ -378,11 +383,16 @@ namespace Worms.Server
             uint seed = (uint)RandomNumberGenerator.GetInt32(1, int.MaxValue);
             room.World = new World(new MatchSetup { Seed = seed, Teams = room.Seats.Count, WormsPerTeam = _options.WormsPerTeam });
             room.TeamNames = room.Seats.Select(s => s.User.DisplayName).ToList();
+            // Players wear what they bought; computer players dress up at random.
+            var rng = new Rng(seed ^ 0xC0575EEDu);
+            room.Loadouts = room.Seats.Select(s => s.IsBot ? RandomLoadout(rng) : _store.LoadoutOf(s.User.UserId)).ToList();
+            room.Damage = new int[room.Seats.Count];
+            room.Kills = new int[room.Seats.Count];
             room.State = RoomState.Playing;
             while (room.Inputs.TryDequeue(out _)) { }
             BroadcastLobby(room);
             foreach (var s in room.Seats)
-                s.Conn?.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, s.Team).Encode());
+                s.Conn?.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, s.Team, room.Loadouts).Encode());
             room.Loop?.Cancel();
             room.Loop = new CancellationTokenSource();
             var token = room.Loop.Token;
@@ -451,6 +461,7 @@ namespace Worms.Server
 
             events.Clear();
             events.AddRange(world.Step(inputs));
+            Tally(room, world, events);
             bool important = false;
             foreach (var e in events) important |= e.Type == SimEventType.Turn || e.Type == SimEventType.GameOver;
             if (events.Count > 0) Broadcast(room, EventsMsg.Encode(events));
@@ -461,7 +472,55 @@ namespace Worms.Server
                 room.State = RoomState.Finished;
                 foreach (var s in room.Seats) s.Ready = false;
                 BroadcastLobby(room);
+                PayOut(room, world);
                 _log.LogInformation("Room {Code}: match over, winner team {Winner}", room.Code, world.Winner);
+            }
+        }
+
+        static Loadout RandomLoadout(Rng rng)
+        {
+            var l = new Loadout();
+            for (int slot = 0; slot < Cosmetics.SlotCount; slot++)
+            {
+                if (rng.NextFloat() < 0.4f) continue; // bare in this slot
+                var items = Cosmetics.InSlot((CosmeticSlot)slot).ToList();
+                if (items.Count > 0) l[(CosmeticSlot)slot] = items[rng.Range(0, items.Count)].Id;
+            }
+            return l;
+        }
+
+        /// <summary>
+        /// Damage and kills per team, credited to the team whose turn it is (deaths are
+        /// settled at the end of the shooter's own turn). Friendly fire earns nothing.
+        /// </summary>
+        static void Tally(Room room, World world, List<SimEvent> events)
+        {
+            int shooter = world.ActiveTeam;
+            if (shooter < 0 || shooter >= room.Damage.Length) return;
+            foreach (var e in events)
+            {
+                if (e.Worm < 0 || e.Worm >= world.Worms.Count || world.Worms[e.Worm].Team == shooter) continue;
+                if (e.Type == SimEventType.Hit) room.Damage[shooter] += e.Amount;
+                else if (e.Type == SimEventType.Death) room.Kills[shooter]++;
+            }
+        }
+
+        /// <summary>Minimum length of a match that pays out, so instant forfeits cannot farm gold.</summary>
+        const int MinPaidTicks = 30 * C.TicksPerSecond;
+
+        void PayOut(Room room, World world)
+        {
+            if (world.Tick < MinPaidTicks) return;
+            foreach (var seat in room.Seats)
+            {
+                if (seat.IsBot || seat.Forfeited) continue;
+                bool onlyBots = room.Seats.All(o => o == seat || o.IsBot);
+                bool won = world.Winner == seat.Team;
+                int damage = room.Damage[seat.Team], kills = room.Kills[seat.Team];
+                int gold = Cosmetics.Reward(won, damage, kills, onlyBots);
+                var profile = _store.AddReward(seat.User.UserId, gold, won);
+                seat.Conn?.Send(new RewardMsg { Gold = gold, Damage = damage, Kills = kills, Won = won, OnlyBots = onlyBots }.Encode());
+                seat.Conn?.Send(profile.Encode());
             }
         }
 

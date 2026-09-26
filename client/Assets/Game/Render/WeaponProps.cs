@@ -33,7 +33,8 @@ namespace Worms.Game.Render
             r.sharedMaterial = Mat(color);
         }
 
-        public static Transform Build(WeaponId id, Transform parent)
+        /// <param name="skin">A store item id re-skinning this weapon (0 = standard look).</param>
+        public static Transform Build(WeaponId id, Transform parent, byte skin = 0)
         {
             if (_cyl == null)
             {
@@ -50,12 +51,25 @@ namespace Worms.Game.Render
             switch (id)
             {
                 case WeaponId.Bazooka:
-                    Part(root, _cyl, olive, new Vector3(0.1f, 0, 0), new Vector3(0.16f, 0.9f, 0.16f), along);
-                    Part(root, _cyl, steel, new Vector3(0.55f, 0, 0), new Vector3(0.2f, 0.08f, 0.2f), along);
-                    Part(root, _box, steel, new Vector3(0.05f, -0.1f, 0), new Vector3(0.06f, 0.14f, 0.05f), Vector3.zero);
+                {
+                    var tube = skin == 13 ? CosmeticProps.Gold : olive;
+                    var rim = skin == 13 ? new Color(0.6f, 0.1f, 0.12f) : steel;
+                    Part(root, _cyl, tube, new Vector3(0.1f, 0, 0), new Vector3(0.16f, 0.9f, 0.16f), along);
+                    Part(root, _cyl, rim, new Vector3(0.55f, 0, 0), new Vector3(0.2f, 0.08f, 0.2f), along);
+                    Part(root, _box, rim, new Vector3(0.05f, -0.1f, 0), new Vector3(0.06f, 0.14f, 0.05f), Vector3.zero);
+                    if (skin == 12)
+                    {
+                        // Camouflage blotches on the side facing the camera.
+                        var brown = new Color(0.4f, 0.3f, 0.18f);
+                        var dark = new Color(0.2f, 0.28f, 0.14f);
+                        Part(root, _sphere, brown, new Vector3(-0.2f, 0.02f, -0.07f), new Vector3(0.16f, 0.08f, 0.03f), Vector3.zero);
+                        Part(root, _sphere, dark, new Vector3(0.05f, -0.02f, -0.07f), new Vector3(0.18f, 0.07f, 0.03f), Vector3.zero);
+                        Part(root, _sphere, brown, new Vector3(0.3f, 0.02f, -0.07f), new Vector3(0.14f, 0.08f, 0.03f), Vector3.zero);
+                    }
                     break;
+                }
                 case WeaponId.Grenade:
-                    Part(root, _sphere, olive, new Vector3(0.05f, 0, 0), Vector3.one * 0.2f, Vector3.zero);
+                    GrenadeBody(root, skin, new Vector3(0.05f, 0, 0), 0.2f);
                     Part(root, _cyl, steel, new Vector3(0.05f, 0.11f, 0), new Vector3(0.06f, 0.05f, 0.06f), Vector3.zero);
                     break;
                 case WeaponId.ClusterBomb:
@@ -79,6 +93,16 @@ namespace Worms.Game.Render
                 case WeaponId.BaseballBat:
                     Part(root, _cyl, wood, new Vector3(0.3f, 0, 0), new Vector3(0.08f, 0.6f, 0.08f), along);
                     Part(root, _cyl, wood, new Vector3(0.55f, 0, 0), new Vector3(0.12f, 0.2f, 0.12f), along);
+                    if (skin == 16)
+                    {
+                        // Nails through the fat end.
+                        for (int k = 0; k < 6; k++)
+                        {
+                            float a = k * 60f;
+                            var dir = Quaternion.Euler(a, 0, 0) * Vector3.up;
+                            Part(root, _cyl, steel, new Vector3(0.5f + (k % 2) * 0.1f, 0, 0) + dir * 0.07f, new Vector3(0.015f, 0.09f, 0.015f), new Vector3(a, 0, 0));
+                        }
+                    }
                     break;
                 case WeaponId.AirStrike:
                     Part(root, _box, new Color(0.25f, 0.3f, 0.25f), new Vector3(0.05f, 0, 0), new Vector3(0.1f, 0.18f, 0.06f), Vector3.zero);
@@ -88,8 +112,26 @@ namespace Worms.Game.Render
             return root;
         }
 
+        /// <summary>A grenade's round body in the chosen skin: army green, watermelon (14) or gold (15).</summary>
+        static void GrenadeBody(Transform root, byte skin, Vector3 at, float size)
+        {
+            if (skin == 15)
+            {
+                Part(root, _sphere, CosmeticProps.Gold, at, Vector3.one * size, Vector3.zero);
+                return;
+            }
+            if (skin == 14)
+            {
+                Part(root, _sphere, new Color(0.35f, 0.66f, 0.25f), at, new Vector3(size * 1.1f, size, size), Vector3.zero);
+                for (int k = 0; k < 3; k++)
+                    Part(root, _sphere, new Color(0.12f, 0.35f, 0.12f), at, new Vector3(size * 1.12f, size * 1.02f, size * 0.22f), new Vector3(0, k * 60f, 0));
+                return;
+            }
+            Part(root, _sphere, new Color(0.36f, 0.42f, 0.24f), at, Vector3.one * size, Vector3.zero);
+        }
+
         /// <summary>Flying projectile model, pointing along +X.</summary>
-        public static Transform BuildProjectile(WeaponId id, bool fragment, Transform parent)
+        public static Transform BuildProjectile(WeaponId id, bool fragment, Transform parent, byte skin = 0)
         {
             if (_cyl == null) Build(WeaponId.Bazooka, parent).gameObject.SetActive(false);
             var root = new GameObject("Projectile " + id).transform;
@@ -104,12 +146,12 @@ namespace Worms.Game.Render
             {
                 case WeaponId.Bazooka:
                 case WeaponId.AirStrike:
-                    Part(root, _cyl, new Color(0.4f, 0.45f, 0.3f), Vector3.zero, new Vector3(0.12f, 0.36f, 0.12f), along);
+                    Part(root, _cyl, id == WeaponId.Bazooka && skin == 13 ? CosmeticProps.Gold : new Color(0.4f, 0.45f, 0.3f), Vector3.zero, new Vector3(0.12f, 0.36f, 0.12f), along);
                     Part(root, _sphere, new Color(0.8f, 0.2f, 0.15f), new Vector3(0.18f, 0, 0), Vector3.one * 0.12f, Vector3.zero);
                     Part(root, _box, new Color(0.3f, 0.3f, 0.3f), new Vector3(-0.16f, 0, 0), new Vector3(0.08f, 0.2f, 0.02f), Vector3.zero);
                     break;
                 case WeaponId.Grenade:
-                    Part(root, _sphere, new Color(0.36f, 0.42f, 0.24f), Vector3.zero, Vector3.one * 0.2f, Vector3.zero);
+                    GrenadeBody(root, skin, Vector3.zero, 0.2f);
                     break;
                 case WeaponId.ClusterBomb:
                     Part(root, _sphere, new Color(0.75f, 0.2f, 0.18f), Vector3.zero, Vector3.one * 0.22f, Vector3.zero);
