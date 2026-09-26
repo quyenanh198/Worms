@@ -91,11 +91,27 @@ namespace Worms.Game.Play
                 switch (e.Type)
                 {
                     case SimEventType.Explode:
+                    {
+                        // Value is the crater, Amount the blast (weapons dig and hurt by different amounts).
+                        float blast = e.Amount > 0 ? e.Amount : e.Value;
                         Terrain.RefreshCircle(e.X, e.Y, e.Value);
-                        Vfx.Explosion(at, e.Value * WorldSpace.Scale);
-                        ShakeFrom(at, e.Value);
-                        Sound(e.Value < 25 ? Sfx.ExplosionSmall : e.Value < 60 ? Sfx.ExplosionMedium : Sfx.ExplosionLarge, at.x);
+                        Vfx.Explosion(at, blast * WorldSpace.Scale);
+                        ShakeFrom(at, blast);
+                        Sound(blast < 25 ? Sfx.ExplosionSmall : blast < 60 ? Sfx.ExplosionMedium : Sfx.ExplosionLarge, at.x);
                         break;
+                    }
+                    case SimEventType.Burn:
+                    {
+                        var pos = Actors.WormPosition(e.Worm);
+                        if (pos.HasValue)
+                        {
+                            Sound(Sfx.Burn, pos.Value.x, 0.7f, 0.1f);
+                            Vfx.AddPopup(pos.Value + Vector3.up * 0.8f, "-" + e.Amount, new Color(1f, 0.6f, 0.2f));
+                            _turnDamage.TryGetValue(e.Worm, out int burnt);
+                            _turnDamage[e.Worm] = burnt + e.Amount;
+                        }
+                        break;
+                    }
                     case SimEventType.Turn:
                         Sound(Sfx.TurnBell, CameraX, 0.7f);
                         _turnDamage.Clear();
@@ -235,7 +251,8 @@ namespace Worms.Game.Play
                 case WeaponId.ClusterBomb:
                 case WeaponId.Dynamite: Sound(Sfx.Throw, x); break;
                 case WeaponId.BaseballBat: Sound(Sfx.Swing, x); Sound(Sfx.Bonk, x, 0.8f); break;
-                case WeaponId.AirStrike: Sound(Sfx.AirRaid, x); break;
+                case WeaponId.AirStrike:
+                case WeaponId.Napalm: Sound(Sfx.AirRaid, x); break;
             }
         }
 

@@ -146,6 +146,16 @@ namespace Worms.Game.Render
                 Emit(_smoke, pos, dir * Random.Range(0.5f, 1.5f) + Random.insideUnitSphere * 0.3f, Random.Range(0.3f, 0.5f), Random.Range(0.6f, 1f), Color.white);
         }
 
+        /// <summary>Burning napalm: licking flames and a little black smoke (call every frame while it burns).</summary>
+        public void Flame(Vector3 pos)
+        {
+            if (Random.value < 0.8f * Density)
+                Emit(_fire, pos + new Vector3(Random.Range(-0.08f, 0.08f), 0.02f, Random.Range(-0.05f, 0.05f)),
+                    new Vector3(Random.Range(-0.2f, 0.2f), Random.Range(0.6f, 1.3f), 0), Random.Range(0.14f, 0.26f), Random.Range(0.25f, 0.45f), Color.white);
+            if (Random.value < 0.12f * Density)
+                Emit(_smoke, pos + Vector3.up * 0.25f, new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(0.4f, 0.8f), 0), Random.Range(0.18f, 0.3f), Random.Range(0.8f, 1.3f), new Color(0.25f, 0.22f, 0.2f, 1f));
+        }
+
         public void Trail(Vector3 pos)
         {
             Emit(_trail, pos + Random.insideUnitSphere * 0.05f, Random.insideUnitSphere * 0.15f, Random.Range(0.18f, 0.3f), Random.Range(0.8f, 1.4f), Color.white);

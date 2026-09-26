@@ -22,10 +22,13 @@ namespace Worms.Sim
         /// dmg = round(maxDamage * (1 - d / r)), velocity += dir * Knockback * dmg,
         /// with dir tilted upward (KnockbackMinUp) so worms always get thrown up.
         /// </summary>
-        public static void Detonate(World w, Vec2 c, float radius, int maxDamage, int excludeWorm = -1)
+        /// <param name="carve">Crater radius; negative = the blast radius. Explode events carry it in
+        /// Value (clients carve with it) and the blast radius in Amount (for the effect).</param>
+        public static void Detonate(World w, Vec2 c, float radius, int maxDamage, int excludeWorm = -1, float carve = -1f)
         {
-            w.ApplyCarve(CarveOp.FromExplosion(c.X, c.Y, radius));
-            w.Emit(new SimEvent { Type = SimEventType.Explode, X = c.X, Y = c.Y, Value = radius });
+            if (carve < 0) carve = radius;
+            w.ApplyCarve(CarveOp.FromExplosion(c.X, c.Y, carve));
+            w.Emit(new SimEvent { Type = SimEventType.Explode, X = c.X, Y = c.Y, Value = carve, Amount = (int)Math.Round(radius) });
 
             foreach (var worm in w.Worms)
             {

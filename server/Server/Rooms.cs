@@ -500,7 +500,7 @@ namespace Worms.Server
             foreach (var e in events)
             {
                 if (e.Worm < 0 || e.Worm >= world.Worms.Count || world.Worms[e.Worm].Team == shooter) continue;
-                if (e.Type == SimEventType.Hit) room.Damage[shooter] += e.Amount;
+                if (e.Type == SimEventType.Hit || e.Type == SimEventType.Burn) room.Damage[shooter] += e.Amount;
                 else if (e.Type == SimEventType.Death) room.Kills[shooter]++;
             }
         }

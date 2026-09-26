@@ -48,6 +48,9 @@ namespace Worms.Protocol
         public readonly int[] ActiveAmmo = new int[Weapons.Count];
         /// <summary>A multi-shot weapon (shotgun, uzi) is mid-attack: no switching.</summary>
         public bool AttackInProgress;
+        /// <summary>Turn-order delay per team (lowest plays next) and what this turn will add.</summary>
+        public readonly List<int> TeamDelay = new List<int>();
+        public int TurnCost;
         public readonly List<WormSnap> Worms = new List<WormSnap>();
         public readonly List<ProjectileSnap> Projectiles = new List<ProjectileSnap>();
 
@@ -65,6 +68,9 @@ namespace Worms.Protocol
             s.ActiveWeapon = w.ActiveTeam >= 0 ? w.SelectedWeapon[w.ActiveTeam] : WeaponId.Bazooka;
             for (int i = 0; i < Weapons.Count; i++) s.ActiveAmmo[i] = w.ActiveTeam >= 0 ? w.Ammo[w.ActiveTeam][i] : -1;
             s.AttackInProgress = w.AttackInProgress;
+            s.TeamDelay.Clear();
+            s.TeamDelay.AddRange(w.TeamDelay);
+            s.TurnCost = w.TurnCost;
             s.Worms.Clear();
             foreach (var m in w.Worms)
             {
@@ -95,6 +101,9 @@ namespace Worms.Protocol
                 .F32(Wind).U16((ushort)TurnTicksLeft).U16((ushort)RetreatTicksLeft)
                 .I8((sbyte)Winner).U8((byte)ActiveWeapon).Bool(AttackInProgress);
             foreach (var a in ActiveAmmo) w.I8((sbyte)Math.Max(-1, Math.Min(100, a)));
+            w.U8((byte)TeamDelay.Count);
+            foreach (var d in TeamDelay) w.U16((ushort)Math.Max(0, Math.Min(ushort.MaxValue, d)));
+            w.U16((ushort)Math.Max(0, Math.Min(ushort.MaxValue, TurnCost)));
             w.U8((byte)Worms.Count);
             foreach (var m in Worms)
             {
@@ -120,6 +129,10 @@ namespace Worms.Protocol
             s.ActiveWeapon = (WeaponId)r.U8();
             s.AttackInProgress = r.Bool();
             for (int i = 0; i < Weapons.Count; i++) s.ActiveAmmo[i] = r.I8();
+            s.TeamDelay.Clear();
+            int teams = r.U8();
+            for (int i = 0; i < teams; i++) s.TeamDelay.Add(r.U16());
+            s.TurnCost = r.U16();
             s.Worms.Clear();
             int wormCount = r.U8();
             for (int i = 0; i < wormCount; i++)

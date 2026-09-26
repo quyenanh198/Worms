@@ -105,7 +105,8 @@ namespace Worms.Game.Render
                     }
                     break;
                 case WeaponId.AirStrike:
-                    Part(root, _box, new Color(0.25f, 0.3f, 0.25f), new Vector3(0.05f, 0, 0), new Vector3(0.1f, 0.18f, 0.06f), Vector3.zero);
+                case WeaponId.Napalm:
+                    Part(root, _box, id == WeaponId.Napalm ? new Color(0.55f, 0.2f, 0.1f) : new Color(0.25f, 0.3f, 0.25f), new Vector3(0.05f, 0, 0), new Vector3(0.1f, 0.18f, 0.06f), Vector3.zero);
                     Part(root, _cyl, steel, new Vector3(0.08f, 0.17f, 0), new Vector3(0.015f, 0.16f, 0.015f), Vector3.zero);
                     break;
             }
@@ -158,6 +159,15 @@ namespace Worms.Game.Render
                     break;
                 case WeaponId.Dynamite:
                     Part(root, _cyl, new Color(0.85f, 0.15f, 0.12f), Vector3.zero, new Vector3(0.12f, 0.36f, 0.12f), Vector3.zero);
+                    break;
+                case WeaponId.Napalm:
+                    // A fat orange canister with a dark band.
+                    Part(root, _cyl, new Color(0.95f, 0.45f, 0.1f), Vector3.zero, new Vector3(0.16f, 0.34f, 0.16f), along);
+                    Part(root, _cyl, new Color(0.2f, 0.18f, 0.16f), Vector3.zero, new Vector3(0.17f, 0.06f, 0.17f), along);
+                    break;
+                case WeaponId.Fire:
+                    // A glowing glob of burning fuel (the flames are particles).
+                    Part(root, _sphere, new Color(1f, 0.62f, 0.15f), Vector3.zero, new Vector3(0.14f, 0.08f, 0.1f), Vector3.zero);
                     break;
                 default:
                     Part(root, _sphere, new Color(0.25f, 0.25f, 0.28f), Vector3.zero, Vector3.one * 0.15f, Vector3.zero);

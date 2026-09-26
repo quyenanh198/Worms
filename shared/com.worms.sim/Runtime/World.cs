@@ -54,6 +54,16 @@ namespace Worms.Sim
         /// <summary>Remaining uses per team and weapon; -1 = unlimited.</summary>
         public int[][] Ammo;
         public bool[] Forfeited;
+        /// <summary>
+        /// Turn order, Gunbound-style: every turn adds its cost (the weapon's delay, or
+        /// <see cref="C.TurnDelay"/> without an attack) to the team's delay, and the living team
+        /// with the lowest delay plays next. Light weapons come back around sooner.
+        /// </summary>
+        public int[] TeamDelay;
+        /// <summary>What the current turn will add to the active team's delay.</summary>
+        public int TurnCost = C.TurnDelay;
+        /// <summary>Last tick each worm was burned (fire hurts once per interval, however many flames touch it).</summary>
+        readonly Dictionary<int, int> _burnedAt = new Dictionary<int, int>();
         /// <summary>Winning team once GameOver: -1 = draw.</summary>
         public int Winner = -1;
 
@@ -73,6 +83,7 @@ namespace Worms.Sim
             _nextWormOfTeam = new int[TeamCount];
             SelectedWeapon = new WeaponId[TeamCount];
             Forfeited = new bool[TeamCount];
+            TeamDelay = new int[TeamCount];
             Ammo = new int[TeamCount][];
             for (int team = 0; team < TeamCount; team++)
             {
@@ -205,7 +216,12 @@ namespace Worms.Sim
                 p.Age++;
                 var hit = Physics.Step(p.Body, Terrain, Wind, C.ProjectileDt);
 
-                if (p.FuseTicks >= 0)
+                if (p.Weapon.Burns)
+                {
+                    Burn(p);
+                    if (p.Age >= p.FuseTicks) p.Alive = false; // burnt out, nothing left to explode
+                }
+                else if (p.FuseTicks >= 0)
                 {
                     if (hit.Hit && hit.ImpactSpeed > 20f)
                         Emit(new SimEvent { Type = SimEventType.Bounce, Entity = p.Id, X = p.Pos.X, Y = p.Pos.Y, Value = hit.ImpactSpeed });
@@ -240,8 +256,25 @@ namespace Worms.Sim
         void ExplodeProjectile(Projectile p)
         {
             p.Alive = false;
-            Explosion.Detonate(this, p.Pos, p.Weapon.BlastRadius, p.Weapon.MaxDamage);
+            Explosion.Detonate(this, p.Pos, p.Weapon.BlastRadius, p.Weapon.MaxDamage, -1, p.Weapon.Carve);
             if (p.Weapon.Fragments > 0) SpawnFragments(p);
+            if (p.Weapon.FireDrops > 0) SpillFire(p);
+        }
+
+        /// <summary>Fire hurts worms within reach, each at most once per burn interval, and does not knock them about.</summary>
+        void Burn(Projectile p)
+        {
+            var def = p.Weapon;
+            foreach (var worm in Worms)
+            {
+                if (!worm.Alive) continue;
+                float r = def.BurnRadius + C.WormRadius * 0.5f;
+                if ((worm.Pos - p.Pos).LengthSq > r * r) continue;
+                if (_burnedAt.TryGetValue(worm.Id, out int last) && Tick - last < def.BurnInterval) continue;
+                _burnedAt[worm.Id] = Tick;
+                worm.PendingDamage += def.BurnDamage;
+                Emit(new SimEvent { Type = SimEventType.Burn, Worm = worm.Id, Amount = def.BurnDamage, X = worm.Pos.X, Y = worm.Pos.Y });
+            }
         }
 
         void Drown(Worm worm)
@@ -376,13 +409,10 @@ namespace Worms.Sim
 
         void StartTurn()
         {
+            if (ActiveTeam >= 0) TeamDelay[ActiveTeam] += TurnCost;
+            ActiveTeam = NextTeam(ActiveTeam);
+            TurnCost = C.TurnDelay;
             int team = ActiveTeam;
-            for (int i = 0; i < TeamCount; i++)
-            {
-                team = (team + 1) % TeamCount;
-                if (!Forfeited[team] && Worms.Exists(x => x.Alive && x.Team == team)) break;
-            }
-            ActiveTeam = team;
 
             var members = Worms.FindAll(x => x.Team == team);
             for (int i = 0; i < members.Count; i++)
@@ -403,6 +433,28 @@ namespace Worms.Sim
             _activeDamageAtStart = Active.PendingDamage;
             SetPhase(Phase.Aiming);
             Emit(new SimEvent { Type = SimEventType.Turn, Worm = ActiveWorm, Team = ActiveTeam, Value = Wind });
+        }
+
+        bool CanPlay(int team) { return !Forfeited[team] && Worms.Exists(x => x.Alive && x.Team == team); }
+
+        /// <summary>
+        /// The playable team with the lowest delay; ties go to the first one after
+        /// <paramref name="current"/> in seat order, so equal turns still rotate. Delays are
+        /// then shifted so the lowest is 0 (only differences matter).
+        /// </summary>
+        int NextTeam(int current)
+        {
+            int best = -1;
+            for (int i = 1; i <= TeamCount; i++)
+            {
+                int team = ((current < 0 ? -1 : current) + i + TeamCount) % TeamCount;
+                if (!CanPlay(team)) continue;
+                if (best < 0 || TeamDelay[team] < TeamDelay[best]) best = team;
+            }
+            if (best < 0) return current < 0 ? 0 : current;
+            int floor = TeamDelay[best];
+            for (int t = 0; t < TeamCount; t++) TeamDelay[t] = Math.Max(0, TeamDelay[t] - floor);
+            return best;
         }
 
         Vec2 FindSpawn(Rng rng)

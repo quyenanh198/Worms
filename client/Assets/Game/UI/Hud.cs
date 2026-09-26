@@ -34,7 +34,7 @@ namespace Worms.Game.UI
         bool _weaponMenu;
         Texture2D _white;
 
-        static readonly string[] WeaponNames = { "Bazooka", "Lựu đạn", "Bom chùm", "Shotgun", "Uzi", "Dynamite", "Gậy bóng chày", "Không kích" };
+        static readonly string[] WeaponNames = { "Bazooka", "Lựu đạn", "Bom chùm", "Shotgun", "Uzi", "Dynamite", "Gậy bóng chày", "Không kích", "Bom napalm" };
 
         public static string WeaponName(WeaponId id)
         {
@@ -52,7 +52,7 @@ namespace Worms.Game.UI
             _big = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 1.8f), fontStyle = FontStyle.Bold };
             _small = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 0.8f) };
             _panel = new GUIStyle(GUI.skin.box);
-            _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u * 0.85f), wordWrap = true };
+            _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u * 0.85f), wordWrap = true, richText = true };
             UiSkin.Panel(_panel);
             UiSkin.Button(_button);
             // The selected weapon: gold outline and text.
@@ -70,6 +70,49 @@ namespace Worms.Game.UI
             GUI.color = c;
             GUI.DrawTexture(r, _white);
             GUI.color = old;
+        }
+
+        /// <summary>
+        /// Under the timer: who plays next. Turns go to the team with the lowest delay
+        /// (this turn's cost is added to the playing team first), ties rotating in seat order.
+        /// </summary>
+        void TurnOrder(Snapshot s, Rect timer, float u)
+        {
+            int teams = s.TeamDelay.Count;
+            if (teams < 2 || s.ActiveTeam < 0 || s.Phase == Phase.GameOver) return;
+            var delay = new int[teams];
+            for (int t = 0; t < teams; t++) delay[t] = s.TeamDelay[t];
+            delay[s.ActiveTeam] += s.TurnCost;
+            var order = new System.Collections.Generic.List<int>();
+            var alive = new bool[teams];
+            foreach (var w in s.Worms) if (w.Alive && w.Team < teams) alive[w.Team] = true;
+            // Simulate the next three turns, each costing a plain turn.
+            int current = s.ActiveTeam;
+            for (int k = 0; k < 3; k++)
+            {
+                int best = -1;
+                for (int i = 1; i <= teams; i++)
+                {
+                    int t = (current + i) % teams;
+                    if (!alive[t]) continue;
+                    if (best < 0 || delay[t] < delay[best]) best = t;
+                }
+                if (best < 0) break;
+                order.Add(best);
+                delay[best] += C.TurnDelay;
+                current = best;
+            }
+            if (order.Count == 0) return;
+            float chip = u * 0.9f, x = timer.center.x - (order.Count * (chip + u * 0.3f)) / 2f + u * 1.6f;
+            float y = timer.yMax + u * 0.35f;
+            Shadowed(new Rect(x - u * 3.4f, y - u * 0.15f, u * 3.2f, chip + u * 0.3f), "Tiếp:", _small, Color.white);
+            foreach (int t in order)
+            {
+                UiSkin.Pill(new Rect(x, y, chip, chip), TeamColors.Of(t));
+                x += chip + u * 0.3f;
+            }
+            if (s.TurnCost != C.TurnDelay)
+                Shadowed(new Rect(timer.x - u * 2f, y + chip + u * 0.1f, timer.width + u * 4f, u), "lượt này +" + s.TurnCost + " trễ", _small, new Color(1f, 0.8f, 0.4f));
         }
 
         /// <summary>A rounded tag at <paramref name="anchor"/> (screen, y down): name over HP, in the team's color.</summary>
@@ -140,6 +183,8 @@ namespace Worms.Game.UI
             UiSkin.Pill(timer, new Color(0.07f, 0.09f, 0.13f, 0.9f));
             Shadowed(timer, Mathf.CeilToInt(Mathf.Max(0, seconds)).ToString(), _big,
                 seconds <= 5 && s.Phase == Phase.Aiming ? new Color(1f, 0.45f, 0.35f) : Color.white);
+
+            TurnOrder(s, timer, u);
 
             // Top right: wind, a bar filling from the middle toward where it blows.
             float windW = u * 8;
@@ -285,15 +330,17 @@ namespace Worms.Game.UI
             var blocked = new Rect(grenade.x - u * 3.4f, top, right - grenade.x + u * 3.4f, toggle.yMax - top);
             if (_weaponMenu)
             {
-                const int cols = 4;
-                float cw = u * 6.2f, ch = u * 3f;
-                var panel = new Rect(right - cw * cols - u, top - u * 0.4f - ch * 2 - u, cw * cols + u, ch * 2 + u);
+                const int cols = 3;
+                int rows = (Weapons.Count + cols - 1) / cols;
+                float cw = u * 7.4f, ch = u * 3f;
+                var panel = new Rect(right - cw * cols - u, top - u * 0.4f - ch * rows - u, cw * cols + u, ch * rows + u);
                 GUI.Box(panel, GUIContent.none, _panel);
                 for (int i = 0; i < Weapons.Count; i++)
                 {
                     var id = (WeaponId)i;
                     int ammo = s.ActiveAmmo[i];
-                    string label = WeaponName(id) + "\n" + (ammo < 0 ? "∞" : "còn " + ammo);
+                    // Uses left, and the turn delay it costs (lower comes back around sooner).
+                    string label = WeaponName(id) + "\n<size=" + Mathf.RoundToInt(u * 0.7f) + ">" + (ammo < 0 ? "∞" : "còn " + ammo) + " · trễ " + Weapons.Get(id).Delay + "</size>";
                     var r = new Rect(panel.x + u * 0.5f + (i % cols) * cw, panel.y + u * 0.5f + (i / cols) * ch, cw - u * 0.3f, ch - u * 0.3f);
                     GUI.enabled = ammo != 0 && !s.AttackInProgress;
                     if (GUI.Button(r, label, id == s.ActiveWeapon ? _buttonOn : _button))

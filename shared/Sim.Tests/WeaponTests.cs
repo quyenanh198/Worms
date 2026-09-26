@@ -113,7 +113,8 @@ namespace Worms.Sim.Tests
             events.AddRange(TestWorlds.Run(w, 400, TestWorlds.Input(w, InputKind.Move, dir: -1)));
             var blast = events.First(e => e.Type == SimEventType.Explode);
             Assert.Equal(fired + 5 * C.TicksPerSecond, blast.Tick);
-            Assert.Equal(75, blast.Value);
+            Assert.Equal(75, blast.Amount); // blast radius
+            Assert.Equal(85, blast.Value);  // crater: dynamite digs deeper than it hurts
             Assert.True(w.Worms[0].Pos.X < 200 - 60, "worm should have walked away during the fuse");
         }
 
@@ -160,6 +161,57 @@ namespace Worms.Sim.Tests
                 var events = TestWorlds.Run(w, 400, TestWorlds.Input(w, InputKind.Fire, angle: 0.8f, power: 0.3f, fuse: fuse));
                 Assert.Equal(fired + fuse * C.TicksPerSecond, events.First(e => e.Type == SimEventType.Explode).Tick);
             }
+        }
+
+        [Fact]
+        public void TurnsGoToTheLowestDelayAndHeavyWeaponsCostMore()
+        {
+            var w = Duel(200, 600);
+            Assert.Equal(0, w.ActiveTeam);
+            // A bat swing is quick: after it, team 1 (still at 0) plays, then team 0 again before team 1.
+            Select(w, WeaponId.BaseballBat);
+            w.Step(TestWorlds.Input(w, InputKind.Fire, angle: 0.3f));
+            TestWorlds.RunUntil(w, x => x.Phase == Phase.TurnStart || x.Phase == Phase.GameOver);
+            w.Step(null);
+            Assert.Equal(1, w.ActiveTeam);
+            Assert.Equal(Weapons.Get(WeaponId.BaseballBat).Delay, w.TeamDelay[0] - w.TeamDelay[1]);
+            PassTurn(w); // team 1 does nothing: +100
+            Assert.Equal(0, w.ActiveTeam);
+
+            // Napalm costs three turns: team 1 then plays three times in a row.
+            Select(w, WeaponId.Napalm);
+            w.Step(TestWorlds.Input(w, InputKind.Fire, targetX: 590));
+            TestWorlds.RunUntil(w, x => x.Phase == Phase.TurnStart || x.Phase == Phase.GameOver);
+            w.Step(null);
+            for (int i = 0; i < 3; i++)
+            {
+                Assert.Equal(1, w.ActiveTeam);
+                PassTurn(w);
+            }
+            Assert.Equal(0, w.ActiveTeam);
+        }
+
+        static void PassTurn(World w)
+        {
+            w.SkipTurn(w.ActiveTeam);
+            TestWorlds.RunUntil(w, x => x.Phase == Phase.TurnStart || x.Phase == Phase.GameOver);
+            w.Step(null);
+        }
+
+        [Fact]
+        public void NapalmBurnsWideButBarelyDigs()
+        {
+            var w = Duel(200, 600);
+            var t = w.Terrain;
+            int solidBefore = t.CountSolid();
+            Select(w, WeaponId.Napalm);
+            var events = TestWorlds.Run(w, 60 * 14, TestWorlds.Input(w, InputKind.Fire, targetX: 600));
+            int burns = events.Count(e => e.Type == SimEventType.Burn && e.Worm == 1);
+            Assert.True(burns >= 3, $"the target only burned {burns} times");
+            int lost = solidBefore - t.CountSolid();
+            // Five canisters with 4-cell craters: a few hundred cells at most (a bazooka alone takes ~7800).
+            Assert.InRange(lost, 1, 5 * 60);
+            Assert.True(C.StartHp - w.Worms[1].Hp >= 15 || !w.Worms[1].Alive, "napalm should hurt");
         }
     }
 }

@@ -31,6 +31,7 @@ namespace Worms.Sim
             {
                 if (Ammo[team][(int)def.Id] > 0) Ammo[team][(int)def.Id]--;
                 _shotsLeft = def.Shots;
+                TurnCost = def.Delay;
             }
             _shotsLeft--;
             Emit(new SimEvent { Type = SimEventType.Fire, Worm = worm.Id, Weapon = def.Id });
@@ -170,7 +171,7 @@ namespace Worms.Sim
             if (def.Explodes)
             {
                 // A body hit blasts from the worm's center, so it takes the full damage.
-                Explosion.Detonate(this, target != null ? target.Pos : end, def.BlastRadius, def.MaxDamage);
+                Explosion.Detonate(this, target != null ? target.Pos : end, def.BlastRadius, def.MaxDamage, -1, def.Carve);
             }
             else if (target != null)
             {
@@ -207,6 +208,20 @@ namespace Worms.Sim
             {
                 float x = targetX + (i - (def.Missiles - 1) / 2f) * def.MissileSpacing - drift;
                 Spawn(def, worm.Id, new Vec2(x, -40f - i * 6f), new Vec2(worm.Facing * def.MaxSpeed, 150f), 0);
+            }
+        }
+
+        /// <summary>A napalm canister bursts: burning fuel splashes out low and wide and sticks where it lands.</summary>
+        void SpillFire(Projectile parent)
+        {
+            var def = parent.Weapon;
+            for (int i = 0; i < def.FireDrops; i++)
+            {
+                float angle = Rng.Range(-2.9f, -0.25f); // a flat fan, mostly sideways (Y is down)
+                float speed = Rng.Range(90f, 260f);
+                var vel = new Vec2((float)Math.Cos(angle) * speed, (float)Math.Sin(angle) * speed * 0.5f);
+                var f = Spawn(def.FireDef, parent.OwnerWorm, parent.Pos + new Vec2(0, -2), vel, 5);
+                f.Age = C.OwnerImmunityTicks;
             }
         }
 

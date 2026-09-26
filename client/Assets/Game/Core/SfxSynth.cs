@@ -35,6 +35,8 @@ namespace Worms.Game.Core
         Defeat,
         /// <summary>A war cry, "ban-zaaaai!", when a blast takes the shooter down together with an enemy.</summary>
         Kamikaze,
+        /// <summary>A worm singed by napalm: a crackle and a hiss.</summary>
+        Burn,
     }
 
     /// <summary>
@@ -84,6 +86,7 @@ namespace Worms.Game.Core
                 case Sfx.Kamikaze: return Room(Speak(seed,
                     new Syllable('b', 0.16f, 520f, 560f, 560f, A, A, 0f),
                     new Syllable('h', 0.62f, 600f, 820f, 760f, A, I, 0.06f) { GapBefore = 0.03f }), 0.2f, 0.5f, 0.6f, 0.8f, 180f);
+                case Sfx.Burn: return Burn(seed);
                 case Sfx.Victory: return Fanfare();
                 case Sfx.Defeat: return SadTrombone();
                 default: return new Stereo(1);
@@ -316,6 +319,28 @@ namespace Worms.Game.Core
                 s.AddMono(whistle, pans[w], 0.22f, Frames(1.0f + w * 0.18f));
             }
             return Room(s, 0.18f, 0.5f, 0.6f);
+        }
+
+        /// <summary>Fire: crackling pops over a soft hiss.</summary>
+        static Stereo Burn(uint seed)
+        {
+            const float seconds = 0.45f;
+            var s = WideNoise(seconds, seed, () =>
+            {
+                float lp = 0, pop = 0;
+                var soft = Biquad.LowPass(7000f, 0.707f);
+                return (rng, i) =>
+                {
+                    float t = (float)i / Rate, u = t / seconds;
+                    float n = soft.Process(Noise(rng));
+                    lp += (n - lp) * Dsp.K(1200f);
+                    if (rng.NextFloat() < 0.004f) pop = 0.6f + rng.NextFloat() * 0.4f;
+                    pop *= 0.985f;
+                    float env = Math.Min(1f, t * 60f) * (1f - u);
+                    return ((n - lp) * 0.35f + (n - lp) * pop * 1.2f) * env;
+                };
+            });
+            return Room(s, 0.08f, 0.2f, 0.4f, 0.75f, 300f);
         }
 
         /// <summary>A grenade hitting ground: small metallic clank over a dull thud.</summary>

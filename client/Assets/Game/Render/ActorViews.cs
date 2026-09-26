@@ -29,6 +29,7 @@ namespace Worms.Game.Render
             public Transform Root;
             public Vector3 LastPos;
             public bool Smokes;
+            public bool Burns;
         }
 
         public Vfx Vfx;
@@ -117,7 +118,8 @@ namespace Worms.Game.Render
                     view = new ProjectileView
                     {
                         Root = WeaponProps.BuildProjectile(pr.Weapon, fragment, transform, ProjectileSkin(cur, pr.Weapon)),
-                        Smokes = pr.Weapon == WeaponId.Bazooka || pr.Weapon == WeaponId.AirStrike,
+                        Smokes = pr.Weapon == WeaponId.Bazooka || pr.Weapon == WeaponId.AirStrike || pr.Weapon == WeaponId.Napalm,
+                        Burns = pr.Weapon == WeaponId.Fire,
                     };
                     view.LastPos = WorldSpace.ToWorld(pr.X, pr.Y);
                     _projectiles[pr.Id] = view;
@@ -138,6 +140,7 @@ namespace Worms.Game.Render
                 }
                 view.Root.position = pos;
                 view.LastPos = pos;
+                if (view.Burns && Vfx != null) Vfx.Flame(pos);
             }
             RemoveMissing(_projectiles, v => Destroy(v.Root.gameObject));
         }
