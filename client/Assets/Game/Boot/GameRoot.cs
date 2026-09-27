@@ -1,4 +1,8 @@
 using System;
+#if DEVELOPMENT_BUILD
+using System.Collections;
+using System.IO;
+#endif
 using UnityEngine;
 using Worms.Game.Audio;
 using Worms.Game.Core;
@@ -45,6 +49,10 @@ namespace Worms.Game.Boot
             _menu.StartSandbox = StartSandbox;
 
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sandbox") >= 0) StartSandbox();
+#if DEVELOPMENT_BUILD
+            var capturePath = CommandLineArg("-capture-path");
+            if (!string.IsNullOrEmpty(capturePath)) StartCoroutine(CapturePreview(capturePath));
+#endif
         }
 
         void Update()
@@ -107,7 +115,11 @@ namespace Worms.Game.Boot
                 _sandbox.PlayerLoadout = profile.Loadout;
                 _sandbox.PlayerWormNames = profile.WormNames;
             }
-            _sandbox.Begin((uint)UnityEngine.Random.Range(1, int.MaxValue), 2, 4);
+            uint seed = (uint)UnityEngine.Random.Range(1, int.MaxValue);
+#if DEVELOPMENT_BUILD
+            if (uint.TryParse(CommandLineArg("-capture-seed"), out uint captureSeed)) seed = captureSeed;
+#endif
+            _sandbox.Begin(seed, 2, 4);
             go.AddComponent<Hud>().Source = _sandbox;
         }
 
@@ -127,5 +139,22 @@ namespace Worms.Game.Boot
                 if (args[i] == name) return args[i + 1];
             return null;
         }
+
+#if DEVELOPMENT_BUILD
+        // The preview player runs on a separate Windows desktop. This records its real
+        // camera and IMGUI output without bringing a window to the user's desktop.
+        static IEnumerator CapturePreview(string path)
+        {
+            // Wait through the menu squad drop so a menu capture shows the final layout.
+            for (int i = 0; i < 240; i++) yield return new WaitForEndOfFrame();
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
+            var capture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+            capture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+            capture.Apply();
+            File.WriteAllBytes(path, capture.EncodeToPNG());
+            Destroy(capture);
+            Application.Quit();
+        }
+#endif
     }
 }

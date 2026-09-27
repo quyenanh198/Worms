@@ -297,7 +297,9 @@ namespace Worms.Game.Play
                 return WorldSpace.ToWorld(p.X, p.Y, 0);
             }
             var worm = Current.FindWorm(Current.ActiveWorm);
-            if (worm.HasValue) return WorldSpace.ToWorld(worm.Value.X, worm.Value.Y, 0);
+            // Keep the active worm below the middle of the frame so upper shelves
+            // and worms on them remain visible during a normal turn.
+            if (worm.HasValue) return WorldSpace.ToWorld(worm.Value.X, worm.Value.Y, 0) + Vector3.up * 1.5f;
             return null;
         }
     }

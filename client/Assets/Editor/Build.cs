@@ -25,26 +25,29 @@ namespace Worms.Editor
         [MenuItem("Worms/Build/Web")] public static void Web() { Run(BuildTarget.WebGL, "Builds/Web"); }
         [MenuItem("Worms/Build/Android")] public static void Android() { Run(BuildTarget.Android, "Builds/Android/Worms.apk"); }
         [MenuItem("Worms/Build/Windows")] public static void Windows() { Run(BuildTarget.StandaloneWindows64, "Builds/Windows/Worms.exe"); }
+        // Local art verification when the optional Windows IL2CPP module is absent.
+        // Release builds continue to use the IL2CPP path above.
+        public static void PreviewWindows() { Run(BuildTarget.StandaloneWindows64, "Builds/Preview/Worms.exe", true); }
         [MenuItem("Worms/Build/macOS")] public static void MacOS() { Run(BuildTarget.StandaloneOSX, "Builds/macOS/Worms.app"); }
         [MenuItem("Worms/Build/Linux")] public static void Linux() { Run(BuildTarget.StandaloneLinux64, "Builds/Linux/Worms"); }
 
-        public static void Run(BuildTarget target, string path)
+        public static void Run(BuildTarget target, string path, bool previewMono = false)
         {
             ProjectSetup.Apply();
-            Configure(target);
+            Configure(target, previewMono);
 
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = new[] { ProjectSetup.BootScene },
                 locationPathName = path,
                 target = target,
-                options = BuildOptions.None,
+                options = previewMono ? BuildOptions.Development : BuildOptions.None,
             });
             Debug.Log($"Build {target}: {report.summary.result}, {report.summary.totalSize} bytes, {report.summary.totalErrors} errors");
             if (report.summary.result != BuildResult.Succeeded) Fail("build failed");
         }
 
-        static void Configure(BuildTarget target)
+        static void Configure(BuildTarget target, bool previewMono)
         {
             var group = BuildPipeline.GetBuildTargetGroup(target);
             var named = NamedBuildTarget.FromBuildTargetGroup(group);
@@ -53,7 +56,7 @@ namespace Worms.Editor
             if (!string.IsNullOrEmpty(version)) PlayerSettings.bundleVersion = version;
 
             if (target != BuildTarget.WebGL)
-                PlayerSettings.SetScriptingBackend(named, ScriptingImplementation.IL2CPP);
+                PlayerSettings.SetScriptingBackend(named, previewMono ? ScriptingImplementation.Mono2x : ScriptingImplementation.IL2CPP);
 
             switch (target)
             {

@@ -270,7 +270,7 @@ namespace Worms.Game.UI
             if (Play.TouchInput.Visible && Source.IsLocalTurn && (s.Phase == Phase.Aiming || s.Phase == Phase.Retreat)) TouchButtons(s, h);
 
             var audio = Audio.AudioManager.Instance;
-            if (audio != null && GUI.Button(new Rect(safe.xMin + u * 0.5f, safeTop + u * 0.5f, u * 6.5f, u * 1.6f), audio.Muted ? "Âm thanh: tắt" : "Âm thanh: bật", _button))
+            if (audio != null && GUI.Button(new Rect(safe.xMin + u * 0.5f, safeTop + u * 0.5f, u * 5.5f, u * 1.9f), audio.Muted ? "Âm: tắt" : "Âm: bật", _button))
                 audio.SetMuted(!audio.Muted);
 
             Kamikaze(w, h, u);
@@ -357,7 +357,7 @@ namespace Worms.Game.UI
                 var fire = Source.Touch.Layout.Fire;
                 bottom = Mathf.Min(bottom, h - (fire.Y + fire.H) - u * 0.6f);
             }
-            float bh = compact ? Mathf.Max(44f, u * 1.9f) : u * 1.9f;
+            float bh = compact ? Mathf.Max(44f, u * 1.9f) : u * 2.4f;
             float right = safe.xMax - u * 0.6f;
             var toggle = new Rect(right - u * 6.4f, bottom - bh, u * 6.4f, bh);
             var grenade = new Rect(toggle.x - u * 5.4f, toggle.y, u * 5f, bh);
