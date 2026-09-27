@@ -24,6 +24,21 @@ namespace Worms.Game.Play
         public Snapshot Current { get; private set; }
         public float WaterLevel { get; private set; }
         public int TeamCount { get; private set; }
+        /// <summary>The team this client plays, or -1 (sandbox, spectator): picks the victory or defeat tune.</summary>
+        public int LocalTeam = -1;
+
+        /// <summary>What each team wears (from the server, or the player's own look offline).</summary>
+        public void SetLoadouts(IReadOnlyList<Loadout> loadouts)
+        {
+            Actors.Loadouts = loadouts;
+        }
+        /// <summary>Time.time of the last kamikaze blast (the shooter and an enemy both done for), for the HUD.</summary>
+        public float KamikazeAt { get; private set; } = -100f;
+
+        // Damage taken this turn, per worm. HP in snapshots only drops at the end of the turn,
+        // so "damage this turn >= HP" means the worm will not survive it.
+        readonly Dictionary<int, int> _turnDamage = new Dictionary<int, int>();
+        bool _kamikazeThisTurn;
 
         public void Init(SimTerrain terrain, float waterLevel, uint seed, int teamCount)
         {
@@ -76,17 +91,39 @@ namespace Worms.Game.Play
                 switch (e.Type)
                 {
                     case SimEventType.Explode:
+                    {
+                        // Value is the crater, Amount the blast (weapons dig and hurt by different amounts).
+                        float blast = e.Amount > 0 ? e.Amount : e.Value;
                         Terrain.RefreshCircle(e.X, e.Y, e.Value);
-                        Vfx.Explosion(at, e.Value * WorldSpace.Scale);
-                        ShakeFrom(at, e.Value);
-                        Sound(e.Value < 25 ? Sfx.ExplosionSmall : e.Value < 60 ? Sfx.ExplosionMedium : Sfx.ExplosionLarge, at.x);
+                        Vfx.Explosion(at, blast * WorldSpace.Scale);
+                        ShakeFrom(at, blast);
+                        Sound(blast < 25 ? Sfx.ExplosionSmall : blast < 60 ? Sfx.ExplosionMedium : Sfx.ExplosionLarge, at.x);
                         break;
+                    }
+                    case SimEventType.Burn:
+                    {
+                        var pos = Actors.WormPosition(e.Worm);
+                        if (pos.HasValue)
+                        {
+                            Sound(Sfx.Burn, pos.Value.x, 0.7f, 0.1f);
+                            Vfx.AddPopup(pos.Value + Vector3.up * 0.8f, "-" + e.Amount, new Color(1f, 0.6f, 0.2f));
+                            _turnDamage.TryGetValue(e.Worm, out int burnt);
+                            _turnDamage[e.Worm] = burnt + e.Amount;
+                        }
+                        break;
+                    }
                     case SimEventType.Turn:
                         Sound(Sfx.TurnBell, CameraX, 0.7f);
+                        _turnDamage.Clear();
+                        _kamikazeThisTurn = false;
                         break;
                     case SimEventType.GameOver:
-                        Sound(Sfx.TurnBell, CameraX, 1f);
+                    {
+                        // e.Team is the winner (-1: draw).
+                        bool won = e.Team >= 0 && (LocalTeam < 0 || e.Team == LocalTeam);
+                        Sound(won ? Sfx.Victory : Sfx.Defeat, CameraX, 1f, 0f);
                         break;
+                    }
                     case SimEventType.Fire:
                     {
                         var shooter = Actors.WormPosition(e.Worm);
@@ -114,8 +151,10 @@ namespace Worms.Game.Play
                     case SimEventType.Hit:
                     {
                         Actors.OnHit(e.Worm);
+                        _turnDamage.TryGetValue(e.Worm, out int taken);
+                        _turnDamage[e.Worm] = taken + e.Amount;
                         var pos = Actors.WormPosition(e.Worm);
-                        if (pos.HasValue) Sound(Sfx.Hurt, pos.Value.x, 0.8f, 0.15f);
+                        if (pos.HasValue) Sound(e.Amount >= 35 ? Sfx.OuchBig : Sfx.Hurt, pos.Value.x, 0.8f, 0.12f);
                         if (pos.HasValue) Vfx.AddPopup(pos.Value + Vector3.up * 0.8f, "-" + e.Amount, new Color(1f, 0.45f, 0.35f));
                         Rig.Shake(0.05f + e.Amount * 0.004f);
                         break;
@@ -142,12 +181,41 @@ namespace Worms.Game.Play
                     case SimEventType.Death:
                     {
                         var pos = Actors.WormPosition(e.Worm) ?? at;
+                        DeathVoice(e.Worm, pos.x);
                         Actors.OnDeath(e.Worm, e.Cause, pos);
-                        if (e.Cause == DeathCause.Hp) Sound(Sfx.Death, pos.x);
                         break;
                     }
                 }
             }
+            CheckKamikaze();
+        }
+
+        /// <summary>
+        /// The shooter's own blast was lethal to it and to at least one enemy: a suicide
+        /// bombing. A war cry, a second fireball, a white flash, a big shake, and a banner
+        /// from the HUD. Once per turn.
+        /// </summary>
+        void CheckKamikaze()
+        {
+            if (_kamikazeThisTurn || Current == null || Current.ActiveTeam < 0 || _turnDamage.Count < 2) return;
+            var shooter = Current.FindWorm(Current.ActiveWorm);
+            if (!shooter.HasValue || !Doomed(shooter.Value)) return;
+            bool enemyDown = false;
+            foreach (var w in Current.Worms)
+                if (w.Team != shooter.Value.Team && Doomed(w)) enemyDown = true;
+            if (!enemyDown) return;
+
+            _kamikazeThisTurn = true;
+            KamikazeAt = Time.time;
+            var at = Actors.WormPosition(shooter.Value.Id) ?? WorldSpace.ToWorld(shooter.Value.X, shooter.Value.Y);
+            Sound(Sfx.Kamikaze, at.x, 1f, 0f);
+            Vfx.Explosion(at + Vector3.up * 0.3f, 3.2f);
+            Rig.Shake(1.2f);
+        }
+
+        bool Doomed(WormSnap w)
+        {
+            return w.Alive && _turnDamage.TryGetValue(w.Id, out int taken) && taken >= w.Hp;
         }
 
         float CameraX => Rig.transform.position.x;
@@ -159,6 +227,21 @@ namespace Worms.Game.Play
             AudioManager.Instance.Play(sfx, AudioManager.PanFor(worldX, CameraX, half), volume, jitter);
         }
 
+        /// <summary>
+        /// Deaths are settled at the end of the shooter's turn, so the active team is the one
+        /// that caused them: an enemy kill gets the shooter's teasing "bye-bye~", a worm lost
+        /// to its own team's shot gets "uh-oh", anything else the victim's sad "bye-bye".
+        /// </summary>
+        void DeathVoice(int wormId, float x)
+        {
+            var victim = Current?.FindWorm(wormId);
+            int shooterTeam = Current?.ActiveTeam ?? -1;
+            if (!victim.HasValue || shooterTeam < 0) { Sound(Sfx.Death, x); return; }
+            if (victim.Value.Team == shooterTeam) { if (!_kamikazeThisTurn) Sound(Sfx.Oops, x, 1f, 0.04f); return; }
+            var shooter = Actors.WormPosition(Current.ActiveWorm);
+            Sound(Sfx.Taunt, shooter.HasValue ? shooter.Value.x : x, 1f, 0.04f);
+        }
+
         void FireSound(WeaponId weapon, float x)
         {
             switch (weapon)
@@ -168,7 +251,8 @@ namespace Worms.Game.Play
                 case WeaponId.ClusterBomb:
                 case WeaponId.Dynamite: Sound(Sfx.Throw, x); break;
                 case WeaponId.BaseballBat: Sound(Sfx.Swing, x); Sound(Sfx.Bonk, x, 0.8f); break;
-                case WeaponId.AirStrike: Sound(Sfx.AirRaid, x); break;
+                case WeaponId.AirStrike:
+                case WeaponId.Napalm: Sound(Sfx.AirRaid, x); break;
             }
         }
 

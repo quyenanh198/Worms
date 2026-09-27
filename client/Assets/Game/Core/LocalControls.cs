@@ -61,6 +61,12 @@ namespace Worms.Game.Core
         float _lastSentAim = float.NaN;
         float _time;
 
+        /// <summary>Sets the grenade fuse (1..5 s) from an on-screen button.</summary>
+        public void SetFuse(int seconds)
+        {
+            if (seconds >= 1 && seconds <= 5) Fuse = seconds;
+        }
+
         /// <summary>Picks charge/target mode for a weapon.</summary>
         public void UseWeapon(WeaponId weapon)
         {

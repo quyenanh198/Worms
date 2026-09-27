@@ -8,6 +8,13 @@ namespace Worms.Sim
     {
         public const int TicksPerSecond = 60;
         public const float Dt = 1f / TicksPerSecond;
+        /// <summary>
+        /// Projectiles live in slow motion: each tick advances them by this fraction of
+        /// <see cref="Dt"/>, so a full-power rocket crosses the screen slowly enough to follow.
+        /// Their paths are the same; only the flight takes longer. Fuses stay in real seconds.
+        /// </summary>
+        public const float ProjectileTimeScale = 0.5f;
+        public const float ProjectileDt = Dt * ProjectileTimeScale;
 
         public const int MapWidth = 2048;
         public const int MapHeight = 1024;
@@ -39,6 +46,8 @@ namespace Worms.Sim
         public const int StuckTicks = 45;
 
         public const int StartHp = 100;
+        /// <summary>Delay a turn adds when the team does not attack (and the scale of weapon delays).</summary>
+        public const int TurnDelay = 100;
         public const int TurnTicks = 45 * TicksPerSecond;
         public const int RetreatTicks = 3 * TicksPerSecond;
         /// <summary>Everything must be still this long before a turn can end.</summary>

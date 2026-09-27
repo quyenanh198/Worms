@@ -7,7 +7,6 @@ namespace Worms.Game.Render
     {
         public string Name;
         public Color Grass, Dirt, Deep, Rock;
-        public float GrassBand, MottleScale, MottleStrength, PebbleStrength;
         public Color SkyTop, SkyHorizon, SkyBottom;
         public Color Fog;
         public Color[] HillsNear, HillsFar;
@@ -21,7 +20,6 @@ namespace Worms.Game.Render
             Name = "meadow",
             Grass = new Color(0.38f, 0.63f, 0.16f), Dirt = new Color(0.63f, 0.37f, 0.19f),
             Deep = new Color(0.34f, 0.19f, 0.12f), Rock = new Color(0.50f, 0.48f, 0.44f),
-            GrassBand = 7.0f, MottleScale = 0.9f, MottleStrength = 0.18f, PebbleStrength = 0.26f,
             SkyTop = new Color(0.11f, 0.43f, 0.89f), SkyHorizon = new Color(0.70f, 0.88f, 0.98f), SkyBottom = new Color(0.54f, 0.77f, 0.92f),
             Fog = new Color(0.69f, 0.83f, 0.93f),
             HillsNear = new[] { new Color(0.30f, 0.57f, 0.49f), new Color(0.19f, 0.43f, 0.43f) },
@@ -36,7 +34,6 @@ namespace Worms.Game.Render
             Name = "beach",
             Grass = new Color(0.50f, 0.68f, 0.23f), Dirt = new Color(0.73f, 0.49f, 0.27f),
             Deep = new Color(0.47f, 0.29f, 0.17f), Rock = new Color(0.59f, 0.55f, 0.48f),
-            GrassBand = 6.0f, MottleScale = 0.7f, MottleStrength = 0.13f, PebbleStrength = 0.18f,
             SkyTop = new Color(0.11f, 0.48f, 0.91f), SkyHorizon = new Color(0.74f, 0.92f, 0.99f), SkyBottom = new Color(0.59f, 0.82f, 0.94f),
             Fog = new Color(0.76f, 0.89f, 0.95f),
             HillsNear = new[] { new Color(0.41f, 0.64f, 0.53f), new Color(0.27f, 0.51f, 0.46f) },
@@ -72,17 +69,14 @@ namespace Worms.Game.Render
             m.SetColor("_DirtColor", t.Dirt);
             m.SetColor("_DeepColor", t.Deep);
             m.SetColor("_RockColor", t.Rock);
-            m.SetFloat("_GrassBand", t.GrassBand);
-            m.SetFloat("_MottleScale", t.MottleScale);
-            m.SetFloat("_MottleStrength", t.MottleStrength);
-            m.SetFloat("_PebbleStrength", t.PebbleStrength);
             return m;
         }
 
-        public static Material Toon(Color color)
+        public static Material Toon(Color color, bool segments = false)
         {
             var m = Create("Worms/Toon", "Toon");
             m.SetColor("_BaseColor", color);
+            m.SetFloat("_Segments", segments ? 1f : 0f);
             return m;
         }
 
@@ -95,12 +89,13 @@ namespace Worms.Game.Render
             return m;
         }
 
-        public static Material Backdrop(Color top, Color bottom, float height)
+        public static Material Backdrop(Color top, Color bottom, float height, float haze)
         {
             var m = Create("Worms/Backdrop", "Backdrop");
             m.SetColor("_TopColor", top);
             m.SetColor("_BottomColor", bottom);
             m.SetFloat("_Height", height);
+            m.SetFloat("_Haze", haze);
             return m;
         }
 

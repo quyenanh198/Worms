@@ -7,8 +7,9 @@ using Worms.Game.Core;
 namespace Worms.Game.Audio
 {
     /// <summary>
-    /// Plays the synthesized sounds (SfxSynth) through a small pool of 2D
-    /// AudioSources panned by screen position, plus the background loop.
+    /// Plays the synthesized stereo sounds (SfxSynth) through a small pool of 2D
+    /// AudioSources, balanced toward where they happen on screen, plus the background loop.
+    /// Everything is generated and played here on the client; the server only sends events.
     /// Volumes are multiplied in code (no AudioMixer effects, docs/PLAN.md §3.14).
     /// </summary>
     public sealed class AudioManager : MonoBehaviour
@@ -20,6 +21,7 @@ namespace Worms.Game.Audio
 
         readonly Dictionary<Sfx, AudioClip> _clips = new Dictionary<Sfx, AudioClip>();
         readonly AudioSource[] _voices = new AudioSource[Voices];
+        readonly Dictionary<Sfx, float> _lastStart = new Dictionary<Sfx, float>();
         AudioSource _music;
         int _next;
 
@@ -49,9 +51,10 @@ namespace Worms.Game.Audio
             StartCoroutine(BuildMusic());
         }
 
+        /// <summary>A clip from interleaved stereo PCM.</summary>
         static AudioClip Clip(string name, float[] pcm)
         {
-            var clip = AudioClip.Create(name, pcm.Length, 1, SfxSynth.Rate, false);
+            var clip = AudioClip.Create(name, pcm.Length / SfxSynth.Channels, SfxSynth.Channels, SfxSynth.Rate, false);
             clip.SetData(pcm, 0);
             return clip;
         }
@@ -67,12 +70,21 @@ namespace Worms.Game.Audio
         public void Play(Sfx sfx, float pan = 0f, float volume = 1f, float pitchJitter = 0.06f)
         {
             if (Muted || SfxVolume <= 0 || !_clips.TryGetValue(sfx, out var clip)) return;
+            // The same sound twice within a few milliseconds is heard as one, only louder (and clipped).
+            float now = Time.unscaledTime;
+            if (_lastStart.TryGetValue(sfx, out var last) && now - last < 0.03f) return;
+            _lastStart[sfx] = now;
+            // Web audio has no limiter: many overlapping sounds would sum past full scale and
+            // crackle. Each new sound is a little quieter the busier the mix already is.
+            int busy = 0;
+            foreach (var v in _voices) if (v.isPlaying) busy++;
+            float crowd = 1f / Mathf.Sqrt(1f + 0.3f * busy);
             var src = _voices[_next];
             _next = (_next + 1) % Voices;
             src.clip = clip;
-            src.volume = Mathf.Clamp01(volume) * SfxVolume;
+            src.volume = Mathf.Clamp01(volume) * SfxVolume * crowd;
             src.pitch = 1f + UnityEngine.Random.Range(-pitchJitter, pitchJitter);
-            src.panStereo = Mathf.Clamp(pan, -1f, 1f) * 0.8f;
+            src.panStereo = Mathf.Clamp(pan, -1f, 1f) * 0.6f;
             src.Play();
         }
 

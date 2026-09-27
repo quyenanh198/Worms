@@ -57,9 +57,9 @@ namespace Worms.Sim.Tests
             return all;
         }
 
-        public static SimInput[] Input(World w, InputKind kind, int dir = 0, float angle = 0, float power = 0, int fuse = 0, WeaponId weapon = WeaponId.Bazooka)
+        public static SimInput[] Input(World w, InputKind kind, int dir = 0, float angle = 0, float power = 0, int fuse = 0, WeaponId weapon = WeaponId.Bazooka, float targetX = float.NaN)
         {
-            return new[] { new SimInput { Team = w.ActiveTeam, Kind = kind, Dir = dir, Angle = angle, Power = power, Fuse = fuse, Weapon = weapon } };
+            return new[] { new SimInput { Team = w.ActiveTeam, Kind = kind, Dir = dir, Angle = angle, Power = power, Fuse = fuse, Weapon = weapon, TargetX = targetX } };
         }
     }
 }

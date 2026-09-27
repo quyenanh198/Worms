@@ -11,27 +11,31 @@ namespace Worms.Game.Render
     public sealed class TerrainView : MonoBehaviour
     {
         TerrainMesher _mesher;
+        TerrainField _field;
+        Texture2D _fieldTex;
         Mesh[,] _meshes;
         MeshRenderer[,] _renderers;
         readonly MeshBuffers _buffers = new MeshBuffers();
         readonly MeshBuffers _decorBuffers = new MeshBuffers();
-        readonly MeshBuffers _stoneBuffers = new MeshBuffers();
         readonly MeshUtil _util = new MeshUtil();
         SurfaceDecorMesher _decorMesher;
-        EmbeddedStoneMesher _stoneMesher;
         Material _decorMaterial;
-        Material _stoneMaterial;
         readonly Dictionary<int, (Mesh mesh, MeshRenderer renderer)> _decor = new Dictionary<int, (Mesh, MeshRenderer)>();
-        readonly Dictionary<int, (Mesh mesh, MeshRenderer renderer)> _stones = new Dictionary<int, (Mesh, MeshRenderer)>();
 
         public void Init(SimTerrain terrain, Material material)
         {
             _mesher = new TerrainMesher(terrain, WorldSpace.Scale, WorldSpace.TerrainFrontZ, WorldSpace.TerrainBackZ);
             _decorMesher = new SurfaceDecorMesher(terrain, WorldSpace.Scale, WorldSpace.TerrainFrontZ - 0.06f);
-            _stoneMesher = new EmbeddedStoneMesher(terrain, WorldSpace.Scale, WorldSpace.TerrainFrontZ - 0.07f);
             _decorMaterial = Materials.Toon(new Color(0.30f, 0.64f, 0.13f));
-            _stoneMaterial = Materials.Create("Worms/EmbeddedStone", "Embedded stones");
-            _stoneMaterial.SetColor("_BaseColor", Color.Lerp(material.GetColor("_RockColor"), material.GetColor("_DirtColor"), 0.15f));
+            // Edge distance and land-above per cell: the shader paints outlines, crater rims and grass from it.
+            _field = new TerrainField(terrain);
+            _fieldTex = new Texture2D(terrain.Width, terrain.Height, TextureFormat.RG16, false, true)
+            {
+                name = "TerrainField", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp,
+            };
+            UploadField();
+            material.SetTexture("_Field", _fieldTex);
+            material.SetVector("_FieldSize", new Vector4(terrain.Width, terrain.Height, 1f / WorldSpace.Scale, 0));
             _meshes = new Mesh[_mesher.ChunksX, _mesher.ChunksY];
             _renderers = new MeshRenderer[_mesher.ChunksX, _mesher.ChunksY];
             for (int cy = 0; cy < _mesher.ChunksY; cy++)
@@ -55,6 +59,19 @@ namespace Worms.Game.Render
         public void Refresh(CellRect dirty)
         {
             foreach (var (cx, cy) in _mesher.ChunksTouching(dirty)) Rebuild(cx, cy);
+            _field.Update(dirty);
+            UploadField();
+        }
+
+        void UploadField()
+        {
+            _fieldTex.SetPixelData(_field.Data, 0);
+            _fieldTex.Apply(false, false);
+        }
+
+        void OnDestroy()
+        {
+            if (_fieldTex != null) Destroy(_fieldTex);
         }
 
         public void RefreshCircle(float x, float y, float r)
@@ -69,7 +86,6 @@ namespace Worms.Game.Render
             _util.Apply(_buffers, _meshes[cx, cy]);
             _renderers[cx, cy].enabled = _buffers.VertexCount > 0;
             RebuildDecor(cx, cy);
-            RebuildStones(cx, cy);
         }
 
         void RebuildDecor(int cx, int cy)
@@ -99,31 +115,5 @@ namespace Worms.Game.Render
             chunk.renderer.enabled = true;
         }
 
-        void RebuildStones(int cx, int cy)
-        {
-            _stoneMesher.BuildChunk(cx, cy, _stoneBuffers);
-            int key = cy * _mesher.ChunksX + cx;
-            if (_stoneBuffers.VertexCount == 0)
-            {
-                if (_stones.TryGetValue(key, out var empty)) empty.renderer.enabled = false;
-                return;
-            }
-            if (!_stones.TryGetValue(key, out var chunk))
-            {
-                var go = new GameObject("Stones " + cx + "," + cy);
-                go.transform.SetParent(transform, false);
-                var mesh = new Mesh { name = go.name };
-                mesh.MarkDynamic();
-                go.AddComponent<MeshFilter>().sharedMesh = mesh;
-                var renderer = go.AddComponent<MeshRenderer>();
-                renderer.sharedMaterial = _stoneMaterial;
-                renderer.shadowCastingMode = ShadowCastingMode.Off;
-                renderer.receiveShadows = false;
-                chunk = (mesh, renderer);
-                _stones[key] = chunk;
-            }
-            _util.Apply(_stoneBuffers, chunk.mesh);
-            chunk.renderer.enabled = true;
-        }
     }
 }

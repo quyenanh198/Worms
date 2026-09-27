@@ -20,6 +20,9 @@ namespace Worms.Server
         public int Team;
         public DateTime? DisconnectedAt;
         public bool Forfeited;
+        /// <summary>Set for a computer player: it has no connection and is always ready.</summary>
+        public BotDriver Bot;
+        public bool IsBot => Bot != null;
     }
 
     public sealed class Room
@@ -31,6 +34,10 @@ namespace Worms.Server
         public readonly List<Seat> Seats = new List<Seat>();
         public World World;
         public List<string> TeamNames = new List<string>();
+        public List<Loadout> Loadouts = new List<Loadout>();
+        public List<List<string>> WormNames = new List<List<string>>();
+        /// <summary>Per team, this match: damage dealt to enemies and enemy worms finished off.</summary>
+        public int[] Damage = new int[0], Kills = new int[0];
         public readonly ConcurrentQueue<SimInput> Inputs = new ConcurrentQueue<SimInput>();
         public CancellationTokenSource Loop;
         public DateTime EmptySince = DateTime.UtcNow;
@@ -66,12 +73,14 @@ namespace Worms.Server
         readonly Dictionary<int, Room> _byUser = new Dictionary<int, Room>();
         readonly MatchOptions _options;
         readonly ILogger<RoomManager> _log;
+        readonly ProfileStore _store;
         readonly Timer _cleanup;
 
-        public RoomManager(MatchOptions options, ILogger<RoomManager> log)
+        public RoomManager(MatchOptions options, ILogger<RoomManager> log, ProfileStore store)
         {
             _options = options;
             _log = log;
+            _store = store;
             _cleanup = new Timer(_ => Cleanup(), null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
         }
 
@@ -107,7 +116,7 @@ namespace Worms.Server
                         conn.Room = room;
                         BroadcastLobby(room);
                         if (room.State != RoomState.Lobby && room.World != null)
-                            conn.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, seat.Team).Encode());
+                            conn.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, seat.Team, room.Loadouts, room.WormNames).Encode());
                     }
                     return;
                 }
@@ -219,6 +228,48 @@ namespace Worms.Server
             }
         }
 
+        /// <summary>Host adds a computer player to a private room that has a free seat.</summary>
+        public void AddBot(Connection conn)
+        {
+            var room = conn.Room;
+            if (room == null) return;
+            lock (room)
+            {
+                if (room.State != RoomState.Lobby || room.IsQuick) return;
+                if (room.HostUserId != conn.User.UserId) { conn.Send(Error(ErrorCodes.NotHost)); return; }
+                if (room.Seats.Count >= room.MaxPlayers) { conn.Send(Error(ErrorCodes.RoomFull)); return; }
+                // Bots get negative ids (people never do) and the lowest free number: "Máy 1", "Máy 2"...
+                int n = 1;
+                while (room.Seats.Exists(x => x.User.UserId == -n)) n++;
+                room.Seats.Add(new Seat
+                {
+                    User = new Identity { UserId = -n, DisplayName = "Máy " + n },
+                    Ready = true,
+                    Team = room.Seats.Count,
+                    Bot = new BotDriver((uint)RandomNumberGenerator.GetInt32(1, int.MaxValue)),
+                });
+                BroadcastLobby(room);
+            }
+        }
+
+        public void RemoveBot(Connection conn, int botUserId)
+        {
+            lock (_lock)
+            {
+                var room = conn.Room;
+                if (room == null) return;
+                lock (room)
+                {
+                    if (room.State != RoomState.Lobby) return;
+                    if (room.HostUserId != conn.User.UserId) { conn.Send(Error(ErrorCodes.NotHost)); return; }
+                    var seat = room.SeatOf(botUserId);
+                    if (seat == null || !seat.IsBot) return;
+                    RemoveSeat(room, seat);
+                    BroadcastLobby(room);
+                }
+            }
+        }
+
         public void Leave(Connection conn)
         {
             lock (_lock) LeaveCurrent(conn);
@@ -236,8 +287,8 @@ namespace Worms.Server
                     if (room.State != RoomState.Finished) return;
                     room.State = RoomState.Lobby;
                     room.World = null;
-                    foreach (var gone in room.Seats.Where(s => s.Conn == null).ToList()) RemoveSeat(room, gone);
-                    foreach (var s in room.Seats) { s.Ready = room.IsQuick; s.Forfeited = false; s.DisconnectedAt = null; }
+                    foreach (var gone in room.Seats.Where(s => s.Conn == null && !s.IsBot).ToList()) RemoveSeat(room, gone);
+                    foreach (var s in room.Seats) { s.Ready = room.IsQuick || s.IsBot; s.Forfeited = false; s.DisconnectedAt = null; }
                     if (room.IsQuick && room.Seats.Count == room.MaxPlayers) StartMatch(room);
                     else BroadcastLobby(room);
                 }
@@ -309,9 +360,11 @@ namespace Worms.Server
         {
             room.Seats.Remove(seat);
             if (_byUser.TryGetValue(seat.User.UserId, out var r) && r == room) _byUser.Remove(seat.User.UserId);
-            if (room.HostUserId == seat.User.UserId && room.Seats.Count > 0) room.HostUserId = room.Seats[0].User.UserId;
+            var person = room.Seats.FirstOrDefault(x => !x.IsBot);
+            if (room.HostUserId == seat.User.UserId && person != null) room.HostUserId = person.User.UserId;
             ReassignTeams(room);
-            if (room.Seats.Count == 0) room.EmptySince = DateTime.UtcNow;
+            // Bots alone do not keep a room alive: cleanup removes it once no person is left.
+            if (person == null) room.EmptySince = DateTime.UtcNow;
         }
 
         static void ReassignTeams(Room room)
@@ -331,11 +384,31 @@ namespace Worms.Server
             uint seed = (uint)RandomNumberGenerator.GetInt32(1, int.MaxValue);
             room.World = new World(new MatchSetup { Seed = seed, Teams = room.Seats.Count, WormsPerTeam = _options.WormsPerTeam });
             room.TeamNames = room.Seats.Select(s => s.User.DisplayName).ToList();
+            // Players wear what they bought; computer players dress up at random.
+            var rng = new Rng(seed ^ 0xC0575EEDu);
+            room.Loadouts = new List<Loadout>();
+            room.WormNames = new List<List<string>>();
+            foreach (var s in room.Seats)
+            {
+                if (s.IsBot)
+                {
+                    room.Loadouts.Add(RandomLoadout(rng));
+                    room.WormNames.Add(Worms.Protocol.WormNames.Pick(rng.NextUInt()));
+                }
+                else
+                {
+                    var profile = _store.Get(s.User.UserId);
+                    room.Loadouts.Add(profile.Loadout);
+                    room.WormNames.Add(profile.WormNames.ToList());
+                }
+            }
+            room.Damage = new int[room.Seats.Count];
+            room.Kills = new int[room.Seats.Count];
             room.State = RoomState.Playing;
             while (room.Inputs.TryDequeue(out _)) { }
             BroadcastLobby(room);
             foreach (var s in room.Seats)
-                s.Conn?.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, s.Team).Encode());
+                s.Conn?.Send(MatchStartMsg.FromWorld(room.World, room.TeamNames, s.Team, room.Loadouts, room.WormNames).Encode());
             room.Loop?.Cancel();
             room.Loop = new CancellationTokenSource();
             var token = room.Loop.Token;
@@ -389,7 +462,13 @@ namespace Worms.Server
             var now = DateTime.UtcNow;
             foreach (var seat in room.Seats)
             {
-                if (seat.Conn != null || seat.Forfeited) continue;
+                if (seat.Forfeited) continue;
+                if (seat.IsBot)
+                {
+                    seat.Bot.Tick(world, seat.Team, inputs);
+                    continue;
+                }
+                if (seat.Conn != null) continue;
                 if (seat.DisconnectedAt.HasValue && (now - seat.DisconnectedAt.Value).TotalSeconds >= _options.ReconnectGraceSeconds)
                     Forfeit(room, seat);
                 else
@@ -398,6 +477,7 @@ namespace Worms.Server
 
             events.Clear();
             events.AddRange(world.Step(inputs));
+            Tally(room, world, events);
             bool important = false;
             foreach (var e in events) important |= e.Type == SimEventType.Turn || e.Type == SimEventType.GameOver;
             if (events.Count > 0) Broadcast(room, EventsMsg.Encode(events));
@@ -408,7 +488,55 @@ namespace Worms.Server
                 room.State = RoomState.Finished;
                 foreach (var s in room.Seats) s.Ready = false;
                 BroadcastLobby(room);
+                PayOut(room, world);
                 _log.LogInformation("Room {Code}: match over, winner team {Winner}", room.Code, world.Winner);
+            }
+        }
+
+        static Loadout RandomLoadout(Rng rng)
+        {
+            var l = new Loadout();
+            for (int slot = 0; slot < Cosmetics.SlotCount; slot++)
+            {
+                if (rng.NextFloat() < 0.4f) continue; // bare in this slot
+                var items = Cosmetics.InSlot((CosmeticSlot)slot).ToList();
+                if (items.Count > 0) l[(CosmeticSlot)slot] = items[rng.Range(0, items.Count)].Id;
+            }
+            return l;
+        }
+
+        /// <summary>
+        /// Damage and kills per team, credited to the team whose turn it is (deaths are
+        /// settled at the end of the shooter's own turn). Friendly fire earns nothing.
+        /// </summary>
+        static void Tally(Room room, World world, List<SimEvent> events)
+        {
+            int shooter = world.ActiveTeam;
+            if (shooter < 0 || shooter >= room.Damage.Length) return;
+            foreach (var e in events)
+            {
+                if (e.Worm < 0 || e.Worm >= world.Worms.Count || world.Worms[e.Worm].Team == shooter) continue;
+                if (e.Type == SimEventType.Hit || e.Type == SimEventType.Burn) room.Damage[shooter] += e.Amount;
+                else if (e.Type == SimEventType.Death) room.Kills[shooter]++;
+            }
+        }
+
+        /// <summary>Minimum length of a match that pays out, so instant forfeits cannot farm gold.</summary>
+        const int MinPaidTicks = 30 * C.TicksPerSecond;
+
+        void PayOut(Room room, World world)
+        {
+            if (world.Tick < MinPaidTicks) return;
+            foreach (var seat in room.Seats)
+            {
+                if (seat.IsBot || seat.Forfeited) continue;
+                bool onlyBots = room.Seats.All(o => o == seat || o.IsBot);
+                bool won = world.Winner == seat.Team;
+                int damage = room.Damage[seat.Team], kills = room.Kills[seat.Team];
+                int gold = Cosmetics.Reward(won, damage, kills, onlyBots);
+                var profile = _store.AddReward(seat.User.UserId, gold, won);
+                seat.Conn?.Send(new RewardMsg { Gold = gold, Damage = damage, Kills = kills, Won = won, OnlyBots = onlyBots }.Encode());
+                seat.Conn?.Send(profile.Encode());
             }
         }
 
@@ -442,7 +570,7 @@ namespace Worms.Server
         {
             var msg = new LobbyMsg { Code = room.Code, IsQuick = room.IsQuick, HostUserId = room.HostUserId, State = room.State };
             foreach (var s in room.Seats)
-                msg.Players.Add(new PlayerInfo { UserId = s.User.UserId, Name = s.User.DisplayName, Team = s.Team, Ready = s.Ready, Connected = s.Conn != null });
+                msg.Players.Add(new PlayerInfo { UserId = s.User.UserId, Name = s.User.DisplayName, Team = s.Team, Ready = s.Ready, Connected = s.Conn != null || s.IsBot, IsBot = s.IsBot });
             Broadcast(room, msg.Encode());
         }
 

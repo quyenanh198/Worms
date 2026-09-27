@@ -12,6 +12,8 @@ namespace Worms.Sim
         Death = 8,
         GameOver = 9,
         Shot = 10,
+        /// <summary>A worm took fire damage (Amount), from napalm.</summary>
+        Burn = 11,
     }
 
     public enum DeathCause : byte

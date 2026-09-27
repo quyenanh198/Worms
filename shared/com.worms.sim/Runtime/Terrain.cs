@@ -34,6 +34,17 @@ namespace Worms.Sim
             _cells = new byte[width * height];
         }
 
+        /// <summary>
+        /// An independent copy. The bot plans against a copy so it can think on another
+        /// thread while the match loop keeps stepping (and carving) the real terrain.
+        /// </summary>
+        public Terrain Clone()
+        {
+            var copy = new Terrain(Width, Height);
+            Array.Copy(_cells, copy._cells, _cells.Length);
+            return copy;
+        }
+
         public bool IsSolid(int x, int y)
         {
             if ((uint)x >= (uint)Width || (uint)y >= (uint)Height) return false;

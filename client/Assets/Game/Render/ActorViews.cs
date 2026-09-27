@@ -29,9 +29,17 @@ namespace Worms.Game.Render
             public Transform Root;
             public Vector3 LastPos;
             public bool Smokes;
+            public bool Burns;
         }
 
         public Vfx Vfx;
+        /// <summary>Cosmetics per team (store loadouts); missing teams wear nothing.</summary>
+        public IReadOnlyList<Loadout> Loadouts;
+
+        Loadout LoadoutOf(int team)
+        {
+            return Loadouts != null && team >= 0 && team < Loadouts.Count ? Loadouts[team] : default;
+        }
         readonly Dictionary<int, WormView> _worms = new Dictionary<int, WormView>();
         readonly Dictionary<int, ProjectileView> _projectiles = new Dictionary<int, ProjectileView>();
         readonly Dictionary<int, Vector3> _wormPos = new Dictionary<int, Vector3>();
@@ -83,7 +91,11 @@ namespace Worms.Game.Render
 
             foreach (var w in cur.Worms)
             {
-                if (!_worms.TryGetValue(w.Id, out var view)) _worms[w.Id] = view = new WormView(transform, w.Id, TeamColors.Of(w.Team));
+                if (!_worms.TryGetValue(w.Id, out var view))
+                {
+                    _worms[w.Id] = view = new WormView(transform, w.Id, TeamColors.Of(w.Team));
+                    view.SetLoadout(LoadoutOf(w.Team));
+                }
                 _seen.Add(w.Id);
                 if (!w.Alive)
                 {
@@ -138,8 +150,9 @@ namespace Worms.Game.Render
                     bool fragment = pr.Weapon == WeaponId.ClusterBomb && prev != null && !prev.Projectiles.Exists(x => x.Id == pr.Id) && cur.Projectiles.Count > 1;
                     view = new ProjectileView
                     {
-                        Root = WeaponProps.BuildProjectile(pr.Weapon, fragment, transform),
-                        Smokes = pr.Weapon == WeaponId.Bazooka || pr.Weapon == WeaponId.AirStrike,
+                        Root = WeaponProps.BuildProjectile(pr.Weapon, fragment, transform, ProjectileSkin(cur, pr.Weapon)),
+                        Smokes = pr.Weapon == WeaponId.Bazooka || pr.Weapon == WeaponId.AirStrike || pr.Weapon == WeaponId.Napalm,
+                        Burns = pr.Weapon == WeaponId.Fire,
                     };
                     view.LastPos = WorldSpace.ToWorld(pr.X, pr.Y);
                     _projectiles[pr.Id] = view;
@@ -160,8 +173,16 @@ namespace Worms.Game.Render
                 }
                 view.Root.position = pos;
                 view.LastPos = pos;
+                if (view.Burns && Vfx != null) Vfx.Flame(pos);
             }
             RemoveMissing(_projectiles, v => Destroy(v.Root.gameObject));
+        }
+
+        /// <summary>Shots fly in the skin of the team that fired them (the team whose turn it is).</summary>
+        byte ProjectileSkin(Snapshot cur, WeaponId weapon)
+        {
+            var l = LoadoutOf(cur.ActiveTeam);
+            return weapon == WeaponId.Bazooka ? l.Bazooka : weapon == WeaponId.Grenade ? l.Grenade : (byte)0;
         }
 
         public void OnHit(int wormId)
@@ -196,7 +217,7 @@ namespace Worms.Game.Render
         {
             screen = default;
             if (!_wormPos.TryGetValue(wormId, out var p)) return false;
-            screen = cam.WorldToScreenPoint(p + Vector3.up * 1.1f);
+            screen = cam.WorldToScreenPoint(p + Vector3.up * 1.25f);
             return screen.z > 0;
         }
     }

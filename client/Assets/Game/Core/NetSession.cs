@@ -11,6 +11,10 @@ namespace Worms.Game.Core
         public readonly uint Seed;
         public readonly int YourTeam;
         public readonly IReadOnlyList<string> TeamNames;
+        /// <summary>What each team wears.</summary>
+        public readonly IReadOnlyList<Loadout> Loadouts;
+        /// <summary>Each team's worm names, in worm order within the team.</summary>
+        public readonly IReadOnlyList<List<string>> WormNames;
         public readonly int WormsPerTeam;
         public readonly Terrain Terrain;
         public readonly float WaterLevel;
@@ -27,6 +31,8 @@ namespace Worms.Game.Core
             Seed = m.Seed;
             YourTeam = m.YourTeam;
             TeamNames = m.TeamNames.ToArray();
+            Loadouts = m.Loadouts.ToArray();
+            WormNames = m.WormNames.ToArray();
             WormsPerTeam = m.WormsPerTeam;
             Terrain = MapGenerator.Generate(m.Seed);
             foreach (var op in m.TerrainOps) Terrain.CarveCircle(op.X, op.Y, op.R);
@@ -69,6 +75,14 @@ namespace Worms.Game.Core
         }
 
         public int PendingEvents => _pending.Count;
+
+        /// <summary>The name of a worm (ids run team by team), or null if the server sent none.</summary>
+        public string WormName(int wormId)
+        {
+            if (WormsPerTeam <= 0) return null;
+            int team = wormId / WormsPerTeam, index = wormId % WormsPerTeam;
+            return team < WormNames.Count && index < WormNames[team].Count ? WormNames[team][index] : null;
+        }
     }
 
     /// <summary>
@@ -86,6 +100,10 @@ namespace Worms.Game.Core
         public string LastError { get; private set; }
         public LobbyMsg Lobby { get; private set; } = new LobbyMsg();
         public ClientMatch Match { get; private set; }
+        /// <summary>Gold, owned items and loadout; null until the server sends it.</summary>
+        public ProfileMsg Profile { get; private set; }
+        /// <summary>Gold from the last finished match; null when there is none to show.</summary>
+        public RewardMsg? LastReward { get; private set; }
 
         public bool InRoom => !string.IsNullOrEmpty(Lobby.Code);
         public bool IsHost => InRoom && Lobby.HostUserId == UserId;
@@ -119,6 +137,13 @@ namespace Worms.Game.Core
                     break;
                 case MsgType.MatchStart:
                     Match = new ClientMatch(MatchStartMsg.Decode(r));
+                    LastReward = null;
+                    break;
+                case MsgType.Profile:
+                    Profile = ProfileMsg.Decode(r);
+                    break;
+                case MsgType.Reward:
+                    LastReward = RewardMsg.Decode(r);
                     break;
                 case MsgType.Snapshot:
                     Match?.Buffer.Add(Snapshot.Decode(r));
@@ -138,6 +163,14 @@ namespace Worms.Game.Core
         public void StartMatch() { Send(ClientMsg.Simple(MsgType.StartMatch)); }
         public void LeaveRoom() { Send(ClientMsg.Simple(MsgType.LeaveRoom)); }
         public void Rematch() { Send(ClientMsg.Simple(MsgType.Rematch)); }
+        /// <summary>Host only: adds a computer player to the private room.</summary>
+        public void AddBot() { Send(ClientMsg.Simple(MsgType.AddBot)); }
+        /// <summary>Host only: removes the computer player with this (negative) user id.</summary>
+        public void RemoveBot(int userId) { Send(ClientMsg.RemoveBot(userId)); }
+
+        public void Buy(byte item) { Send(ClientMsg.Buy(item)); }
+        public void Equip(CosmeticSlot slot, byte item) { Send(ClientMsg.Equip(slot, item)); }
+        public void SetWormNames(IReadOnlyList<string> names) { Send(ClientMsg.SetWormNames(names)); }
 
         public void SendIntent(Intent i)
         {

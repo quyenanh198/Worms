@@ -12,12 +12,12 @@ namespace Worms.Game.Render
     /// </summary>
     public sealed class WormView
     {
-        static Mesh _eyeMesh, _handMesh, _smileMesh;
-        static Material _white, _black, _capMaterial;
+        static Mesh _eyeMesh, _handMesh;
+        static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
         public readonly Transform Root;
-        readonly Transform _body, _eyeL, _eyeR, _pupilL, _pupilR, _mouth, _handL, _handR, _weaponPivot, _headAccessory;
+        readonly Transform _body, _eyeL, _eyeR, _pupilL, _pupilR, _handL, _handR, _weaponPivot, _mouth, _cheek;
         readonly WormRig _rig = new WormRig();
         readonly MeshBuffers _buffers = new MeshBuffers();
         readonly MeshUtil _util = new MeshUtil();
@@ -26,6 +26,10 @@ namespace Worms.Game.Render
         readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         Transform _prop;
         WeaponId _propId;
+        byte _propSkin;
+        Loadout _loadout;
+        Transform _hat, _armor, _cloth;
+        int _armorPoint;
         float _spin, _flash, _blinkAt, _sinkT = -1;
         Vector3 _sinkFrom;
 
@@ -37,10 +41,10 @@ namespace Worms.Game.Render
             {
                 _eyeMesh = MeshUtil.Create(Shapes.Sphere(0.5f, 10, 14), "Eye");
                 _handMesh = _eyeMesh;
-                _smileMesh = CreateSmileMesh();
                 _white = Materials.Toon(new Color(0.97f, 0.97f, 0.97f));
                 _black = Materials.Toon(new Color(0.05f, 0.05f, 0.07f));
-                _capMaterial = Materials.Toon(new Color(0.1f, 0.19f, 0.29f));
+                _mouthMat = Materials.Toon(new Color(0.32f, 0.07f, 0.09f));
+                _cheekMat = Materials.Toon(new Color(1f, 0.55f, 0.6f));
             }
             Root = new GameObject("Worm " + id).transform;
             Root.SetParent(parent, false);
@@ -50,27 +54,23 @@ namespace Worms.Game.Render
             _mesh.MarkDynamic();
             _body.gameObject.AddComponent<MeshFilter>().sharedMesh = _mesh;
             _renderer = _body.gameObject.AddComponent<MeshRenderer>();
-            _renderer.sharedMaterial = Materials.Toon(teamColor);
+            _renderer.sharedMaterial = Materials.Toon(teamColor, segments: true);
 
             _eyeL = Ball(_body, "EyeL", _white, 0.16f);
             _eyeR = Ball(_body, "EyeR", _white, 0.16f);
             _pupilL = Ball(_eyeL, "Pupil", _black, 0.5f);
             _pupilR = Ball(_eyeR, "Pupil", _black, 0.5f);
-            _mouth = new GameObject("Smile").transform;
-            _mouth.SetParent(_body, false);
-            _mouth.gameObject.AddComponent<MeshFilter>().sharedMesh = _smileMesh;
-            _mouth.gameObject.AddComponent<MeshRenderer>().sharedMaterial = _black;
+            // A glint in each eye makes the face read as alive.
+            foreach (var pupil in new[] { _pupilL, _pupilR })
+            {
+                var glint = Ball(pupil, "Glint", _white, 0.38f);
+                glint.localPosition = new Vector3(-0.22f, 0.26f, -0.42f);
+            }
+            _mouth = Ball(_body, "Mouth", _mouthMat, 0.1f);
+            _cheek = Ball(_body, "Cheek", _cheekMat, 0.1f);
             var skin = _renderer.sharedMaterial;
             _handL = Ball(_body, "HandL", skin, 0.1f);
             _handR = Ball(_body, "HandR", skin, 0.1f);
-            _headAccessory = new GameObject("Cap").transform;
-            _headAccessory.SetParent(_body, false);
-            var crown = Ball(_headAccessory, "Crown", _capMaterial, 1f);
-            crown.localPosition = new Vector3(0, 0.37f, -0.08f);
-            crown.localScale = new Vector3(0.74f, 0.28f, 0.62f);
-            var brim = Ball(_headAccessory, "Brim", _capMaterial, 1f);
-            brim.localPosition = new Vector3(0.30f, 0.22f, -0.16f);
-            brim.localScale = new Vector3(0.56f, 0.09f, 0.5f);
             _weaponPivot = new GameObject("Weapon").transform;
             _weaponPivot.SetParent(_body, false);
             _blinkAt = Random.Range(1f, 4f);
@@ -86,22 +86,39 @@ namespace Worms.Game.Render
             return go.transform;
         }
 
-        static Mesh CreateSmileMesh()
+        public void Flash() { _flash = 1f; }
+
+        /// <summary>Puts on a set of store cosmetics (replacing what the worm wore).</summary>
+        public void SetLoadout(Loadout loadout)
         {
-            var mesh = new Mesh { name = "Worm smile" };
-            mesh.vertices = new[]
+            bool hatChanged = _hat == null ? loadout.Hat != 0 : loadout.Hat != _loadout.Hat;
+            bool armorChanged = _armor == null ? loadout.Armor != 0 : loadout.Armor != _loadout.Armor;
+            _loadout = loadout;
+            if (hatChanged)
             {
-                new Vector3(-0.12f, 0.02f, 0), new Vector3(-0.12f, -0.01f, 0),
-                new Vector3(-0.06f, -0.05f, 0), new Vector3(-0.06f, -0.08f, 0),
-                new Vector3(0.06f, -0.05f, 0), new Vector3(0.06f, -0.08f, 0),
-                new Vector3(0.12f, 0.02f, 0), new Vector3(0.12f, -0.01f, 0),
-            };
-            mesh.triangles = new[] { 0, 2, 1, 1, 2, 3, 2, 4, 3, 3, 4, 5, 4, 6, 5, 5, 6, 7 };
-            mesh.RecalculateNormals();
-            return mesh;
+                if (_hat != null) Object.Destroy(_hat.gameObject);
+                _hat = CosmeticProps.BuildHat(loadout.Hat, _body);
+            }
+            if (armorChanged)
+            {
+                if (_armor != null) Object.Destroy(_armor.gameObject);
+                _armor = CosmeticProps.BuildArmor(loadout.Armor, _body);
+                _armorPoint = CosmeticProps.ArmorSpinePoint(loadout.Armor);
+                _cloth = _armor != null ? _armor.Find("Cloth") : null;
+            }
+            _propSkin = 255; // rebuild the held weapon with the new skin
         }
 
-        public void Flash() { _flash = 1f; }
+        static byte SkinFor(Loadout l, WeaponId weapon)
+        {
+            switch (weapon)
+            {
+                case WeaponId.Bazooka: return l.Bazooka;
+                case WeaponId.Grenade: return l.Grenade;
+                case WeaponId.BaseballBat: return l.Bat;
+                default: return 0;
+            }
+        }
 
         public void StartSinking(Vector3 at)
         {
@@ -138,31 +155,62 @@ namespace Worms.Game.Render
             _rig.HeadDirection(out float hx, out float hy);
             float s = WorldSpace.Scale;
             var head = new Vector3(_rig.HeadX * s, _rig.HeadY * s, 0);
-            var up = new Vector3(hx, hy, 0);
-            var side = new Vector3(hy, -hx, 0);
+            // The face follows the head only partly, so it stays upright and readable.
+            var up = Vector3.Slerp(Vector3.up, new Vector3(hx, hy, 0), 0.35f).normalized;
+            var side = new Vector3(up.y, -up.x, 0);
             float r = _rig.HeadR * s;
-            _headAccessory.localPosition = head + Vector3.back * r * 0.2f;
-            _headAccessory.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(-hx, hy) * Mathf.Rad2Deg);
-            _headAccessory.localScale = Vector3.one * (r / 0.45f);
-            _mouth.localPosition = head - up * r * 0.24f + side * r * 0.55f + Vector3.back * r * 0.82f;
-            _mouth.localRotation = _headAccessory.localRotation;
-            _mouth.localScale = Vector3.one * (r / 0.235f);
             _blinkAt -= dt;
             float blink = _blinkAt < 0.12f ? 0.15f : 1f;
             if (_blinkAt < 0) _blinkAt = Random.Range(2f, 5f);
-            _eyeL.localPosition = head + up * r * 0.35f + side * r * 0.38f + Vector3.back * r * 0.82f;
-            _eyeR.localPosition = head + up * r * 0.35f + side * r * 0.91f + Vector3.back * r * 0.45f;
-            _eyeL.localScale = _eyeR.localScale = new Vector3(0.22f, 0.22f * blink, 0.22f);
+            // Big eyes on the side of the head that faces the camera, turned a little toward
+            // the way the worm looks, so the face reads from the playing view.
+            _eyeL.localPosition = head + up * r * 0.28f + side * r * 0.12f + Vector3.back * r * 0.86f;
+            _eyeR.localPosition = head + up * r * 0.28f + side * r * 0.66f + Vector3.back * r * 0.66f;
+            _eyeL.localScale = _eyeR.localScale = new Vector3(0.2f, 0.22f * blink, 0.2f);
             var look = new Vector3(Mathf.Cos(aim), Mathf.Sin(aim), -0.6f).normalized * 0.28f;
             _pupilL.localPosition = _pupilR.localPosition = look;
 
+            // Mouth: a small smile, a round "O" when hit or tumbling. A rosy cheek on the near side.
+            bool shocked = _flash > 0.05f || w.State == WormState.Tumbling;
+            _mouth.localPosition = head - up * r * 0.36f + side * r * 0.45f + Vector3.back * r * 0.86f;
+            _mouth.localRotation = Quaternion.LookRotation(Vector3.forward, up);
+            _mouth.localScale = shocked ? new Vector3(0.07f, 0.08f, 0.04f) : new Vector3(0.12f, 0.035f, 0.04f);
+            _cheek.localPosition = head - up * r * 0.12f + side * r * 0.86f + Vector3.back * r * 0.52f;
+            _cheek.localRotation = _mouth.localRotation;
+            _cheek.localScale = new Vector3(0.08f, 0.05f, 0.03f);
+
+            // Cosmetics ride on the head and the spine, scaled by their radii.
+            if (_hat != null)
+            {
+                _hat.localPosition = head;
+                _hat.localRotation = Quaternion.FromToRotation(Vector3.up, up);
+                _hat.localScale = Vector3.one * r;
+            }
+            if (_armor != null)
+            {
+                int k = Mathf.Clamp(_armorPoint, 1, WormRig.Points - 2);
+                var tangent = new Vector3(_rig.X[k + 1] - _rig.X[k - 1], _rig.Y[k + 1] - _rig.Y[k - 1], 0);
+                if (tangent.sqrMagnitude < 1e-6f) tangent = Vector3.up;
+                _armor.localPosition = new Vector3(_rig.X[k] * s, _rig.Y[k] * s, 0);
+                _armor.localRotation = Quaternion.FromToRotation(Vector3.up, tangent.normalized);
+                _armor.localScale = Vector3.one * (_rig.R[k] * s);
+                if (_cloth != null)
+                {
+                    // The cape streams back, more when moving.
+                    float speed = Mathf.Clamp(new Vector2(w.Vx, w.Vy).magnitude / 200f, 0f, 1f);
+                    _cloth.localRotation = Quaternion.Euler(0, 0, 12f + 25f * speed + 6f * Mathf.Sin(Time.time * 5f + _blinkAt));
+                }
+            }
+
             // Weapon in hand (grenade or dynamite: only the item, no gun).
             bool show = holding && w.State != WormState.Tumbling;
-            if (show && (_prop == null || _propId != weapon))
+            byte skin = SkinFor(_loadout, weapon);
+            if (show && (_prop == null || _propId != weapon || _propSkin != skin))
             {
                 if (_prop != null) Object.Destroy(_prop.gameObject);
-                _prop = WeaponProps.Build(weapon, _weaponPivot);
+                _prop = WeaponProps.Build(weapon, _weaponPivot, skin);
                 _propId = weapon;
+                _propSkin = skin;
             }
             _weaponPivot.gameObject.SetActive(show);
             _handL.gameObject.SetActive(show);

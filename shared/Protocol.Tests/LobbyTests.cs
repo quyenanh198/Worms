@@ -13,6 +13,7 @@ namespace Worms.Protocol.Tests
             var m = new LobbyMsg { Code = "ABCD", IsQuick = true, HostUserId = 7, State = RoomState.Playing };
             m.Players.Add(new PlayerInfo { UserId = 7, Name = "Ánh", Team = 0, Ready = true, Connected = true });
             m.Players.Add(new PlayerInfo { UserId = 9, Name = "Bố", Team = 1, Ready = false, Connected = false });
+            m.Players.Add(new PlayerInfo { UserId = -1, Name = "Máy 1", Team = 2, Ready = true, Connected = true, IsBot = true });
             var r = new MsgReader(m.Encode());
             Assert.Equal(MsgType.Lobby, r.Type);
             var d = LobbyMsg.Decode(r);
@@ -66,6 +67,14 @@ namespace Worms.Protocol.Tests
             Assert.Equal(0.7f, d.Angle);
             Assert.Equal(2, d.Fuse);
             Assert.Equal(WeaponId.Grenade, d.Weapon);
+        }
+
+        [Fact]
+        public void RemoveBotCarriesTheBotId()
+        {
+            var r = new MsgReader(ClientMsg.RemoveBot(-2));
+            Assert.Equal(MsgType.RemoveBot, r.Type);
+            Assert.Equal(-2, r.I32());
         }
     }
 }

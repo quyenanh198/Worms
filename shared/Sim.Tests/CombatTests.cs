@@ -70,11 +70,29 @@ namespace Worms.Sim.Tests
                 w.Wind = wind;
                 w.Step(TestWorlds.Input(w, InputKind.Select, weapon: weapon));
                 w.Step(TestWorlds.Input(w, InputKind.Fire, angle: (float)Math.PI / 2, power: 0.5f, fuse: 5));
-                for (int i = 0; i < 40; i++) w.Step(null);
+                // Two thirds of a second of flight, in (slow-motion) projectile time.
+                for (int i = 0; i < (int)(40 / C.ProjectileTimeScale); i++) w.Step(null);
                 return w.Projectiles[0].Pos.X - 2000;
             }
             Assert.True(Drift(WeaponId.Bazooka, 100) > 10);
             Assert.InRange(Drift(WeaponId.Grenade, 100), -0.5f, 0.5f);
+        }
+
+        [Fact]
+        public void ProjectilesFlyInSlowMotionButFusesKeepRealTime()
+        {
+            // A flat full-power rocket covers half its launch speed in one real second, so eyes can follow it.
+            var t = new Terrain(4000, 2000);
+            t.FillRect(0, 1900, 4000, 2000, true);
+            var w = TestWorlds.Create(t, new Vec2(200, 1900 - C.WormRadius), new Vec2(3900, 1900 - C.WormRadius));
+            w.Step(null);
+            w.Wind = 0;
+            w.Step(TestWorlds.Input(w, InputKind.Fire, angle: 0.3f, power: 1f));
+            float x0 = w.Projectiles[0].Pos.X;
+            for (int i = 0; i < C.TicksPerSecond; i++) w.Step(null);
+            float perSecond = w.Projectiles[0].Pos.X - x0;
+            float full = Weapons.Get(WeaponId.Bazooka).MaxSpeed * (float)System.Math.Cos(0.3);
+            Assert.InRange(perSecond, full * C.ProjectileTimeScale * 0.95f, full * C.ProjectileTimeScale * 1.05f);
         }
 
         [Fact]

@@ -107,6 +107,36 @@ namespace Worms.Game.Core
             return m;
         }
 
+        /// <summary>Closed cone along Y: base of <paramref name="radius"/> at y = 0, tip at y = <paramref name="height"/>.</summary>
+        public static MeshBuffers Cone(float radius, float height, int segments = 16)
+        {
+            var m = new MeshBuffers();
+            float len = (float)Math.Sqrt(height * height + radius * radius);
+            for (int s = 0; s <= segments; s++)
+            {
+                float a = 2f * (float)Math.PI * s / segments;
+                float c = (float)Math.Cos(a), z = (float)Math.Sin(a);
+                float nx = c * height / len, ny = radius / len, nz = z * height / len;
+                m.AddVertex(0, height, 0, nx, ny, nz, (float)s / segments, 1);
+                m.AddVertex(c * radius, 0, z * radius, nx, ny, nz, (float)s / segments, 0);
+            }
+            for (int s = 0; s < segments; s++)
+            {
+                int a = s * 2, b = a + 1, c = a + 2, d = a + 3;
+                m.AddTriangle(a, c, b);
+                m.AddTriangle(b, c, d);
+            }
+            int center = m.AddVertex(0, 0, 0, 0, -1, 0, 0.5f, 0.5f);
+            int first = m.VertexCount;
+            for (int s = 0; s <= segments; s++)
+            {
+                float a = 2f * (float)Math.PI * s / segments;
+                m.AddVertex((float)Math.Cos(a) * radius, 0, (float)Math.Sin(a) * radius, 0, -1, 0, 0, 0);
+            }
+            for (int s = 0; s < segments; s++) m.AddTriangle(center, first + s, first + s + 1);
+            return m;
+        }
+
         /// <summary>Axis-aligned box centered at the origin with flat faces.</summary>
         public static MeshBuffers Box(float sx, float sy, float sz)
         {

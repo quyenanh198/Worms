@@ -69,5 +69,7 @@ namespace UnityEngine.Rendering.Universal
         public int mainLightShadowmapResolution { get; set; }
         public float shadowDistance { get; set; }
         public int shadowCascadeCount { get; set; }
+        public float shadowDepthBias { get; set; }
+        public float shadowNormalBias { get; set; }
     }
 }

@@ -25,7 +25,9 @@ namespace Worms.Game.Core
     public sealed class WormRig
     {
         public const int Points = 10;
-        const float BlendRate = 14f;
+        /// <summary>Spine fraction lying on the ground as the tail; the rest stands up.</summary>
+        const float BodyStart = 0.3f;
+        const float BlendRate = 12f;
 
         public readonly float[] X = new float[Points];
         public readonly float[] Y = new float[Points];
@@ -76,7 +78,7 @@ namespace Worms.Game.Core
             {
                 float s = (float)i / (Points - 1);
                 // Radius: thin tail, fat body, round head.
-                _tr[i] = 2.1f + 2.0f * Smooth(0f, 0.55f, s) + (i == Points - 1 ? 0.6f : 0f);
+                _tr[i] = 2.1f + 2.2f * Smooth(0f, 0.55f, s) + (i == Points - 1 ? 1.7f : i == Points - 2 ? 0.8f : 0f);
 
                 if (a.State == WormState.Tumbling)
                 {
@@ -88,19 +90,20 @@ namespace Worms.Game.Core
                     continue;
                 }
 
-                // Idle: tail flat on the ground behind, neck rising to the head.
+                // Idle, the classic Worms stance: the tail curls on the ground behind and the
+                // body stands up in an S (bulging back low, forward high) with the head on top.
                 float x, y;
-                if (s < 0.45f)
+                if (s < BodyStart)
                 {
-                    float t = s / 0.45f;
-                    x = -10f + 8f * t;
-                    y = ground + _tr[i];
+                    float t = s / BodyStart;
+                    x = -10f + 8.5f * t;
+                    y = ground + _tr[i] + (1f - t) * (1f - t) * 1.4f; // tail tip lifts a little
                 }
                 else
                 {
-                    float t = (s - 0.45f) / 0.55f;
-                    x = -2f + 2.6f * (float)Math.Sin(t * Math.PI / 2);
-                    y = ground + 3.6f + 13f * t * breathe;
+                    float t = (s - BodyStart) / (1f - BodyStart);
+                    x = -1.5f + 1.5f * t - 3.2f * (float)Math.Sin(2 * Math.PI * t) * (1f - t);
+                    y = ground + 3.4f + 16.5f * t * breathe;
                 }
 
                 if (a.State == WormState.Walking)
@@ -118,12 +121,14 @@ namespace Worms.Game.Core
                     x *= 1f - stretch * 0.5f;
                 }
 
-                if (a.Holding && s > 0.45f)
+                if (a.Holding && s > BodyStart)
                 {
-                    // Lean the upper body toward the aim: vertical at +90 degrees, forward at 0.
-                    float t = (s - 0.45f) / 0.55f;
-                    float lean = (float)(Math.PI / 2 - a.Aim) * 0.55f * t;
-                    float bx = -2f, by = ground + 3.6f;
+                    // Lean toward the aim but stay upright: back ~10 degrees aiming straight up,
+                    // ~3 forward level, ~15 forward aiming straight down. The body stays planted;
+                    // the bow is in the neck.
+                    float t = (s - BodyStart) / (1f - BodyStart);
+                    float lean = 0.14f * (0.35f - a.Aim) * t * t;
+                    float bx = -1.5f, by = ground + 3.4f;
                     float dx = x - bx, dy = y - by;
                     float cos = (float)Math.Cos(-lean), sin = (float)Math.Sin(-lean);
                     x = bx + dx * cos - dy * sin;

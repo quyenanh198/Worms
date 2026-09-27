@@ -28,7 +28,7 @@
 - **Âm thanh:** hiệu ứng (SFX) theo sự kiện, nhạc nền, chỉnh âm lượng.
 
 ### 1.2 Ngoài phạm vi MVP
-Xếp hạng và lịch sử trận, app iOS native, bot AI, Ninja Rope, Jetpack, trình sửa bản đồ, chat voice, replay, client-side prediction (§3.4.4), console.
+Xếp hạng và lịch sử trận, app iOS native, Ninja Rope, Jetpack, trình sửa bản đồ, chat voice, replay, client-side prediction (§3.4.4), console. (Bot AI ban đầu nằm ở đây; đã làm ở P9, xem bảng giai đoạn.)
 
 ### 1.3 Quyết định
 | # | Nội dung | Trạng thái |
@@ -330,7 +330,7 @@ Mỗi vũ khí là **một dòng dữ liệu** cộng với một trong 5 behavi
   - `Turn`: chuông báo lượt
   - còn 5 giây: tiếng tích tắc
 - Nhạc nền loop theo theme. Trên web và iOS, audio chỉ mở khóa sau lần chạm đầu tiên, nên lobby phải có một thao tác chạm trước khi vào trận.
-- **Nguồn: tổng hợp bằng code** (`Core/SfxSynth.cs`). Mọi tiếng động (nổ 3 cỡ, phóng tên lửa, ném, shotgun, uzi, vung gậy, máy bay không kích, nảy, nhảy, tiếp đất, bọt nước, kêu đau, "bye bye", chuông lượt, tích tắc) và nhạc nền loop 16 giây đều được sinh ra lúc game khởi động, từ noise, bộ dao động, envelope và bộ lọc. Repo không có file âm thanh nào nên không có vấn đề license. Sau này có thể thay bằng file CC0 hoặc giọng TTS mà không phải đổi phần còn lại.
+- **Nguồn: tổng hợp bằng code** (`Core/SfxSynth.cs`). Mọi tiếng động (nổ 3 cỡ, phóng tên lửa, ném, shotgun, uzi, vung gậy, máy bay không kích, nảy, nhảy, tiếp đất, bọt nước, kêu đau, "bye bye", chuông lượt, tích tắc) và nhạc nền loop 16 giây đều được sinh ra lúc game khởi động, từ noise, bộ dao động, envelope và bộ lọc. Âm thanh là stereo: lớp noise lệch pha giữa hai tai, lớp có cao độ detune nhẹ, giọng sâu đi qua bộ lọc formant, mỗi clip có reverb phòng riêng; nhạc nền có pad, bass, arpeggio ping-pong, chuông và trống, render hai vòng để loop không bị gãy. Tất cả chạy trên client, server chỉ gửi event. Repo không có file âm thanh nào nên không có vấn đề license. Sau này có thể thay bằng file CC0 hoặc giọng TTS mà không phải đổi phần còn lại.
 - Tiếng nhảy không có event riêng: client tự phát khi thấy sâu chuyển sang Airborne và đang đi lên.
 - Nút "Âm thanh: bật/tắt" trên HUD, thanh chỉnh Nhạc và Hiệu ứng ở menu. Cả hai được lưu trong `PlayerPrefs`.
 
@@ -493,7 +493,8 @@ Mỗi phase là **1 PR** (D7) và phải qua bước verify trước khi sang ph
 | **P6** Âm thanh | SFX CC0 và tự sinh, giọng nói từ TTS-Studio, map Event → SFX, pan, nhạc nền, âm lượng theo nhóm, mở khóa audio, `CREDITS.md` | Checklist: mọi Event có tiếng · lệch giữa âm thanh và hình < 50 ms · có tiếng trên iOS Safari và Android Chrome · mỗi file có dòng nguồn trong `CREDITS.md` |
 | **P7** Đa nền tảng | Điều khiển cảm ứng, benchmark chọn tier, PWA manifest, banner tải APK, trang `/download`, GitHub Release khi có tag | Chơi được trên: iPhone (Safari), Android (APK + Chrome), Windows, macOS, Linux · FPS theo §3.13.3 |
 | **P8** Hardening và deploy | Reconnect 60 s, rate limit, log, `/healthz`. **PR vào `macmini-hub`**: service `worms`, route Caddy `/worms/*`. Deploy bằng `scripts/deploy.sh worms` | Rút mạng 10 giây rồi vào lại, trận tiếp tục · load test 100 phòng giả lập trong container với `mem_limit` · chạy được qua `https://chat.lazybutts.com/worms/` · rollback bằng `deploy.sh worms --rollback` |
-| **P9+** Sau MVP | Prediction, lịch sử trận và xếp hạng (DB), thêm vũ khí, bản đồ vẽ tay, sudden death, bot AI, iOS native (khi có ngân sách), WebGPU, thông báo mời qua Chat | Mỗi mục có tiêu chí riêng |
+| **P9** Bot và font tiếng Việt | **Bot AI** (`BotAi` trong sim, `BotDriver` trên server): chủ phòng riêng bấm "+ Thêm máy" (tối đa 4 đội) hoặc "Chơi với máy" ở menu. Bot thử hàng trăm phát trên bản sao địa hình bằng đúng `Physics.Step` (có gió) cho bazooka, lựu đạn, shotgun, gậy; chọn phát hại địch nhất mà không hại đội mình, rồi lệch nhẹ có chủ đích. Nghĩ trên thread pool, bắn theo nhịp người (~1,5 s nghĩ, 0,7 s ngắm). **Font Be Vietnam Pro** (OFL) cho mọi chữ IMGUI: font mặc định của Unity trên Web thiếu chữ có hai dấu (ắ, ầ, ờ, ủ) | Test sim: bắn trúng địch trên nền phẳng, tính gió ±80, quay mặt khi địch ở sau, tránh mục tiêu cạnh đồng đội, dùng gậy khi sát, cùng seed ra cùng quyết định · Test server: một người đấu máy — máy tự bắn và trả lượt, chỉ chủ phòng thêm máy, tối đa 4, bỏ máy thì giải phóng chỗ và tên |
+| **P10+** Sau MVP | Prediction, lịch sử trận và xếp hạng (DB), thêm vũ khí, bản đồ vẽ tay, sudden death, iOS native (khi có ngân sách), WebGPU, thông báo mời qua Chat | Mỗi mục có tiêu chí riêng |
 
 **MVP xong** khi P0–P8 hoàn tất: 4 người dùng tài khoản Chat, trên ít nhất 3 nền tảng (trong đó có 1 iPhone qua web và 1 Android qua APK), chơi trọn 1 trận qua `chat.lazybutts.com/worms/` mà không có lỗi và không lệch trạng thái.
 

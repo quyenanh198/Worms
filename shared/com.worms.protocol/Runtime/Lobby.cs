@@ -17,6 +17,8 @@ namespace Worms.Protocol
         public int Team;
         public bool Ready;
         public bool Connected;
+        /// <summary>A computer player the host added; always ready and connected, negative <see cref="UserId"/>.</summary>
+        public bool IsBot;
     }
 
     /// <summary>Server -> Client: the room the player is in. An empty <see cref="Code"/> means no room.</summary>
@@ -31,7 +33,7 @@ namespace Worms.Protocol
         public byte[] Encode()
         {
             var w = new MsgWriter(MsgType.Lobby).Str(Code).Bool(IsQuick).I32(HostUserId).U8((byte)State).U8((byte)Players.Count);
-            foreach (var p in Players) w.I32(p.UserId).Str(p.Name).U8((byte)p.Team).Bool(p.Ready).Bool(p.Connected);
+            foreach (var p in Players) w.I32(p.UserId).Str(p.Name).U8((byte)p.Team).Bool(p.Ready).Bool(p.Connected).Bool(p.IsBot);
             return w.ToArray();
         }
 
@@ -40,7 +42,7 @@ namespace Worms.Protocol
             var m = new LobbyMsg { Code = r.Str(), IsQuick = r.Bool(), HostUserId = r.I32(), State = (RoomState)r.U8() };
             int n = r.U8();
             for (int i = 0; i < n; i++)
-                m.Players.Add(new PlayerInfo { UserId = r.I32(), Name = r.Str(), Team = r.U8(), Ready = r.Bool(), Connected = r.Bool() });
+                m.Players.Add(new PlayerInfo { UserId = r.I32(), Name = r.Str(), Team = r.U8(), Ready = r.Bool(), Connected = r.Bool(), IsBot = r.Bool() });
             return m;
         }
     }
@@ -56,15 +58,25 @@ namespace Worms.Protocol
         /// <summary>This client's team, or -1 when spectating.</summary>
         public int YourTeam = -1;
         public readonly List<string> TeamNames = new List<string>();
+        /// <summary>What each team wears, in team order.</summary>
+        public readonly List<Loadout> Loadouts = new List<Loadout>();
+        /// <summary>Each team's worm names, in worm order within the team.</summary>
+        public readonly List<List<string>> WormNames = new List<List<string>>();
         public readonly List<CarveOp> TerrainOps = new List<CarveOp>();
         public Snapshot Snapshot = new Snapshot();
 
         public int Teams => TeamNames.Count;
 
-        public static MatchStartMsg FromWorld(World w, IReadOnlyList<string> teamNames, int yourTeam)
+        public static MatchStartMsg FromWorld(World w, IReadOnlyList<string> teamNames, int yourTeam, IReadOnlyList<Loadout> loadouts = null,
+            IReadOnlyList<List<string>> wormNames = null)
         {
             var m = new MatchStartMsg { Seed = w.Seed, WormsPerTeam = w.Worms.Count / w.TeamCount, YourTeam = yourTeam };
             m.TeamNames.AddRange(teamNames);
+            for (int i = 0; i < teamNames.Count; i++)
+            {
+                m.Loadouts.Add(loadouts != null && i < loadouts.Count ? loadouts[i] : default);
+                m.WormNames.Add(wormNames != null && i < wormNames.Count ? wormNames[i] : new List<string>());
+            }
             m.TerrainOps.AddRange(w.TerrainOps);
             Snapshot.FromWorld(w, m.Snapshot);
             return m;
@@ -73,7 +85,12 @@ namespace Worms.Protocol
         public byte[] Encode()
         {
             var w = new MsgWriter(MsgType.MatchStart).U32(Seed).U8((byte)WormsPerTeam).I8((sbyte)YourTeam).U8((byte)TeamNames.Count);
-            foreach (var n in TeamNames) w.Str(n);
+            for (int i = 0; i < TeamNames.Count; i++)
+            {
+                w.Str(TeamNames[i]);
+                (i < Loadouts.Count ? Loadouts[i] : default).WriteTo(w);
+                WormNamesCodec.Write(w, i < WormNames.Count ? WormNames[i] : null);
+            }
             w.I32(TerrainOps.Count);
             foreach (var op in TerrainOps) w.I16(op.X).I16(op.Y).I16(op.R);
             Snapshot.WriteTo(w);
@@ -84,7 +101,12 @@ namespace Worms.Protocol
         {
             var m = new MatchStartMsg { Seed = r.U32(), WormsPerTeam = r.U8(), YourTeam = r.I8() };
             int teams = r.U8();
-            for (int i = 0; i < teams; i++) m.TeamNames.Add(r.Str());
+            for (int i = 0; i < teams; i++)
+            {
+                m.TeamNames.Add(r.Str());
+                m.Loadouts.Add(Loadout.Read(r));
+                m.WormNames.Add(WormNamesCodec.Read(r));
+            }
             int ops = r.I32();
             if (ops < 0 || ops > 100000) throw new ProtocolException("too many terrain ops");
             for (int i = 0; i < ops; i++) m.TerrainOps.Add(new CarveOp { X = r.I16(), Y = r.I16(), R = r.I16() });
@@ -127,6 +149,16 @@ namespace Worms.Protocol
         public static byte[] Simple(MsgType type) { return new MsgWriter(type).ToArray(); }
         public static byte[] JoinRoom(string code) { return new MsgWriter(MsgType.JoinRoom).Str(code ?? string.Empty).ToArray(); }
         public static byte[] SetReady(bool ready) { return new MsgWriter(MsgType.SetReady).Bool(ready).ToArray(); }
+        public static byte[] RemoveBot(int userId) { return new MsgWriter(MsgType.RemoveBot).I32(userId).ToArray(); }
+        public static byte[] Buy(byte item) { return new MsgWriter(MsgType.Buy).U8(item).ToArray(); }
+        public static byte[] Equip(CosmeticSlot slot, byte item) { return new MsgWriter(MsgType.Equip).U8((byte)slot).U8(item).ToArray(); }
+
+        public static byte[] SetWormNames(IReadOnlyList<string> names)
+        {
+            var w = new MsgWriter(MsgType.SetWormNames);
+            WormNamesCodec.Write(w, names);
+            return w.ToArray();
+        }
 
         public static byte[] Input(SimInput i)
         {

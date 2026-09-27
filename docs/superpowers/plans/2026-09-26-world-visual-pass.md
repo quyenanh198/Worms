@@ -43,7 +43,7 @@ Additional files used after reviewing actual game renders: `client/Assets/Game/C
 - [x] Ensure far props use shared materials/meshes where possible and do not add per-frame allocations.
 - [x] Add a painted cloud bank matching the approved reference; keep real alpha, no collision, and one batched background mesh.
 - [x] Add sparse grass tufts from exposed terrain cells and rebuild them with carved chunks. The focused test must fail before implementation and pass after it.
-- [x] Add sparse stone inlays on solid front faces and one painted island between the distant hills and battlefield. Review fixed-seed Beach and Meadow camera captures without opening a visible game window.
+- [x] Add one painted island between the distant hills and battlefield. Review fixed-seed Beach and Meadow camera captures without opening a visible game window. The experimental stone inlays were removed after `main` added its own painted stone and crater-rim shader.
 - [x] Compile native and WebGL runtime checks if Unity assemblies are available. Inspect scene objects and shader property names; run `dotnet test Worms.slnx`.
 
 ### Task 3: Visual verification and hand-off update

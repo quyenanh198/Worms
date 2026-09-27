@@ -39,11 +39,11 @@ namespace Worms.Sim
         /// body stays at its last free position and its velocity is reflected:
         /// v' = -e * vn + (1 - mu) * vt.
         /// </summary>
-        public static StepResult Step(Body b, Terrain t, float wind)
+        public static StepResult Step(Body b, Terrain t, float wind, float dt = C.Dt)
         {
             var result = new StepResult();
-            b.Vel += new Vec2(wind * b.WindFactor, C.Gravity) * C.Dt;
-            Vec2 delta = b.Vel * C.Dt;
+            b.Vel += new Vec2(wind * b.WindFactor, C.Gravity) * dt;
+            Vec2 delta = b.Vel * dt;
             int steps = Math.Max(1, (int)Math.Ceiling(delta.Length));
             Vec2 step = delta / steps;
 

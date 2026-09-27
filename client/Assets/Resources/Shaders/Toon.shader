@@ -4,8 +4,9 @@ Shader "Worms/Toon"
     Properties
     {
         _BaseColor ("Color", Color) = (1, 0.6, 0.6, 1)
-        _RimColor ("Rim", Color) = (1, 1, 1, 0.16)
+        _RimColor ("Rim", Color) = (1, 1, 1, 0.5)
         _Flash ("Hit Flash", Range(0, 1)) = 0
+        _Segments ("Worm Segments", Range(0, 1)) = 0
     }
 
     HLSLINCLUDE
@@ -14,6 +15,7 @@ Shader "Worms/Toon"
         half4 _BaseColor;
         half4 _RimColor;
         half _Flash;
+        half _Segments;
     CBUFFER_END
     ENDHLSL
 
@@ -38,6 +40,7 @@ Shader "Worms/Toon"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
             };
 
             struct Varyings
@@ -46,6 +49,7 @@ Shader "Worms/Toon"
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
                 float fogFactor : TEXCOORD2;
+                float2 uv : TEXCOORD3;
             };
 
             Varyings Vert(Attributes input)
@@ -56,6 +60,7 @@ Shader "Worms/Toon"
                 o.positionWS = pos.positionWS;
                 o.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 o.fogFactor = ComputeFogFactor(pos.positionCS.z);
+                o.uv = input.uv;
                 return o;
             }
 
@@ -65,11 +70,17 @@ Shader "Worms/Toon"
                 float3 v = normalize(GetWorldSpaceViewDir(input.positionWS));
                 Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
                 half ndl = dot(n, light.direction) * 0.5 + 0.5;
-                half ramp = smoothstep(0.45, 0.55, ndl * light.shadowAttenuation) * 0.55 + 0.45;
-                half edge = pow(1.0 - saturate(dot(n, v)), 2.0);
-                half rim = pow(edge, 2.0) * _RimColor.a;
-                half3 color = _BaseColor.rgb * (light.color * ramp + SampleSH(n) * 0.5) + _RimColor.rgb * rim;
-                color *= 1.0 - edge * 0.38;
+                // A soft two-tone ramp: round bodies read as round, still cartoony.
+                half ramp = smoothstep(0.3, 0.75, ndl * light.shadowAttenuation) * 0.5 + 0.5;
+                half rim = pow(1.0 - saturate(dot(n, v)), 3.0) * _RimColor.a;
+                half3 base = _BaseColor.rgb;
+                // Worm bodies: faint rings every other spine ring (uv.y counts rings).
+                half ring = abs(frac(input.uv.y * 0.5) - 0.5) * 2.0;
+                base *= lerp(1.0, lerp(0.86, 1.04, smoothstep(0.15, 0.65, ring)), _Segments);
+                half3 color = base * (light.color * ramp + SampleSH(n) * 0.45) + _RimColor.rgb * rim;
+                // A small glossy highlight.
+                float3 hv = normalize(light.direction + v);
+                color += light.color * pow(saturate(dot(n, hv)), 48.0) * 0.28 * light.shadowAttenuation;
                 color = lerp(color, half3(1, 0.25, 0.2), _Flash);
                 color = MixFog(color, input.fogFactor);
                 return half4(color, 1);
