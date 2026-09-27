@@ -23,6 +23,92 @@ namespace Worms.Sim.Tests
             Assert.False(t.IsSolid(0, t.Height / 3)); // edges taper into the sea
         }
 
+        [Theory]
+        [InlineData(5u)]
+        [InlineData(123456u)]
+        [InlineData(123457u)]
+        public void GeneratedMapHasBroadTerracesAndInteriorCliffs(uint seed)
+        {
+            var t = MapGenerator.Generate(seed);
+            var surface = new int[t.Width];
+            for (int x = 0; x < t.Width; x++)
+            {
+                surface[x] = -1;
+                for (int y = 0; y < t.Height; y++)
+                    if (t.IsSolid(x, y)) { surface[x] = y; break; }
+            }
+
+            int broadTerraces = 0, interiorCliffs = 0, run = 0, steepestCell = 0, steepestX = -1;
+            for (int x = 81; x < t.Width - 81; x++)
+            {
+                int a = surface[x - 1], b = surface[x];
+                if (a < 0 || b < 0) { run = 0; continue; }
+                int cellRise = System.Math.Abs(b - a);
+                if (cellRise > steepestCell) { steepestCell = cellRise; steepestX = x; }
+                if (cellRise <= 3) run++;
+                else
+                {
+                    if (run >= 55) broadTerraces++;
+                    run = 0;
+                }
+                if (x + 8 < t.Width && surface[x + 8] >= 0 &&
+                    System.Math.Abs(surface[x + 8] - a) >= 40)
+                {
+                    interiorCliffs++;
+                    x += 8;
+                }
+            }
+            if (run >= 55) broadTerraces++;
+            Assert.True(broadTerraces >= 4, $"Seed {seed}: only {broadTerraces} broad terraces");
+            Assert.True(interiorCliffs >= 3, $"Seed {seed}: only {interiorCliffs} interior cliffs");
+            Assert.True(steepestCell <= 55, $"Seed {seed}: a {steepestCell}-cell vertical wall at x={steepestX} ({surface[steepestX - 1]} to {surface[steepestX]}) looks like a box");
+        }
+
+        [Theory]
+        [InlineData(0u)]
+        [InlineData(1u)]
+        [InlineData(42u)]
+        [InlineData(5u)]
+        [InlineData(9999u)]
+        [InlineData(123456u)]
+        [InlineData(123457u)]
+        public void WormsSpawnStandingOnTerracedMap(uint seed)
+        {
+            var world = new World(new MatchSetup { Seed = seed, Teams = 4, WormsPerTeam = 4 });
+            foreach (var worm in world.Worms)
+            {
+                Assert.True(Worm.IsStanding(world.Terrain, worm.Pos),
+                    $"Seed {seed}: worm {worm.Id} is not standing at {worm.Pos}");
+                Assert.True(worm.Pos.Y < world.WaterLevel - 3 * C.WormRadius,
+                    $"Seed {seed}: worm {worm.Id} spawned too close to water");
+                int x = (int)worm.Pos.X;
+                float? left = world.SurfaceY(x - 18), right = world.SurfaceY(x + 18);
+                Assert.True(left.HasValue && right.HasValue &&
+                    System.Math.Abs(left.Value - worm.Pos.Y) <= C.MaxClimb &&
+                    System.Math.Abs(right.Value - worm.Pos.Y) <= C.MaxClimb,
+                    $"Seed {seed}: worm {worm.Id} spawned too close to a cliff");
+            }
+        }
+
+        [Fact]
+        public void FourTeamSpawnsRemainSafeAcrossManySeeds()
+        {
+            for (uint seed = 0; seed < 32; seed++)
+            {
+                var world = new World(new MatchSetup { Seed = seed, Teams = 4, WormsPerTeam = 4 });
+                foreach (var worm in world.Worms)
+                {
+                    int x = (int)worm.Pos.X;
+                    float? left = world.SurfaceY(x - 18), right = world.SurfaceY(x + 18);
+                    Assert.True(Worm.IsStanding(world.Terrain, worm.Pos) &&
+                        left.HasValue && right.HasValue &&
+                        System.Math.Abs(left.Value - worm.Pos.Y) <= C.MaxClimb &&
+                        System.Math.Abs(right.Value - worm.Pos.Y) <= C.MaxClimb,
+                        $"Seed {seed}: worm {worm.Id} lacks a safe shelf");
+                }
+            }
+        }
+
         [Fact]
         public void CarveRemovesExactlyTheDisc()
         {

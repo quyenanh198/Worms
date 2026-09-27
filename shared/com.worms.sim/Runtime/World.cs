@@ -464,6 +464,13 @@ namespace Worms.Sim
                 int x = rng.Range(80, Terrain.Width - 80);
                 float? y = SurfaceY(x);
                 if (y == null || y.Value > WaterLevel - 3 * C.WormRadius) continue;
+                // Keep a short walkable shelf on both sides of every spawn. On the
+                // terraced maps a valid standing point can sit right at a cliff lip.
+                const int shelfClearance = 18;
+                float? left = SurfaceY(x - shelfClearance), right = SurfaceY(x + shelfClearance);
+                if (left == null || right == null ||
+                    Math.Abs(left.Value - y.Value) > C.MaxClimb ||
+                    Math.Abs(right.Value - y.Value) > C.MaxClimb) continue;
                 var p = new Vec2(x + 0.5f, y.Value);
                 bool crowded = Worms.Exists(wm => Math.Abs(wm.Pos.X - p.X) < 40f && Math.Abs(wm.Pos.Y - p.Y) < 40f);
                 if (!crowded || attempt > 400) return p;

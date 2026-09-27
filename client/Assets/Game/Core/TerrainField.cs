@@ -101,13 +101,23 @@ namespace Worms.Game.Core
         {
             for (int x = x0; x < x1; x++)
             {
-                // Count the solid run above y0 (capped), then walk down.
+                // Count the solid run above y0 and remember whether the column
+                // has a roof. Floors inside caves or cliff alcoves are soil,
+                // even when an air gap resets the local solid-run depth.
                 int run = 0;
-                for (int y = Math.Max(0, y0 - MaxDepth); y < y0; y++) run = _t.IsSolid(x, y) ? Math.Min(MaxDepth, run + 1) : 0;
+                bool covered = false;
+                for (int y = 0; y < y0; y++)
+                {
+                    bool solid = _t.IsSolid(x, y);
+                    if (solid) covered = true;
+                    run = solid ? Math.Min(MaxDepth, run + 1) : 0;
+                }
                 for (int y = y0; y < y1; y++)
                 {
-                    int above = run;
-                    run = _t.IsSolid(x, y) ? Math.Min(MaxDepth, run + 1) : 0;
+                    int above = run == 0 && covered ? MaxDepth : run;
+                    bool solid = _t.IsSolid(x, y);
+                    if (solid) covered = true;
+                    run = solid ? Math.Min(MaxDepth, run + 1) : 0;
                     Data[(y * Width + x) * 2 + 1] = (byte)(above * 255 / MaxDepth);
                 }
             }

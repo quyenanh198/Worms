@@ -10,11 +10,13 @@ Game đang hướng tới phong cách hoạt hình sắc nét của [ảnh tham 
 
 ![Cảnh chiến đấu hiện tại chụp từ build Windows, không gồm HUD](docs/visuals/world-current-fixed-seed.png)
 
+[Xem cùng địa hình bậc ở cảnh Meadow](docs/visuals/world-terraces-meadow.png).
+
 Ảnh trên là **trận đấu**, không phải màn hình đầu khi mở app. Menu dùng cảnh đội sâu riêng; bản chụp camera menu sau khi chỉnh nền ở dưới cũng không gồm nút và chữ giao diện.
 
 ![Cảnh đội sâu ở menu sau khi chỉnh nền, không gồm giao diện](docs/visuals/menu-integrated-camera.png)
 
-Ảnh tham chiếu đã chọn là **concept**, còn hai ảnh trên là camera chụp từ build thật. Địa hình hiện tại vẫn có sườn dốc lớn, sâu nhỏ hơn và ít chi tiết tiền cảnh hơn concept. Ảnh camera không chứa HUD/menu IMGUI. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
+Ảnh tham chiếu đã chọn là **concept**, còn hai ảnh trên là camera chụp từ build thật. Bản đồ trận đấu nay có các mặt bằng và vách đất nhiều tầng; sâu vẫn nhỏ hơn và cảnh còn ít chi tiết tiền cảnh hơn concept. Vách cao thay đổi cách đi bộ/nhảy, còn điểm xuất hiện được đặt trên đoạn đất đi được ở cả hai phía. Ảnh camera không chứa HUD/menu IMGUI. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
 
 ## Cấu trúc
 
@@ -39,4 +41,4 @@ Bản build desktop có thể chạy thẳng vào trận offline bằng tham s�
 
 Build Unity chạy trên GitHub Actions (GameCI) sau khi thêm secret `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD`.
 
-Đợt đồ họa ngày 2026-09-27 đã qua 144 bài test .NET và build Windows/WebGL bằng Unity 6000.3.25f1 trong batch mode, đều không có lỗi. Giao diện WebGL khi chạy trong trình duyệt, thao tác chạm và FPS/bộ nhớ trên thiết bị thật vẫn cần kiểm tra; xem [ma trận xác minh](docs/GRAPHICS_HANDOFF.md#verification-matrix).
+Đợt đồ họa ngày 2026-09-27 đã qua 156 bài test .NET và build Windows/WebGL bằng Unity 6000.3.25f1 trong batch mode, không có lỗi. Giao diện WebGL khi chạy trong trình duyệt, thao tác chạm và FPS/bộ nhớ trên thiết bị thật vẫn cần kiểm tra; xem [ma trận xác minh](docs/GRAPHICS_HANDOFF.md#verification-matrix).

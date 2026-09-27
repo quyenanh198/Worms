@@ -39,5 +39,16 @@ namespace Worms.Game.Core.Tests
             // The crater rim is an edge now.
             Assert.InRange(f.EdgeCells(150, 131), 0.9f, 1.2f);
         }
+
+        [Fact]
+        public void BuriedCavityFloorDoesNotBecomeGrass()
+        {
+            var t = Ground();
+            var f = new TerrainField(t);
+            var dirty = t.CarveCircle(150, 130, 12);
+            f.Update(dirty);
+            Assert.InRange(f.CellsAbove(150, 100), 0f, 0.1f);
+            Assert.InRange(f.CellsAbove(150, 143), TerrainField.MaxDepth - 0.1f, TerrainField.MaxDepth);
+        }
     }
 }
