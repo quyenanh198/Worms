@@ -8,7 +8,10 @@ Shader "Worms/Terrain"
         _DirtColor ("Dirt", Color) = (0.55, 0.38, 0.22, 1)
         _DeepColor ("Deep", Color) = (0.28, 0.19, 0.12, 1)
         _RockColor ("Rock", Color) = (0.46, 0.44, 0.41, 1)
-        _NoiseScale ("Noise Scale", Float) = 1.6
+        _GrassBand ("Grass Band", Float) = 2.35
+        _MottleScale ("Broad Detail Scale", Float) = 0.9
+        _MottleStrength ("Broad Detail Strength", Range(0, 0.4)) = 0.18
+        _PebbleStrength ("Pebble Strength", Range(0, 0.5)) = 0.26
     }
 
     HLSLINCLUDE
@@ -21,7 +24,10 @@ Shader "Worms/Terrain"
         half4 _DirtColor;
         half4 _DeepColor;
         half4 _RockColor;
-        float _NoiseScale;
+        float _GrassBand;
+        float _MottleScale;
+        float _MottleStrength;
+        float _PebbleStrength;
     CBUFFER_END
     ENDHLSL
 
@@ -76,26 +82,33 @@ Shader "Worms/Terrain"
             {
                 float3 ws = input.positionWS;
                 float3 n = normalize(input.normalWS);
-                float noise = WormsFbm(ws.xy * _NoiseScale + ws.z * 0.7);
+                // Large color patches survive Low tier's 0.7 render scale.
+                float broad = WormsFbm(ws.xy * _MottleScale + ws.z * 0.2);
+                float mottle = (broad - 0.5) * _MottleStrength;
                 half3 albedo;
 
                 if (input.uv.y > 0.5)
                 {
                     // Side wall: grass where it faces up, rock elsewhere; darker toward the back.
-                    half3 rock = lerp(_RockColor.rgb, _RockColor.rgb * 0.65, noise);
-                    half3 grass = _GrassColor.rgb * (0.85 + 0.3 * noise);
-                    albedo = lerp(rock, grass, smoothstep(0.45, 0.75, n.y));
+                    half3 rock = lerp(_RockColor.rgb, _DirtColor.rgb, 0.4) * (0.9 + mottle);
+                    half3 grass = _GrassColor.rgb * (0.95 + mottle);
+                    // Keep exposed walls warm and continuous. The bright grass
+                    // lip is drawn by the front face's depth band below.
+                    albedo = lerp(rock, grass, 0.18);
                     albedo *= lerp(1.0, 0.7, saturate(ws.z * 0.5));
                 }
                 else
                 {
                     // Front face: topsoil, dirt, then deep rock, with scattered pebbles.
-                    float d = input.uv.x + (noise - 0.5) * 2.0;
-                    half3 dirt = lerp(_DirtColor.rgb, _DirtColor.rgb * 0.72, noise);
-                    albedo = lerp(_GrassColor.rgb * (0.9 + 0.2 * noise), dirt, smoothstep(0.8, 2.2, d));
-                    albedo = lerp(albedo, _DeepColor.rgb, smoothstep(6.0, 22.0, d));
-                    float pebble = step(0.78, WormsValueNoise(ws.xy * _NoiseScale * 7.0));
-                    albedo = lerp(albedo, _RockColor.rgb, pebble * 0.35 * smoothstep(2.0, 4.0, d));
+                    float d = input.uv.x + (broad - 0.5) * 1.2;
+                    half3 dirt = _DirtColor.rgb * (0.98 + mottle);
+                    half3 turf = _GrassColor.rgb * (1.08 - 0.24 * smoothstep(1.0, _GrassBand, d) + mottle);
+                    albedo = lerp(turf, dirt,
+                                  smoothstep(_GrassBand - 1.2, _GrassBand + 0.8, d));
+                    albedo = lerp(albedo, _DeepColor.rgb * (1.0 + mottle), smoothstep(7.0, 23.0, d));
+                    // A few broad stones read as texture without fine noise shimmer.
+                    float pebble = step(0.84, WormsValueNoise(ws.xy * 2.8));
+                    albedo = lerp(albedo, _RockColor.rgb, pebble * _PebbleStrength * smoothstep(2.0, 4.0, d));
                 }
 
                 half burn = 0;
@@ -107,11 +120,20 @@ Shader "Worms/Terrain"
                     float dist = distance(ws.xy, sc.xy);
                     burn = max(burn, (1.0 - smoothstep(sc.z * 0.85, sc.z * 1.35, dist)) * sc.w);
                 }
-                albedo = lerp(albedo, albedo * 0.22 + half3(0.03, 0.025, 0.02), burn * (0.75 + 0.25 * noise));
+                albedo = lerp(albedo, albedo * 0.22 + half3(0.03, 0.025, 0.02), burn * (0.75 + 0.25 * broad));
 
                 Light light = GetMainLight(TransformWorldToShadowCoord(ws));
                 half ndl = saturate(dot(n, light.direction));
-                half3 color = albedo * (light.color * ndl * light.shadowAttenuation + SampleSH(n));
+                half shadow = light.shadowAttenuation;
+                if (input.uv.y > 0.5)
+                {
+                    // Exposed cut walls should read as one continuous band,
+                    // including vertical faces and self-shadowed cell edges.
+                    ndl = 0.62;
+                    shadow = 1.0;
+                }
+                half3 ambient = input.uv.y > 0.5 ? SampleSH(float3(0, 1, 0)) : SampleSH(n);
+                half3 color = albedo * (light.color * ndl * shadow + ambient);
                 color = MixFog(color, input.fogFactor);
                 return half4(color, 1);
             }

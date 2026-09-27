@@ -4,7 +4,7 @@ Shader "Worms/Toon"
     Properties
     {
         _BaseColor ("Color", Color) = (1, 0.6, 0.6, 1)
-        _RimColor ("Rim", Color) = (1, 1, 1, 0.5)
+        _RimColor ("Rim", Color) = (1, 1, 1, 0.16)
         _Flash ("Hit Flash", Range(0, 1)) = 0
     }
 
@@ -66,8 +66,10 @@ Shader "Worms/Toon"
                 Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
                 half ndl = dot(n, light.direction) * 0.5 + 0.5;
                 half ramp = smoothstep(0.45, 0.55, ndl * light.shadowAttenuation) * 0.55 + 0.45;
-                half rim = pow(1.0 - saturate(dot(n, v)), 3.0) * _RimColor.a;
+                half edge = pow(1.0 - saturate(dot(n, v)), 2.0);
+                half rim = pow(edge, 2.0) * _RimColor.a;
                 half3 color = _BaseColor.rgb * (light.color * ramp + SampleSH(n) * 0.5) + _RimColor.rgb * rim;
+                color *= 1.0 - edge * 0.38;
                 color = lerp(color, half3(1, 0.25, 0.2), _Flash);
                 color = MixFog(color, input.fogFactor);
                 return half4(color, 1);

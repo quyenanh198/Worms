@@ -13,13 +13,30 @@ namespace Worms.Game.Render
     {
         const string PrefChoice = "worms.tier.choice"; // -1 auto, 0..2 fixed
         const string PrefMeasured = "worms.tier.measured"; // -1 unknown
+        const string PrefReducedMotion = "worms.visual.reducedMotion";
 
         static TierPicker _picker;
+        static bool? _reducedMotion;
 
         public static int Choice
         {
             get { return PlayerPrefs.GetInt(PrefChoice, -1); }
             set { PlayerPrefs.SetInt(PrefChoice, value); PlayerPrefs.Save(); }
+        }
+
+        public static bool ReducedMotion
+        {
+            get
+            {
+                if (!_reducedMotion.HasValue) _reducedMotion = PlayerPrefs.GetInt(PrefReducedMotion, 0) != 0;
+                return _reducedMotion.Value;
+            }
+            set
+            {
+                _reducedMotion = value;
+                PlayerPrefs.SetInt(PrefReducedMotion, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
         }
 
         public static QualityTier Current

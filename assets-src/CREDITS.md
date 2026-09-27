@@ -2,7 +2,7 @@
 
 Repo này public, nên chỉ chứa asset CC0 hoặc tự tạo (docs/PLAN.md §3.3, bất biến 8).
 
-Hiện tại game **không dùng asset bên ngoài nào**:
+Game không dùng asset bên ngoài có giấy phép hạn chế. Các hình sau do dự án tự tạo:
 
 | Loại | Cách tạo | File |
 |---|---|---|
@@ -16,3 +16,8 @@ Khi thêm một file asset, ghi một dòng vào bảng dưới đây (nguồn, 
 
 | File | Nguồn | Tác giả | License |
 |---|---|---|---|
+| `client/Assets/Resources/Backdrop/cloud-bank.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-26 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/Backdrop/distant-island.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-26 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/Backdrop/midground-island.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/UI/weapon-icons.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-26 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/UI/team-portraits.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-26 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |

@@ -25,8 +25,25 @@ namespace Worms.Game.UI
         bool _loggingIn;
         string _toast;
         float _toastUntil;
-        GUIStyle _title, _text, _small, _button, _field;
+        bool _showSettings;
+        GUIStyle _title, _text, _small, _button, _field, _optionButton;
+        Texture2D _buttonBackground, _buttonHover, _fieldBackground;
         float _u;
+
+        static Texture2D Solid(Color color)
+        {
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            texture.SetPixels(new[] { color, color, color, color });
+            texture.Apply();
+            return texture;
+        }
+
+        void OnDestroy()
+        {
+            if (_buttonBackground != null) Destroy(_buttonBackground);
+            if (_buttonHover != null) Destroy(_buttonHover);
+            if (_fieldBackground != null) Destroy(_fieldBackground);
+        }
 
         void Update()
         {
@@ -56,21 +73,38 @@ namespace Worms.Game.UI
 
         void Styles()
         {
-            float u = Mathf.Max(12f, Mathf.Min(Screen.height / 34f, Screen.width / 40f));
+            float u = Mathf.Max(18f, Mathf.Min(Screen.height / 34f, Screen.width / 40f));
             if (_title != null && Mathf.Approximately(u, _u)) return;
             _u = u;
             _title = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(u * 3), fontStyle = FontStyle.Bold };
             _title.normal.textColor = new Color(1f, 0.8f, 0.4f);
             _text = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(u), wordWrap = true, richText = true };
             _text.normal.textColor = Color.white;
-            _small = new GUIStyle(_text) { fontSize = Mathf.RoundToInt(u * 0.8f) };
+            _small = new GUIStyle(_text) { fontSize = Mathf.Max(12, Mathf.RoundToInt(u * 0.8f)) };
             _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u) };
             _field = new GUIStyle(GUI.skin.textField) { fontSize = Mathf.RoundToInt(u), alignment = TextAnchor.MiddleCenter };
+            if (_buttonBackground == null)
+            {
+                _buttonBackground = Solid(new Color(0.12f, 0.24f, 0.35f));
+                _buttonHover = Solid(new Color(0.2f, 0.37f, 0.48f));
+                _fieldBackground = Solid(new Color(0.04f, 0.11f, 0.18f));
+            }
+            _button.normal.background = _buttonBackground;
+            _button.hover.background = _buttonHover;
+            _button.active.background = _buttonHover;
+            _button.normal.textColor = Color.white;
+            _button.hover.textColor = Color.white;
+            _button.active.textColor = Color.white;
+            _optionButton = new GUIStyle(_button) { fontSize = Mathf.Max(12, Mathf.RoundToInt(u * 0.72f)), wordWrap = true };
+            _field.normal.background = _fieldBackground;
+            _field.focused.background = _fieldBackground;
+            _field.normal.textColor = Color.white;
+            _field.focused.textColor = Color.white;
         }
 
         bool Button(ref float y, string label, bool enabled = true)
         {
-            float w = _u * 14, h = _u * 2.2f;
+            float w = _u * 14, h = Mathf.Max(44f, _u * 2.2f);
             var old = GUI.enabled;
             GUI.enabled = enabled;
             bool clicked = GUI.Button(new Rect(Screen.width / 2f - w / 2, y, w, h), label, _button);
@@ -82,14 +116,28 @@ namespace Worms.Game.UI
         void Line(ref float y, string text, GUIStyle style = null, float lines = 1.5f)
         {
             style = style ?? _text;
-            GUI.Label(new Rect(_u, y, Screen.width - _u * 2, _u * lines), text, style);
-            y += _u * lines;
+            float width = Mathf.Min(Screen.width - _u * 4f, _u * 23f);
+            float height = Mathf.Max(_u * lines, style.CalcHeight(new GUIContent(text), width));
+            GUI.Label(new Rect((Screen.width - width) * 0.5f, y, width, height), text, style);
+            y += height;
         }
 
         void OnGUI()
         {
             if (Hidden) return;
             Styles();
+            if (Screen.width >= 700 || !_showSettings)
+            {
+            float panelWidth = Mathf.Min(Screen.width - _u * 2f, _u * 25f);
+            bool roomCard = !Net.Outdated && !Net.Unauthorized && Net.Connected && Net.Session.HasHello && Net.Session.InRoom;
+            float cardUnits = Net.Outdated ? 13f
+                : Net.Unauthorized ? 24f
+                : !Net.Connected || !Net.Session.HasHello ? 14f
+                : 29f;
+            var panel = new Rect((Screen.width - panelWidth) * 0.5f,
+                roomCard ? _u * 0.4f : Screen.height * 0.05f, panelWidth,
+                roomCard ? Screen.height - _u * 0.8f : Mathf.Min(_u * cardUnits, Screen.height * 0.9f));
+            DrawPanel(panel);
             float y = Screen.height * 0.08f;
             GUI.Label(new Rect(0, y, Screen.width, _u * 4), "WORMS", _title);
             y += _u * 4.5f;
@@ -99,6 +147,7 @@ namespace Worms.Game.UI
             else if (!Net.Connected || !Net.Session.HasHello) Offline(ref y);
             else if (Net.Session.InRoom) Room(ref y);
             else Main(ref y);
+            }
 
             AudioSettings();
 
@@ -106,10 +155,56 @@ namespace Worms.Game.UI
                 GUI.Label(new Rect(0, Screen.height - _u * 3, Screen.width, _u * 2), "<color=#ff8866>" + _toast + "</color>", _text);
         }
 
+        static void DrawPanel(Rect panel)
+        {
+            var oldColor = GUI.color;
+            GUI.color = new Color(0.35f, 0.56f, 0.68f, 0.85f);
+            GUI.DrawTexture(panel, Texture2D.whiteTexture);
+            GUI.color = new Color(0.07f, 0.14f, 0.22f, 0.91f);
+            GUI.DrawTexture(new Rect(panel.x + 2, panel.y + 2, panel.width - 4, panel.height - 4), Texture2D.whiteTexture);
+            GUI.color = oldColor;
+        }
+
         void AudioSettings()
         {
             var audio = AudioManager.Instance;
             if (audio == null) return;
+            if (Screen.width < 700)
+            {
+                var safe = Screen.safeArea;
+                float toggleW = Mathf.Max(100f, _u * 7f), toggleH = Mathf.Max(44f, _u * 2.5f);
+                var toggle = new Rect(safe.xMax - toggleW - _u * 0.5f,
+                    Screen.height - safe.yMin - toggleH - _u * 0.5f, toggleW, toggleH);
+                if (GUI.Button(toggle, _showSettings ? "Đóng" : "Cài đặt", _optionButton)) _showSettings = !_showSettings;
+                if (!_showSettings) return;
+
+                float panelW = Mathf.Min(safe.width - _u * 2f, _u * 26f);
+                float panelH = Mathf.Min(safe.height - _u * 2f, Mathf.Max(300f, _u * 16f));
+                var panel = new Rect(safe.center.x - panelW * 0.5f,
+                    Screen.height - safe.center.y - panelH * 0.5f, panelW, panelH);
+                DrawPanel(panel);
+                float px = panel.x + _u, pw = panel.width - _u * 2f, row = panel.y + _u * 0.5f;
+                GUI.Label(new Rect(px, row, pw, _u * 2f), "Cài đặt", _text);
+                row += _u * 2.2f;
+                GUI.Label(new Rect(px, row, pw, _u * 1.2f), "Nhạc", _small);
+                row += _u * 1.2f;
+                float musicValue = GUI.HorizontalSlider(new Rect(px, row, pw, 32f), audio.MusicVolume, 0, 1);
+                row += 32f + _u * 0.2f;
+                GUI.Label(new Rect(px, row, pw, _u * 1.2f), "Hiệu ứng", _small);
+                row += _u * 1.2f;
+                float sfxValue = GUI.HorizontalSlider(new Rect(px, row, pw, 32f), audio.SfxVolume, 0, 1);
+                if (!Mathf.Approximately(musicValue, audio.MusicVolume) || !Mathf.Approximately(sfxValue, audio.SfxVolume))
+                    audio.SetVolumes(sfxValue, musicValue);
+                row += 32f + _u * 0.4f;
+                int currentChoice = Render.QualitySettingsManager.Choice;
+                if (GUI.Button(new Rect(px, row, pw, 44f), "Đồ họa: " + Render.QualitySettingsManager.Label(currentChoice), _optionButton))
+                    Render.QualitySettingsManager.Choice = currentChoice >= 2 ? -1 : currentChoice + 1;
+                row += 44f + _u * 0.4f;
+                bool reduced = Render.QualitySettingsManager.ReducedMotion;
+                if (GUI.Button(new Rect(px, row, pw, 44f), reduced ? "Chuyển động: giảm" : "Chuyển động: đầy đủ", _optionButton))
+                    Render.QualitySettingsManager.ReducedMotion = !reduced;
+                return;
+            }
             float w = _u * 9, x = Screen.width - w - _u, y = _u * 0.5f;
             GUI.Label(new Rect(x, y, w, _u * 1.2f), "Nhạc", _small);
             float music = GUI.HorizontalSlider(new Rect(x, y + _u * 1.2f, w, _u), audio.MusicVolume, 0, 1);
@@ -118,8 +213,13 @@ namespace Worms.Game.UI
             if (!Mathf.Approximately(music, audio.MusicVolume) || !Mathf.Approximately(sfx, audio.SfxVolume)) audio.SetVolumes(sfx, music);
 
             int choice = Render.QualitySettingsManager.Choice;
-            if (GUI.Button(new Rect(x, y + _u * 4.8f, w, _u * 1.6f), "Đồ họa: " + Render.QualitySettingsManager.Label(choice), _small))
+            float optionHeight = Mathf.Max(44f, _u * 1.8f);
+            float qualityY = y + _u * 4.8f;
+            if (GUI.Button(new Rect(x, qualityY, w, optionHeight), "Đồ họa: " + Render.QualitySettingsManager.Label(choice), _optionButton))
                 Render.QualitySettingsManager.Choice = choice >= 2 ? -1 : choice + 1;
+            bool reducedMotion = Render.QualitySettingsManager.ReducedMotion;
+            if (GUI.Button(new Rect(x, qualityY + optionHeight + _u * 0.3f, w, optionHeight), reducedMotion ? "Chuyển động: giảm" : "Chuyển động: đầy đủ", _optionButton))
+                Render.QualitySettingsManager.ReducedMotion = !reducedMotion;
         }
 
         void Outdated(ref float y)
@@ -147,7 +247,7 @@ namespace Worms.Game.UI
             else
             {
                 Line(ref y, "Đăng nhập bằng tài khoản Chat (" + new Uri(chat).Host + ")");
-                float w = _u * 14, h = _u * 2;
+                float w = _u * 14, h = Mathf.Max(44f, _u * 2f);
                 GUI.SetNextControlName("user");
                 _username = GUI.TextField(new Rect(Screen.width / 2f - w / 2, y, w, h), _username, 32, _field);
                 y += h + _u * 0.4f;
@@ -173,7 +273,7 @@ namespace Worms.Game.UI
             y += _u * 0.5f;
             if (Button(ref y, "Ghép trận nhanh")) Net.Session.QuickMatch();
             if (Button(ref y, "Tạo phòng")) Net.Session.CreateRoom();
-            float w = _u * 14, h = _u * 2.2f;
+            float w = _u * 14, h = Mathf.Max(44f, _u * 2.2f);
             _code = GUI.TextField(new Rect(Screen.width / 2f - w / 2, y, w * 0.45f, h), _code.ToUpperInvariant(), 4, _field);
             var old = GUI.enabled;
             GUI.enabled = _code.Length == 4;

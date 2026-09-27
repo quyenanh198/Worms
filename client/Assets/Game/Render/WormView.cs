@@ -12,12 +12,12 @@ namespace Worms.Game.Render
     /// </summary>
     public sealed class WormView
     {
-        static Mesh _eyeMesh, _handMesh;
-        static Material _white, _black;
+        static Mesh _eyeMesh, _handMesh, _smileMesh;
+        static Material _white, _black, _capMaterial;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
         public readonly Transform Root;
-        readonly Transform _body, _eyeL, _eyeR, _pupilL, _pupilR, _handL, _handR, _weaponPivot;
+        readonly Transform _body, _eyeL, _eyeR, _pupilL, _pupilR, _mouth, _handL, _handR, _weaponPivot, _headAccessory;
         readonly WormRig _rig = new WormRig();
         readonly MeshBuffers _buffers = new MeshBuffers();
         readonly MeshUtil _util = new MeshUtil();
@@ -37,8 +37,10 @@ namespace Worms.Game.Render
             {
                 _eyeMesh = MeshUtil.Create(Shapes.Sphere(0.5f, 10, 14), "Eye");
                 _handMesh = _eyeMesh;
+                _smileMesh = CreateSmileMesh();
                 _white = Materials.Toon(new Color(0.97f, 0.97f, 0.97f));
                 _black = Materials.Toon(new Color(0.05f, 0.05f, 0.07f));
+                _capMaterial = Materials.Toon(new Color(0.1f, 0.19f, 0.29f));
             }
             Root = new GameObject("Worm " + id).transform;
             Root.SetParent(parent, false);
@@ -54,9 +56,21 @@ namespace Worms.Game.Render
             _eyeR = Ball(_body, "EyeR", _white, 0.16f);
             _pupilL = Ball(_eyeL, "Pupil", _black, 0.5f);
             _pupilR = Ball(_eyeR, "Pupil", _black, 0.5f);
+            _mouth = new GameObject("Smile").transform;
+            _mouth.SetParent(_body, false);
+            _mouth.gameObject.AddComponent<MeshFilter>().sharedMesh = _smileMesh;
+            _mouth.gameObject.AddComponent<MeshRenderer>().sharedMaterial = _black;
             var skin = _renderer.sharedMaterial;
             _handL = Ball(_body, "HandL", skin, 0.1f);
             _handR = Ball(_body, "HandR", skin, 0.1f);
+            _headAccessory = new GameObject("Cap").transform;
+            _headAccessory.SetParent(_body, false);
+            var crown = Ball(_headAccessory, "Crown", _capMaterial, 1f);
+            crown.localPosition = new Vector3(0, 0.37f, -0.08f);
+            crown.localScale = new Vector3(0.74f, 0.28f, 0.62f);
+            var brim = Ball(_headAccessory, "Brim", _capMaterial, 1f);
+            brim.localPosition = new Vector3(0.30f, 0.22f, -0.16f);
+            brim.localScale = new Vector3(0.56f, 0.09f, 0.5f);
             _weaponPivot = new GameObject("Weapon").transform;
             _weaponPivot.SetParent(_body, false);
             _blinkAt = Random.Range(1f, 4f);
@@ -70,6 +84,21 @@ namespace Worms.Game.Render
             go.AddComponent<MeshFilter>().sharedMesh = _eyeMesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = mat;
             return go.transform;
+        }
+
+        static Mesh CreateSmileMesh()
+        {
+            var mesh = new Mesh { name = "Worm smile" };
+            mesh.vertices = new[]
+            {
+                new Vector3(-0.12f, 0.02f, 0), new Vector3(-0.12f, -0.01f, 0),
+                new Vector3(-0.06f, -0.05f, 0), new Vector3(-0.06f, -0.08f, 0),
+                new Vector3(0.06f, -0.05f, 0), new Vector3(0.06f, -0.08f, 0),
+                new Vector3(0.12f, 0.02f, 0), new Vector3(0.12f, -0.01f, 0),
+            };
+            mesh.triangles = new[] { 0, 2, 1, 1, 2, 3, 2, 4, 3, 3, 4, 5, 4, 6, 5, 5, 6, 7 };
+            mesh.RecalculateNormals();
+            return mesh;
         }
 
         public void Flash() { _flash = 1f; }
@@ -112,12 +141,18 @@ namespace Worms.Game.Render
             var up = new Vector3(hx, hy, 0);
             var side = new Vector3(hy, -hx, 0);
             float r = _rig.HeadR * s;
+            _headAccessory.localPosition = head + Vector3.back * r * 0.2f;
+            _headAccessory.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(-hx, hy) * Mathf.Rad2Deg);
+            _headAccessory.localScale = Vector3.one * (r / 0.45f);
+            _mouth.localPosition = head - up * r * 0.24f + side * r * 0.55f + Vector3.back * r * 0.82f;
+            _mouth.localRotation = _headAccessory.localRotation;
+            _mouth.localScale = Vector3.one * (r / 0.235f);
             _blinkAt -= dt;
             float blink = _blinkAt < 0.12f ? 0.15f : 1f;
             if (_blinkAt < 0) _blinkAt = Random.Range(2f, 5f);
-            _eyeL.localPosition = head + up * r * 0.35f + side * r * 0.45f + Vector3.back * r * 0.75f;
-            _eyeR.localPosition = head + up * r * 0.35f + side * r * 0.95f + Vector3.back * r * 0.35f;
-            _eyeL.localScale = _eyeR.localScale = new Vector3(0.16f, 0.16f * blink, 0.16f);
+            _eyeL.localPosition = head + up * r * 0.35f + side * r * 0.38f + Vector3.back * r * 0.82f;
+            _eyeR.localPosition = head + up * r * 0.35f + side * r * 0.91f + Vector3.back * r * 0.45f;
+            _eyeL.localScale = _eyeR.localScale = new Vector3(0.22f, 0.22f * blink, 0.22f);
             var look = new Vector3(Mathf.Cos(aim), Mathf.Sin(aim), -0.6f).normalized * 0.28f;
             _pupilL.localPosition = _pupilR.localPosition = look;
 

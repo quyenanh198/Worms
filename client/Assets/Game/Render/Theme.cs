@@ -7,39 +7,43 @@ namespace Worms.Game.Render
     {
         public string Name;
         public Color Grass, Dirt, Deep, Rock;
+        public float GrassBand, MottleScale, MottleStrength, PebbleStrength;
         public Color SkyTop, SkyHorizon, SkyBottom;
         public Color Fog;
         public Color[] HillsNear, HillsFar;
         public Color WaterShallow, WaterDeep;
+        public Color WaterFoam;
         public Color SunLight;
         public Color AmbientSky, AmbientEquator, AmbientGround;
 
         public static readonly Theme Meadow = new Theme
         {
             Name = "meadow",
-            Grass = new Color(0.36f, 0.64f, 0.22f), Dirt = new Color(0.56f, 0.38f, 0.22f),
-            Deep = new Color(0.28f, 0.19f, 0.12f), Rock = new Color(0.47f, 0.45f, 0.42f),
-            SkyTop = new Color(0.22f, 0.47f, 0.85f), SkyHorizon = new Color(0.78f, 0.89f, 0.97f), SkyBottom = new Color(0.55f, 0.72f, 0.82f),
-            Fog = new Color(0.72f, 0.84f, 0.93f),
-            HillsNear = new[] { new Color(0.30f, 0.52f, 0.28f), new Color(0.22f, 0.40f, 0.24f) },
-            HillsFar = new[] { new Color(0.47f, 0.62f, 0.62f), new Color(0.40f, 0.55f, 0.58f) },
-            WaterShallow = new Color(0.18f, 0.56f, 0.62f, 0.78f), WaterDeep = new Color(0.05f, 0.18f, 0.32f, 0.92f),
-            SunLight = new Color(1f, 0.95f, 0.86f),
-            AmbientSky = new Color(0.55f, 0.65f, 0.8f), AmbientEquator = new Color(0.45f, 0.48f, 0.45f), AmbientGround = new Color(0.25f, 0.22f, 0.18f),
+            Grass = new Color(0.38f, 0.63f, 0.16f), Dirt = new Color(0.63f, 0.37f, 0.19f),
+            Deep = new Color(0.34f, 0.19f, 0.12f), Rock = new Color(0.50f, 0.48f, 0.44f),
+            GrassBand = 7.0f, MottleScale = 0.9f, MottleStrength = 0.18f, PebbleStrength = 0.26f,
+            SkyTop = new Color(0.11f, 0.43f, 0.89f), SkyHorizon = new Color(0.70f, 0.88f, 0.98f), SkyBottom = new Color(0.54f, 0.77f, 0.92f),
+            Fog = new Color(0.69f, 0.83f, 0.93f),
+            HillsNear = new[] { new Color(0.30f, 0.57f, 0.49f), new Color(0.19f, 0.43f, 0.43f) },
+            HillsFar = new[] { new Color(0.51f, 0.69f, 0.79f), new Color(0.35f, 0.56f, 0.69f) },
+            WaterShallow = new Color(0.16f, 0.64f, 0.84f, 0.80f), WaterDeep = new Color(0.04f, 0.29f, 0.58f, 0.94f), WaterFoam = new Color(0.88f, 0.97f, 1f),
+            SunLight = new Color(1f, 0.96f, 0.86f),
+            AmbientSky = new Color(0.57f, 0.70f, 0.85f), AmbientEquator = new Color(0.49f, 0.54f, 0.49f), AmbientGround = new Color(0.28f, 0.24f, 0.20f),
         };
 
         public static readonly Theme Beach = new Theme
         {
             Name = "beach",
-            Grass = new Color(0.46f, 0.70f, 0.30f), Dirt = new Color(0.86f, 0.76f, 0.52f),
-            Deep = new Color(0.62f, 0.50f, 0.34f), Rock = new Color(0.60f, 0.56f, 0.50f),
-            SkyTop = new Color(0.18f, 0.52f, 0.92f), SkyHorizon = new Color(0.86f, 0.94f, 0.98f), SkyBottom = new Color(0.60f, 0.80f, 0.88f),
-            Fog = new Color(0.80f, 0.90f, 0.96f),
-            HillsNear = new[] { new Color(0.30f, 0.58f, 0.36f), new Color(0.24f, 0.46f, 0.30f) },
-            HillsFar = new[] { new Color(0.55f, 0.70f, 0.74f), new Color(0.48f, 0.64f, 0.70f) },
-            WaterShallow = new Color(0.20f, 0.70f, 0.72f, 0.75f), WaterDeep = new Color(0.04f, 0.28f, 0.45f, 0.9f),
-            SunLight = new Color(1f, 0.97f, 0.9f),
-            AmbientSky = new Color(0.6f, 0.7f, 0.85f), AmbientEquator = new Color(0.55f, 0.55f, 0.5f), AmbientGround = new Color(0.35f, 0.3f, 0.22f),
+            Grass = new Color(0.50f, 0.68f, 0.23f), Dirt = new Color(0.73f, 0.49f, 0.27f),
+            Deep = new Color(0.47f, 0.29f, 0.17f), Rock = new Color(0.59f, 0.55f, 0.48f),
+            GrassBand = 6.0f, MottleScale = 0.7f, MottleStrength = 0.13f, PebbleStrength = 0.18f,
+            SkyTop = new Color(0.11f, 0.48f, 0.91f), SkyHorizon = new Color(0.74f, 0.92f, 0.99f), SkyBottom = new Color(0.59f, 0.82f, 0.94f),
+            Fog = new Color(0.76f, 0.89f, 0.95f),
+            HillsNear = new[] { new Color(0.41f, 0.64f, 0.53f), new Color(0.27f, 0.51f, 0.46f) },
+            HillsFar = new[] { new Color(0.59f, 0.76f, 0.82f), new Color(0.42f, 0.64f, 0.74f) },
+            WaterShallow = new Color(0.22f, 0.75f, 0.87f, 0.78f), WaterDeep = new Color(0.04f, 0.36f, 0.65f, 0.92f), WaterFoam = new Color(0.94f, 0.99f, 1f),
+            SunLight = new Color(1f, 0.97f, 0.88f),
+            AmbientSky = new Color(0.62f, 0.75f, 0.88f), AmbientEquator = new Color(0.57f, 0.58f, 0.52f), AmbientGround = new Color(0.39f, 0.31f, 0.24f),
         };
 
         public static Theme ForSeed(uint seed)
@@ -68,6 +72,10 @@ namespace Worms.Game.Render
             m.SetColor("_DirtColor", t.Dirt);
             m.SetColor("_DeepColor", t.Deep);
             m.SetColor("_RockColor", t.Rock);
+            m.SetFloat("_GrassBand", t.GrassBand);
+            m.SetFloat("_MottleScale", t.MottleScale);
+            m.SetFloat("_MottleStrength", t.MottleStrength);
+            m.SetFloat("_PebbleStrength", t.PebbleStrength);
             return m;
         }
 
@@ -83,6 +91,7 @@ namespace Worms.Game.Render
             var m = Create("Worms/Water", "Water");
             m.SetColor("_ShallowColor", t.WaterShallow);
             m.SetColor("_DeepColor", t.WaterDeep);
+            m.SetColor("_FoamColor", t.WaterFoam);
             return m;
         }
 
@@ -102,6 +111,14 @@ namespace Worms.Game.Render
             m.SetColor("_HorizonColor", t.SkyHorizon);
             m.SetColor("_BottomColor", t.SkyBottom);
             m.SetVector("_SunDirection", sunDirection);
+            return m;
+        }
+
+        public static Material BackdropSprite(Texture texture, string name, float opacity)
+        {
+            var m = Create("Worms/BackdropSprite", name);
+            m.SetTexture("_MainTex", texture);
+            m.SetFloat("_Opacity", opacity);
             return m;
         }
     }

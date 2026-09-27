@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Worms.Game.Core;
@@ -60,6 +61,117 @@ namespace Worms.Game.Render
                 r.shadowCastingMode = ShadowCastingMode.Off;
                 r.receiveShadows = false;
             }
+            CreateDistantIslands(parent, seed, mapWidth, waterY);
+            CreateMidgroundIsland(parent, mapWidth, waterY);
+            CreateClouds(parent, seed, mapWidth, waterY);
+        }
+
+        static void CreateMidgroundIsland(Transform parent, float mapWidth, float waterY)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/midground-island");
+            if (texture == null) return;
+            const float z = 25f;
+            const float width = 48f;
+            const float height = 26f;
+            float x = mapWidth * 0.5f;
+            float baseY = waterY + 4f;
+            var mesh = new Mesh
+            {
+                name = "Midground island",
+                vertices = new[]
+                {
+                    new Vector3(x - width / 2, baseY, z),
+                    new Vector3(x - width / 2, baseY + height, z),
+                    new Vector3(x + width / 2, baseY + height, z),
+                    new Vector3(x + width / 2, baseY, z),
+                },
+                uv = new[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0) },
+                triangles = new[] { 0, 1, 2, 0, 2, 3 },
+            };
+            mesh.RecalculateBounds();
+            var go = new GameObject("Midground island");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = Materials.BackdropSprite(texture, "Midground island", 0.72f);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        static void CreateDistantIslands(Transform parent, uint seed, float mapWidth, float waterY)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/distant-island");
+            if (texture == null) return;
+            var rng = new Rng(seed ^ 0x151Au);
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            var uvs = new List<Vector2>();
+            const float z = 55f;
+            for (int i = 0; i < 2; i++)
+            {
+                float x = mapWidth * (i == 0 ? 0.18f : 0.81f) + rng.Range(-6f, 6f);
+                float width = rng.Range(30f, 38f);
+                float height = width * 0.5f;
+                float baseY = waterY + rng.Range(4f, 7f);
+                int first = vertices.Count;
+                vertices.Add(new Vector3(x - width / 2, baseY, z));
+                vertices.Add(new Vector3(x - width / 2, baseY + height, z));
+                vertices.Add(new Vector3(x + width / 2, baseY + height, z));
+                vertices.Add(new Vector3(x + width / 2, baseY, z));
+                float left = i == 0 ? 0f : 1f;
+                float right = 1f - left;
+                uvs.Add(new Vector2(left, 0)); uvs.Add(new Vector2(left, 1));
+                uvs.Add(new Vector2(right, 1)); uvs.Add(new Vector2(right, 0));
+                triangles.Add(first); triangles.Add(first + 1); triangles.Add(first + 2);
+                triangles.Add(first); triangles.Add(first + 2); triangles.Add(first + 3);
+            }
+            var mesh = new Mesh { name = "Distant islands", vertices = vertices.ToArray(), uv = uvs.ToArray(), triangles = triangles.ToArray() };
+            mesh.RecalculateBounds();
+            var go = new GameObject("Distant islands");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = Materials.BackdropSprite(texture, "Distant islands", 0.8f);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        static void CreateClouds(Transform parent, uint seed, float mapWidth, float waterY)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/cloud-bank");
+            if (texture == null) return;
+            var rng = new Rng(seed ^ 0xC10Du);
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            var uvs = new List<Vector2>();
+            const float z = 105f;
+            for (int i = 0; i < 5; i++)
+            {
+                float x = mapWidth * (i - 1f) * 0.5f + rng.Range(-7f, 7f);
+                float y = waterY + rng.Range(39f, 49f);
+                float width = rng.Range(29f, 40f);
+                float height = width / 3f;
+                int first = vertices.Count;
+                vertices.Add(new Vector3(x - width / 2, y - height / 2, z));
+                vertices.Add(new Vector3(x - width / 2, y + height / 2, z));
+                vertices.Add(new Vector3(x + width / 2, y + height / 2, z));
+                vertices.Add(new Vector3(x + width / 2, y - height / 2, z));
+                float left = i % 2 == 0 ? 0f : 1f;
+                float right = 1f - left;
+                uvs.Add(new Vector2(left, 0)); uvs.Add(new Vector2(left, 1));
+                uvs.Add(new Vector2(right, 1)); uvs.Add(new Vector2(right, 0));
+                triangles.Add(first); triangles.Add(first + 1); triangles.Add(first + 2);
+                triangles.Add(first); triangles.Add(first + 2); triangles.Add(first + 3);
+            }
+            var mesh = new Mesh { name = "Cloud banks", vertices = vertices.ToArray(), uv = uvs.ToArray(), triangles = triangles.ToArray() };
+            mesh.RecalculateBounds();
+            var go = new GameObject("Cloud banks");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = Materials.BackdropSprite(texture, "Cloud banks", 0.88f);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
         }
 
         static Mesh HillStrip(Rng rng, float x0, float x1, float baseY, float height, float z)

@@ -9,10 +9,10 @@ namespace Worms.Game.Render
     {
         public static readonly Color[] All =
         {
-            new Color(0.95f, 0.52f, 0.55f),
-            new Color(0.45f, 0.66f, 0.98f),
-            new Color(0.98f, 0.82f, 0.36f),
-            new Color(0.62f, 0.90f, 0.48f),
+            new Color(0.93f, 0.28f, 0.35f),
+            new Color(0.22f, 0.50f, 0.95f),
+            new Color(0.97f, 0.71f, 0.16f),
+            new Color(0.37f, 0.76f, 0.25f),
         };
 
         public static Color Of(int team) { return All[((team % All.Length) + All.Length) % All.Length]; }
@@ -38,6 +38,7 @@ namespace Worms.Game.Render
         readonly HashSet<int> _seen = new HashSet<int>();
         readonly List<int> _remove = new List<int>();
         Transform _crosshair;
+        Transform _activeMarker;
 
         void Awake()
         {
@@ -46,6 +47,24 @@ namespace Worms.Game.Render
             _crosshair.gameObject.AddComponent<MeshFilter>().sharedMesh = MeshUtil.Create(Core.Shapes.Sphere(0.5f, 8, 12), "Crosshair");
             _crosshair.gameObject.AddComponent<MeshRenderer>().sharedMaterial = Materials.Toon(new Color(1f, 0.25f, 0.2f));
             _crosshair.localScale = Vector3.one * 0.22f;
+
+            _activeMarker = new GameObject("Active worm marker").transform;
+            _activeMarker.SetParent(transform, false);
+            var marker = new Mesh
+            {
+                name = "Active worm arrow",
+                vertices = new[] { new Vector3(-0.39f, 0.27f, 0), new Vector3(0.39f, 0.27f, 0), new Vector3(0, -0.33f, 0) },
+                triangles = new[] { 0, 1, 2 },
+            };
+            marker.RecalculateNormals();
+            _activeMarker.gameObject.AddComponent<MeshFilter>().sharedMesh = marker;
+            _activeMarker.gameObject.AddComponent<MeshRenderer>().sharedMaterial = Materials.Toon(new Color(1f, 0.96f, 0.86f));
+            var inner = new GameObject("Red center");
+            inner.transform.SetParent(_activeMarker, false);
+            inner.transform.localPosition = new Vector3(0, 0.015f, -0.01f);
+            inner.transform.localScale = new Vector3(0.77f, 0.72f, 1f);
+            inner.AddComponent<MeshFilter>().sharedMesh = marker;
+            inner.AddComponent<MeshRenderer>().sharedMaterial = Materials.Toon(new Color(1f, 0.24f, 0.22f));
         }
 
         public Vector3? WormPosition(int id)
@@ -60,6 +79,7 @@ namespace Worms.Game.Render
             bool aimingPhase = cur.Phase == Phase.Aiming;
             var weapon = Weapons.Get(cur.ActiveWeapon);
             _crosshair.gameObject.SetActive(false);
+            _activeMarker.gameObject.SetActive(false);
 
             foreach (var w in cur.Worms)
             {
@@ -83,11 +103,24 @@ namespace Worms.Game.Render
                 if (cur.Phase == Phase.GameOver && w.Team == cur.Winner)
                 {
                     // Victory: hop on the spot.
-                    pos += Vector3.up * Mathf.Abs(Mathf.Sin(Time.time * 7f + w.Id)) * 0.35f;
-                    shown.State = WormState.Airborne;
-                    shown.Vy = Mathf.Cos(Time.time * 7f + w.Id) * -300f;
+                    if (!QualitySettingsManager.ReducedMotion)
+                        pos += Vector3.up * Mathf.Abs(Mathf.Sin(Time.time * 7f + w.Id)) * 0.35f;
+                    shown.State = QualitySettingsManager.ReducedMotion ? WormState.Idle : WormState.Airborne;
+                    shown.Vy = QualitySettingsManager.ReducedMotion ? 0 : Mathf.Cos(Time.time * 7f + w.Id) * -300f;
                 }
                 view.Update(shown, pos, active, cur.ActiveWeapon, weapon.Aims ? aim : 0.2f, dt);
+
+                if (w.Id == cur.ActiveWorm && cur.Phase != Phase.GameOver)
+                {
+                    _activeMarker.gameObject.SetActive(true);
+                    _activeMarker.position = pos + new Vector3(0,
+                        1.35f + (QualitySettingsManager.ReducedMotion ? 0f : Mathf.Sin(Time.time * 4f) * 0.08f), -0.65f);
+                    if (Camera.main != null)
+                    {
+                        float distance = Vector3.Distance(Camera.main.transform.position, _activeMarker.position);
+                        _activeMarker.localScale = Vector3.one * Mathf.Clamp(distance / 34f, 0.35f, 1.8f);
+                    }
+                }
 
                 if (active && weapon.Aims)
                 {

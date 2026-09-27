@@ -117,7 +117,7 @@ namespace Worms.Game.Render
             ps.Emit(p, 1);
         }
 
-        int Count(int n) { return Mathf.Max(1, Mathf.RoundToInt(n * Density)); }
+        int Count(int n) { return Mathf.Max(1, Mathf.RoundToInt(n * Density * (QualitySettingsManager.ReducedMotion ? 0.5f : 1f))); }
 
         /// <summary>Fireball, smoke, flying dirt and sparks; radius in world units.</summary>
         public void Explosion(Vector3 pos, float radius)

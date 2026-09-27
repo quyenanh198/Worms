@@ -11,7 +11,7 @@ namespace Worms.Game.Render
         public const float MinDistance = 9f, MaxDistance = 60f;
 
         public Camera Camera { get; private set; }
-        public float Distance = 24f;
+        public float Distance = 34f;
         public float Tilt = 7f;
 
         Vector3 _focus;
@@ -26,7 +26,7 @@ namespace Worms.Game.Render
             _bounds = bounds;
             Camera = TryGetComponent<Camera>(out var existing) ? existing : gameObject.AddComponent<Camera>();
             gameObject.tag = "MainCamera";
-            Camera.fieldOfView = 35f;
+            Camera.fieldOfView = 40f;
             Camera.nearClipPlane = 0.3f;
             Camera.farClipPlane = 600f;
             Camera.clearFlags = CameraClearFlags.Skybox;
@@ -48,6 +48,7 @@ namespace Worms.Game.Render
         /// <summary>Adds screen shake (world units of offset), decaying over about half a second.</summary>
         public void Shake(float amount)
         {
+            if (QualitySettingsManager.ReducedMotion) return;
             _shake = Mathf.Min(1.2f, _shake + amount);
         }
 
@@ -70,6 +71,7 @@ namespace Worms.Game.Render
 
             var rotation = Quaternion.Euler(Tilt, 0, 0);
             var offset = Vector3.zero;
+            if (QualitySettingsManager.ReducedMotion) _shake = 0;
             if (_shake > 0.001f)
             {
                 float t = Time.time * 40f;
