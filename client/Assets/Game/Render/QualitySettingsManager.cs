@@ -77,6 +77,7 @@ namespace Worms.Game.Render
             var tier = Current;
             UrpSetup.ApplyTier(tier, presenter.Sun);
             presenter.Vfx.Density = tier == QualityTier.Low ? 0.5f : tier == QualityTier.Medium ? 1f : 1.5f;
+            presenter.Terrain.SetPaintStrength(tier == QualityTier.Low ? 0f : tier == QualityTier.Medium ? 0.45f : 0.75f);
         }
 
         /// <summary>Call once per frame during a match; returns true when the benchmark changed the tier.</summary>

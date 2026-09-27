@@ -40,40 +40,44 @@ namespace Worms.Game.Render
         }
 
         /// <summary>Layers of hills behind the map; the perspective camera gives them parallax.</summary>
-        public static void CreateBackdrop(Transform parent, Theme theme, uint seed, float mapWidth, float waterY)
+        public static void CreateBackdrop(Transform parent, Theme theme, uint seed, float mapWidth, float waterY,
+            bool menuComposition = false)
         {
             var rng = new Rng(seed ^ 0xB4CDu);
-            var layers = new[]
+            if (!menuComposition)
             {
-                (z: 12f, height: 9f, color: theme.HillsNear[0], dark: theme.HillsNear[1], haze: 0.08f),
-                (z: 35f, height: 16f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.3f),
-                (z: 80f, height: 28f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.58f),
-            };
-            foreach (var layer in layers)
-            {
-                float margin = layer.z * 1.2f + 30f;
-                var mesh = HillStrip(rng, -margin, mapWidth + margin, waterY - 2f, layer.height, layer.z);
-                var go = new GameObject("Hills z=" + layer.z);
-                go.transform.SetParent(parent, false);
-                go.AddComponent<MeshFilter>().sharedMesh = mesh;
-                var r = go.AddComponent<MeshRenderer>();
-                r.sharedMaterial = Materials.Backdrop(layer.color, layer.dark, layer.height * 2f, layer.haze);
-                r.shadowCastingMode = ShadowCastingMode.Off;
-                r.receiveShadows = false;
+                var layers = new[]
+                {
+                    (z: 12f, height: 9f, color: theme.HillsNear[0], dark: theme.HillsNear[1], haze: 0.08f),
+                    (z: 35f, height: 16f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.3f),
+                    (z: 80f, height: 28f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.58f),
+                };
+                foreach (var layer in layers)
+                {
+                    float margin = layer.z * 1.2f + 30f;
+                    var mesh = HillStrip(rng, -margin, mapWidth + margin, waterY - 2f, layer.height, layer.z);
+                    var go = new GameObject("Hills z=" + layer.z);
+                    go.transform.SetParent(parent, false);
+                    go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    var r = go.AddComponent<MeshRenderer>();
+                    r.sharedMaterial = Materials.Backdrop(layer.color, layer.dark, layer.height * 2f, layer.haze);
+                    r.shadowCastingMode = ShadowCastingMode.Off;
+                    r.receiveShadows = false;
+                }
             }
             CreateDistantIslands(parent, seed, mapWidth, waterY);
-            CreateMidgroundIsland(parent, mapWidth, waterY);
-            CreateClouds(parent, seed, mapWidth, waterY);
+            CreateMidgroundIsland(parent, mapWidth, waterY, menuComposition);
+            CreateClouds(parent, seed, mapWidth, waterY, menuComposition);
         }
 
-        static void CreateMidgroundIsland(Transform parent, float mapWidth, float waterY)
+        static void CreateMidgroundIsland(Transform parent, float mapWidth, float waterY, bool menuComposition)
         {
             var texture = Resources.Load<Texture2D>("Backdrop/midground-island");
             if (texture == null) return;
             const float z = 25f;
-            const float width = 48f;
-            const float height = 26f;
-            float x = mapWidth * 0.5f;
+            float width = menuComposition ? 34f : 48f;
+            float height = menuComposition ? 16f : 26f;
+            float x = mapWidth * (menuComposition ? 0.65f : 0.5f);
             float baseY = waterY + 4f;
             var mesh = new Mesh
             {
@@ -93,7 +97,8 @@ namespace Worms.Game.Render
             go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = Materials.BackdropSprite(texture, "Midground island", 0.72f);
+            renderer.sharedMaterial = Materials.BackdropSprite(texture, "Midground island", 0.72f,
+                menuComposition ? 0.08f : 0f);
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
         }
@@ -136,7 +141,7 @@ namespace Worms.Game.Render
             renderer.receiveShadows = false;
         }
 
-        static void CreateClouds(Transform parent, uint seed, float mapWidth, float waterY)
+        static void CreateClouds(Transform parent, uint seed, float mapWidth, float waterY, bool menuComposition)
         {
             var texture = Resources.Load<Texture2D>("Backdrop/cloud-bank");
             if (texture == null) return;
@@ -148,7 +153,7 @@ namespace Worms.Game.Render
             for (int i = 0; i < 5; i++)
             {
                 float x = mapWidth * (i - 1f) * 0.5f + rng.Range(-7f, 7f);
-                float y = waterY + rng.Range(39f, 49f);
+                float y = waterY + (menuComposition ? rng.Range(28f, 36f) : rng.Range(39f, 49f));
                 float width = rng.Range(29f, 40f);
                 float height = width / 3f;
                 int first = vertices.Count;
@@ -172,6 +177,55 @@ namespace Worms.Game.Render
             renderer.sharedMaterial = Materials.BackdropSprite(texture, "Cloud banks", 0.88f);
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
+        }
+
+        /// <summary>Painted scenery behind the play plane. It never changes collision or blocks actors.</summary>
+        public static void CreateSurfaceProps(Transform parent, Worms.Sim.Terrain terrain)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/foreground-oak");
+            if (texture == null) return;
+            float[] fractions = { 0.25f, 0.45f, 0.65f, 0.82f };
+            float[] widths = { 5.8f, 7.5f, 5.2f, 6f };
+            for (int i = 0; i < fractions.Length; i++)
+            {
+                int cellX = Mathf.Clamp(Mathf.RoundToInt((terrain.Width - 1) * fractions[i]), 0, terrain.Width - 1);
+                int top = 0;
+                while (top < terrain.Height && !terrain.IsSolid(cellX, top)) top++;
+                if (top >= terrain.Height - 8) continue;
+
+                float x = cellX * WorldSpace.Scale;
+                float width = widths[i];
+                // The source cutout has an earth plinth in its bottom quarter. Hide it
+                // inside the real terrain so trees remain grounded on sloped maps.
+                const float cropBottom = 0.25f;
+                bool flip = i == 1; // keep the fence on the uphill side of the left tree
+                float uvLeft = flip ? 1f : 0f, uvRight = 1f - uvLeft;
+                float height = width * texture.height / texture.width * (1f - cropBottom);
+                float bottom = -top * WorldSpace.Scale - 0.3f;
+                const float z = 1.2f;
+                var mesh = new Mesh
+                {
+                    name = "Painted oak",
+                    vertices = new[]
+                    {
+                        new Vector3(x - width / 2, bottom, z),
+                        new Vector3(x - width / 2, bottom + height, z),
+                        new Vector3(x + width / 2, bottom + height, z),
+                        new Vector3(x + width / 2, bottom, z),
+                    },
+                    uv = new[] { new Vector2(uvLeft, cropBottom), new Vector2(uvLeft, 1),
+                        new Vector2(uvRight, 1), new Vector2(uvRight, cropBottom) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                mesh.RecalculateBounds();
+                var go = new GameObject("Painted oak " + i);
+                go.transform.SetParent(parent, false);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = Materials.BackdropSprite(texture, "Painted oak", 0.92f);
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
         }
 
         static Mesh HillStrip(Rng rng, float x0, float x1, float baseY, float height, float z)

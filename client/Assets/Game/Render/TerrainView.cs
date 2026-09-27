@@ -20,10 +20,12 @@ namespace Worms.Game.Render
         readonly MeshUtil _util = new MeshUtil();
         SurfaceDecorMesher _decorMesher;
         Material _decorMaterial;
+        Material _terrainMaterial;
         readonly Dictionary<int, (Mesh mesh, MeshRenderer renderer)> _decor = new Dictionary<int, (Mesh, MeshRenderer)>();
 
         public void Init(SimTerrain terrain, Material material)
         {
+            _terrainMaterial = material;
             _mesher = new TerrainMesher(terrain, WorldSpace.Scale, WorldSpace.TerrainFrontZ, WorldSpace.TerrainBackZ);
             _decorMesher = new SurfaceDecorMesher(terrain, WorldSpace.Scale, WorldSpace.TerrainFrontZ - 0.06f);
             _decorMaterial = Materials.Toon(new Color(0.30f, 0.64f, 0.13f));
@@ -54,6 +56,11 @@ namespace Worms.Game.Render
                     _renderers[cx, cy] = r;
                     Rebuild(cx, cy);
                 }
+        }
+
+        public void SetPaintStrength(float strength)
+        {
+            if (_terrainMaterial != null) _terrainMaterial.SetFloat("_PaintStrength", strength);
         }
 
         public void Refresh(CellRect dirty)

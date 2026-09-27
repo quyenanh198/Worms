@@ -5,6 +5,7 @@ Shader "Worms/BackdropSprite"
     {
         _MainTex ("Scenery", 2D) = "white" {}
         _Opacity ("Opacity", Range(0, 1)) = 0.88
+        _EdgeFade ("Horizontal edge fade", Range(0, 0.25)) = 0
     }
 
     SubShader
@@ -30,6 +31,7 @@ Shader "Worms/BackdropSprite"
             CBUFFER_START(UnityPerMaterial)
                 float4 _MainTex_ST;
                 half _Opacity;
+                half _EdgeFade;
             CBUFFER_END
 
             struct Attributes
@@ -57,7 +59,10 @@ Shader "Worms/BackdropSprite"
             {
                 half4 cloud = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
                 cloud.rgb = MixFog(cloud.rgb, input.fogFactor);
-                cloud.a *= _Opacity;
+                half fadeWidth = max(_EdgeFade, 0.0001h);
+                half edgeAlpha = smoothstep(0.0h, fadeWidth, input.uv.x)
+                    * smoothstep(0.0h, fadeWidth, 1.0h - input.uv.x);
+                cloud.a *= _Opacity * edgeAlpha;
                 return cloud;
             }
             ENDHLSL

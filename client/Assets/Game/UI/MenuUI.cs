@@ -34,6 +34,7 @@ namespace Worms.Game.UI
 
         /// <summary>Center of the menu column: left of center on wide screens, so the squad shows on the right.</summary>
         float Cx => Screen.width >= Screen.height * 1.3f ? Screen.width * 0.3f : Screen.width / 2f;
+        bool CompactLayout => Screen.width < 700 || Screen.width < Screen.height * 1.3f;
 
         // Squad naming.
         bool _naming;
@@ -149,7 +150,7 @@ namespace Worms.Game.UI
             UiFont.UseForSkin();
             if (Hidden) return;
             Styles();
-            if (Screen.width < 700 && _showSettings)
+            if (CompactLayout && _showSettings)
             {
                 AudioSettings();
                 return;
@@ -196,7 +197,7 @@ namespace Worms.Game.UI
         {
             var audio = AudioManager.Instance;
             if (audio == null) return;
-            if (Screen.width < 700)
+            if (CompactLayout)
             {
                 var safe = Screen.safeArea;
                 float toggleW = Mathf.Max(100f, _u * 7f), toggleH = Mathf.Max(44f, _u * 2.5f);

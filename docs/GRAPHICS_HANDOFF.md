@@ -1,6 +1,6 @@
 # Graphics hand-off — Worms
 
-Status: **Art direction approved from the user-selected reference image. World, characters, HUD, menu and effects have active passes; release validation is incomplete.**
+Status: **Art direction approved. The live game still differs substantially from the selected concept; visual acceptance and release validation are incomplete.**
 
 ## Tóm tắt bàn giao
 
@@ -37,6 +37,10 @@ Make the match read as a polished, playful 2.5D game at desktop and mobile sizes
 ![User-selected graphics direction](visuals/approved-cartoon-reference.png)
 
 The user selected this generated image as the art direction. It is a visual target, not a screenshot or importable asset sheet. Match its palette, layering, silhouettes, terrain texture, and HUD hierarchy. Adapt trees, ruins, small props, and worm accessories to the game's existing destructible world without changing gameplay or exceeding the WebGL2 budget.
+
+The user's later screenshot exposed a mistaken handoff: the displayed match camera image did not represent the opening menu, and the live world was further from this concept than the handoff implied. The current [match camera](visuals/world-current-fixed-seed.png) and [menu camera](visuals/menu-integrated-camera.png) are actual hidden Windows player renders from Unity 6000.3.25f1. They show painted soil, coastal scenery and menu composition, but still have smooth procedural slopes, comparatively small worms and sparse interactive set dressing. Both camera captures omit IMGUI, so neither verifies the live HUD or menu controls. The concept's terraced cliffs, dense foreground, explosion composition and HUD have **not** been reproduced as shown. These are open visual acceptance items, not completed claims.
+
+This pass adds a repeating painted-soil texture (Medium/High match tiers), a non-colliding painted oak cutout behind the battle plane, a closer default battle camera, and a menu composition that reveals the coastal painting. Low match tier keeps the procedural soil shader. Trees are anchored when the match begins; crater damage beneath them can leave a cutout visually unsupported, so dynamic ground anchoring remains open. The terrain silhouette still comes from simulation cells, and making it match the concept's terraces would require a deliberate map-design and gameplay review.
 
 Soft clay and heavy comic inking were considered; the user selected the crisp cartoon reference above.
 
@@ -108,13 +112,15 @@ The next background pass adds one painted midground island with broad cliffs and
 
 The character pass gave the active-worm marker the reference's red center and pale outline. The marker scales with camera distance so it stays a similar pixel size at normal and close zoom. Hidden camera captures at [normal zoom](visuals/worm-face-wide.png) and [close zoom](visuals/worm-face-closeup.png) show the earlier face experiment. During integration, the newer `main` worm face (large eyes, glints, mouth and cheek), cosmetics, and segmented shader replaced that experiment. The marker remains. Other poses, maximum zoom-out, and four-team color distinction remain to be inspected.
 
-The current integrated world is captured at 1280×720 in [Beach High](visuals/world-integrated-main-beach.png), [Beach Low](visuals/world-integrated-main-beach-low.png), and [Meadow High](visuals/world-integrated-main-meadow.png). These hidden camera-only captures use the merged feature branch, the fixed sandbox seeds `123456` and `123457`, and the disposable Unity 6000.6.3f1 editor. The integrated terrain shader and midground island are visible; the redundant geometric stones are absent. Low is softer because of its 0.7 render scale. GUI is absent by design.
+The **earlier** integrated world was captured at 1280×720 in [Beach High](visuals/world-integrated-main-beach.png), [Beach Low](visuals/world-integrated-main-beach-low.png), and [Meadow High](visuals/world-integrated-main-meadow.png). These historical hidden camera-only captures use fixed sandbox seeds `123456` and `123457`, and a disposable Unity 6000.6.3f1 editor. The current 6000.3.25f1 [match capture](visuals/world-current-fixed-seed.png) supersedes them for visual comparison. GUI is absent by design.
 
 Meadow was also captured at 1280×720 in [Low](visuals/world-meadow-low.png) and [High](visuals/world-meadow-high.png) tiers with the painted islands. The Low/High difference is subtle in these still frames; performance has not been measured.
 
 The pre-integration HUD was captured at [1280×720](visuals/hud-1280x720.png), [390×844](visuals/hud-390x844.png), and with the weapon picker in [desktop](visuals/hud-picker.png) and [portrait](visuals/hud-picker-portrait.png). These images are historical. The current branch uses `main`'s named-worm tags, turn order, reward panel, Vietnamese font and rounded UI skin, plus the graphics branch's weapon icons, team portraits, safe-area placement, numeric wind, reduced-motion treatment, and picker dismissal. The ninth weapon, Napalm, has a text cell because the generated sheet has eight icons. Current GUI layout has compiled but has not been visually recaptured under the user's no-focus constraint. Connected lobby, store, long names, four-team layout and touch interaction remain unverified visually.
 
 The [outdated-client](visuals/hud-menu.png), [offline](visuals/menu-offline.png), and [login](visuals/menu-login.png) desktop captures, plus [offline portrait](visuals/menu-offline-portrait.png), [login portrait](visuals/menu-login-portrait.png), and [settings portrait](visuals/menu-settings-portrait.png), also predate integration. Current `main` adds an animated 3D squad, store, and name editor. The merged menu preserves 44 px portrait controls and a separate portrait settings overlay with quality and reduced-motion choices. Its current layout has not been visually recaptured without a visible window.
+
+After a user reported that the built app's opening menu did not resemble the approved visual direction, we traced the difference to two separate scenes: the README image showed a match, while the menu used a close camera and procedural hills that hid the painted scenery. The menu now uses a smaller painted cliff/island composition with visible sky and clouds, a wider camera, and a soft edge on the island image. Its hidden 1280×720 [camera-only capture](visuals/menu-integrated-camera.png) shows the result under Unity 6000.3.25f1. This capture excludes IMGUI. Near-square windows now use the compact settings overlay, matching the menu column's layout breakpoint. The user's reported layout remains the evidence for the previous UI issue; current IMGUI still needs visual review without taking focus.
 
 **Open verification:** real mobile portrait/landscape, WebGL2 browser runtime, FPS and memory on mobile browser, connected-lobby and game-over captures, long names, four teams and touch interaction.
 

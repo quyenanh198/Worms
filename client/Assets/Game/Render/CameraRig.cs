@@ -11,7 +11,7 @@ namespace Worms.Game.Render
         public const float MinDistance = 9f, MaxDistance = 60f;
 
         public Camera Camera { get; private set; }
-        public float Distance = 34f;
+        public float Distance = 22f;
         public float Tilt = 7f;
 
         Vector3 _focus;

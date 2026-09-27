@@ -10,6 +10,8 @@ Shader "Worms/Terrain"
         _RockColor ("Rock", Color) = (0.46, 0.44, 0.41, 1)
         _NoiseScale ("Noise Scale", Float) = 1.6
         _Field ("Edge Field (R edge, G land above)", 2D) = "black" {}
+        _PaintedSoil ("Painted soil", 2D) = "white" {}
+        _PaintStrength ("Paint strength", Range(0, 1)) = 0
     }
 
     HLSLINCLUDE
@@ -23,10 +25,13 @@ Shader "Worms/Terrain"
         half4 _DeepColor;
         half4 _RockColor;
         float _NoiseScale;
+        float _PaintStrength;
         float4 _FieldSize; // cells wide, cells high, cells per world unit
     CBUFFER_END
     TEXTURE2D(_Field);
     SAMPLER(sampler_Field);
+    TEXTURE2D(_PaintedSoil);
+    SAMPLER(sampler_PaintedSoil);
     ENDHLSL
 
     SubShader
@@ -103,14 +108,21 @@ Shader "Worms/Terrain"
                     float blotch = WormsFbm(ws.xy * 0.8 + 3.1);
                     half3 soil = lerp(_DirtColor.rgb * 1.05, _DirtColor.rgb * 0.8, smoothstep(0.38, 0.62, blotch));
                     soil *= 0.94 + 0.12 * noise;
-                    float stone = WormsValueNoise(ws.xy * 3.0 + 11.3);
-                    float stoneMask = smoothstep(0.78, 0.8, stone);
-                    half3 stoneColor = lerp(_RockColor.rgb * 0.75, _RockColor.rgb * 1.15, saturate((stone - 0.79) * 12.0));
-                    soil = lerp(soil, stoneColor, stoneMask * 0.85);
+                    float stone = WormsValueNoise(ws.xy * 2.2 + 11.3);
+                    float stoneMask = smoothstep(0.81, 0.86, stone);
+                    half3 stoneColor = lerp(_RockColor.rgb * 0.76, _RockColor.rgb * 1.13,
+                        saturate((stone - 0.81) * 14.0));
+                    soil = lerp(soil, stoneColor, stoneMask * 0.85 * (1.0 - _PaintStrength));
                     soil = lerp(soil, _DeepColor.rgb, 0.45 * smoothstep(10.0, 24.0, above));
+                    if (_PaintStrength > 0.001)
+                    {
+                        half3 painted = SAMPLE_TEXTURE2D(_PaintedSoil, sampler_PaintedSoil,
+                            ws.xy * 0.07 + float2(0.13, 0.27)).rgb;
+                        soil = lerp(soil, painted, _PaintStrength * 0.72);
+                    }
 
                     // Grass on top surfaces only, in uneven tufts.
-                    float tuft = 2.0 + 2.6 * WormsValueNoise(float2(ws.x * 30.0, 1.7));
+                    float tuft = 3.4 + 3.0 * WormsValueNoise(float2(ws.x * 30.0, 1.7));
                     float isGrass = 1.0 - smoothstep(tuft - 0.4, tuft + 0.4, above);
                     half3 grass = _GrassColor.rgb * (0.95 + 0.15 * WormsValueNoise(float2(ws.x * 60.0, ws.y * 4.0)));
                     grass = lerp(grass * 1.18, grass, smoothstep(0.0, tuft, above)); // lit tips
@@ -144,7 +156,7 @@ Shader "Worms/Terrain"
                 Light light = GetMainLight(TransformWorldToShadowCoord(ws));
                 // Flat, painted lighting: the front face is not shaded by angle, only darkened
                 // a little where worms and props cast shadows.
-                half ndl = front ? 0.62 : saturate(dot(n, light.direction) * 0.6 + 0.4);
+                half ndl = front ? 0.72 : saturate(dot(n, light.direction) * 0.6 + 0.4);
                 half shade = lerp(0.72, 1.0, light.shadowAttenuation);
                 half3 color = albedo * (light.color * ndl * shade + SampleSH(float3(0, 0, -1)) * 0.75);
                 color = MixFog(color, input.fogFactor);

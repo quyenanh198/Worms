@@ -52,6 +52,7 @@ namespace Worms.Game.Play
             SceneBuilder.ConfigureEnvironment(theme, Sun);
             SceneBuilder.CreateBackdrop(transform, theme, seed, mapWidth, waterY);
             SceneBuilder.CreateWater(transform, theme, mapWidth, waterY);
+            SceneBuilder.CreateSurfaceProps(transform, terrain);
 
             Terrain = new GameObject("Terrain").AddComponent<TerrainView>();
             Terrain.transform.SetParent(transform, false);

@@ -78,7 +78,8 @@ namespace Worms.Game.Render
             terrainView.transform.SetParent(transform, false);
             terrainView.Init(_terrain, Materials.Terrain(theme));
             float width = _terrain.Width * WorldSpace.Scale;
-            SceneBuilder.CreateBackdrop(transform, theme, 7u, width, waterY);
+            // The battle's near procedural hills cover the painted cliffs at this tighter menu camera.
+            SceneBuilder.CreateBackdrop(transform, theme, 7u, width, waterY, menuComposition: true);
             SceneBuilder.CreateWater(transform, theme, width, waterY);
 
             _vfx = new GameObject("Vfx").AddComponent<Vfx>();
@@ -208,7 +209,7 @@ namespace Worms.Game.Render
             // Swoop in from high and wide, then drift gently. The squad sits right of center,
             // clear of the menu buttons.
             float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / 2.4f));
-            float distance = Mathf.Lerp(26f, 11.5f, k);
+            float distance = Mathf.Lerp(26f, 14f, k);
             float aspect = Mathf.Max(1f, _cam.aspect);
             float halfWidth = distance * Mathf.Tan(_cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * aspect;
             var look = _focus + Vector3.left * halfWidth * 0.5f + Vector3.up * Mathf.Lerp(3f, 0.9f, k);
