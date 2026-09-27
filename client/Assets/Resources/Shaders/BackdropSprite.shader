@@ -6,6 +6,8 @@ Shader "Worms/BackdropSprite"
         _MainTex ("Scenery", 2D) = "white" {}
         _Opacity ("Opacity", Range(0, 1)) = 0.88
         _EdgeFade ("Horizontal edge fade", Range(0, 0.25)) = 0
+        _AlphaThreshold ("Soft alpha threshold", Range(0, 1)) = 0
+        _Flash ("Hit flash", Range(0, 1)) = 0
     }
 
     SubShader
@@ -32,6 +34,8 @@ Shader "Worms/BackdropSprite"
                 float4 _MainTex_ST;
                 half _Opacity;
                 half _EdgeFade;
+                half _AlphaThreshold;
+                half _Flash;
             CBUFFER_END
 
             struct Attributes
@@ -58,6 +62,9 @@ Shader "Worms/BackdropSprite"
             half4 Frag(Varyings input) : SV_Target
             {
                 half4 cloud = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
+                if (_AlphaThreshold > 0.001h)
+                    cloud.a = smoothstep(_AlphaThreshold, _AlphaThreshold + 0.06h, cloud.a);
+                cloud.rgb = lerp(cloud.rgb, half3(1.0h, 1.0h, 1.0h), _Flash * 0.7h);
                 cloud.rgb = MixFog(cloud.rgb, input.fogFactor);
                 half fadeWidth = max(_EdgeFade, 0.0001h);
                 half edgeAlpha = smoothstep(0.0h, fadeWidth, input.uv.x)

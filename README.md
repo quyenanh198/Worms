@@ -8,6 +8,8 @@ Kế hoạch đầy đủ: [docs/PLAN.md](docs/PLAN.md). Deploy: [docs/DEPLOY.md
 
 Game đang hướng tới phong cách hoạt hình sắc nét của [ảnh tham chiếu được chọn](docs/visuals/approved-cartoon-reference.png): địa hình có lớp đất và mép cỏ, biển và đảo nhiều lớp, sâu có biểu cảm, hiệu ứng đạn/nổ, HUD và menu cùng bảng màu. Bản chạy hiện tại chưa đạt mức chi tiết và bố cục của ảnh mẫu. Có hai cảnh Beach và Meadow, ba mức chất lượng Low/Medium/High và tùy chọn giảm chuyển động. Nguồn gốc các asset được ghi trong [assets-src/CREDITS.md](assets-src/CREDITS.md).
 
+Nhánh `feat/concept-character-rebuild` đang thay hình sâu của bốn đội bằng hình vẽ dựa trên concept, bổ sung đạo cụ thùng gỗ/đá và bố cục HUD desktop. Các thay đổi này chưa có trong ảnh build bên dưới và chưa được kiểm tra bằng ảnh chụp runtime; ảnh hiện tại vẫn là mốc để đối chiếu, không phải bằng chứng đã đạt concept.
+
 ![Cảnh chiến đấu hiện tại chụp từ build Windows, không gồm HUD](docs/visuals/world-current-fixed-seed.png)
 
 [Xem cùng địa hình bậc ở cảnh Meadow](docs/visuals/world-terraces-meadow.png).

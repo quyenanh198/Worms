@@ -183,7 +183,11 @@ namespace Worms.Game.Render
         public static void CreateSurfaceProps(Transform parent, Worms.Sim.Terrain terrain)
         {
             var texture = Resources.Load<Texture2D>("Backdrop/foreground-oak");
-            if (texture == null) return;
+            if (texture == null)
+            {
+                CreateCrateProps(parent, terrain);
+                return;
+            }
             float[] fractions = { 0.25f, 0.45f, 0.65f, 0.82f };
             float[] widths = { 5.8f, 7.5f, 5.2f, 6f };
             for (int i = 0; i < fractions.Length; i++)
@@ -223,6 +227,49 @@ namespace Worms.Game.Render
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var renderer = go.AddComponent<MeshRenderer>();
                 renderer.sharedMaterial = Materials.BackdropSprite(texture, "Painted oak", 0.92f);
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+            CreateCrateProps(parent, terrain);
+        }
+
+        static void CreateCrateProps(Transform parent, Worms.Sim.Terrain terrain)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/crate-rocks");
+            if (texture == null) return;
+            float[] fractions = { 0.14f, 0.56f, 0.92f };
+            var material = Materials.BackdropSprite(texture, "Crate and rocks", 1f, alphaThreshold: 0.25f);
+            // Crop the generator's transparent padding and keep the props below worm height.
+            const float u0 = 112f / 1536f, u1 = 1452f / 1536f;
+            const float v0 = 141f / 1024f, v1 = 895f / 1024f;
+            const float width = 2.9f, height = 1.65f;
+            for (int i = 0; i < fractions.Length; i++)
+            {
+                int cellX = Mathf.RoundToInt((terrain.Width - 1) * fractions[i]);
+                int top = 0;
+                while (top < terrain.Height && !terrain.IsSolid(cellX, top)) top++;
+                if (top >= terrain.Height - 8) continue;
+                float x = cellX * WorldSpace.Scale, bottom = -top * WorldSpace.Scale - 0.12f;
+                var mesh = new Mesh
+                {
+                    name = "Painted crate and rocks",
+                    vertices = new[]
+                    {
+                        new Vector3(x - width / 2, bottom, -0.12f),
+                        new Vector3(x - width / 2, bottom + height, -0.12f),
+                        new Vector3(x + width / 2, bottom + height, -0.12f),
+                        new Vector3(x + width / 2, bottom, -0.12f),
+                    },
+                    uv = new[] { new Vector2(u0, v0), new Vector2(u0, v1),
+                        new Vector2(u1, v1), new Vector2(u1, v0) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                mesh.RecalculateBounds();
+                var go = new GameObject("Crate and rocks " + i);
+                go.transform.SetParent(parent, false);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
             }

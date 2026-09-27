@@ -112,12 +112,14 @@ namespace Worms.Game.Render
             return m;
         }
 
-        public static Material BackdropSprite(Texture texture, string name, float opacity, float edgeFade = 0f)
+        public static Material BackdropSprite(Texture texture, string name, float opacity, float edgeFade = 0f,
+            float alphaThreshold = 0f)
         {
             var m = Create("Worms/BackdropSprite", name);
             m.SetTexture("_MainTex", texture);
             m.SetFloat("_Opacity", opacity);
             m.SetFloat("_EdgeFade", edgeFade);
+            m.SetFloat("_AlphaThreshold", alphaThreshold);
             return m;
         }
     }

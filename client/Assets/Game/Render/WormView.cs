@@ -13,6 +13,8 @@ namespace Worms.Game.Render
     public sealed class WormView
     {
         static Mesh _eyeMesh, _handMesh;
+        static Mesh _paintedQuad;
+        static Material[] _paintedMaterials;
         static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
@@ -23,6 +25,8 @@ namespace Worms.Game.Render
         readonly MeshUtil _util = new MeshUtil();
         readonly Mesh _mesh;
         readonly MeshRenderer _renderer;
+        readonly MeshRenderer _paintedRenderer;
+        readonly Transform _paintedSprite;
         readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         Transform _prop;
         WeaponId _propId;
@@ -35,7 +39,7 @@ namespace Worms.Game.Render
 
         public bool Sinking => _sinkT >= 0;
 
-        public WormView(Transform parent, int id, Color teamColor)
+        public WormView(Transform parent, int id, int team, Color teamColor)
         {
             if (_eyeMesh == null)
             {
@@ -56,6 +60,63 @@ namespace Worms.Game.Render
             _renderer = _body.gameObject.AddComponent<MeshRenderer>();
             _renderer.sharedMaterial = Materials.Toon(teamColor, segments: true);
 
+            if (_paintedMaterials == null)
+            {
+                _paintedMaterials = new Material[4];
+                string[] names = { "red", "blue", "yellow", "green" };
+                // Visible alpha bounds in source pixels (top-left image coordinates).
+                // Crop transparent margins so every team occupies the same world-sized quad.
+                Rect[] crops =
+                {
+                    new Rect(0, 54, 1198, 1133),
+                    new Rect(0, 21, 1233, 1186),
+                    new Rect(106, 79, 1060, 1104),
+                    new Rect(43, 77, 1133, 1128),
+                };
+                for (int i = 0; i < names.Length; i++)
+                {
+                    var texture = Resources.Load<Texture2D>("Characters/worm-" + names[i]);
+                    if (texture != null)
+                    {
+                        var material = Materials.BackdropSprite(texture, "Painted worm " + names[i], 1f);
+                        var crop = crops[i];
+                        material.SetTextureScale("_MainTex", new Vector2(crop.width / texture.width, crop.height / texture.height));
+                        material.SetTextureOffset("_MainTex", new Vector2(crop.x / texture.width,
+                            (texture.height - crop.yMax) / texture.height));
+                        _paintedMaterials[i] = material;
+                    }
+                }
+            }
+            int palette = ((team % 4) + 4) % 4;
+            if (_paintedMaterials[palette] != null)
+            {
+                if (_paintedQuad == null)
+                {
+                    _paintedQuad = new Mesh
+                    {
+                        name = "Painted worm quad",
+                        vertices = new[]
+                        {
+                            new Vector3(-0.72f, -0.45f, -0.03f),
+                            new Vector3(-0.72f, 1.20f, -0.03f),
+                            new Vector3(0.72f, 1.20f, -0.03f),
+                            new Vector3(0.72f, -0.45f, -0.03f),
+                        },
+                        uv = new[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0) },
+                        triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                    };
+                    _paintedQuad.RecalculateBounds();
+                }
+                _paintedSprite = new GameObject("Painted worm").transform;
+                _paintedSprite.SetParent(_body, false);
+                _paintedSprite.gameObject.AddComponent<MeshFilter>().sharedMesh = _paintedQuad;
+                _paintedRenderer = _paintedSprite.gameObject.AddComponent<MeshRenderer>();
+                _paintedRenderer.sharedMaterial = _paintedMaterials[palette];
+                _paintedRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                _paintedRenderer.receiveShadows = false;
+                _renderer.enabled = false;
+            }
+
             _eyeL = Ball(_body, "EyeL", _white, 0.16f);
             _eyeR = Ball(_body, "EyeR", _white, 0.16f);
             _pupilL = Ball(_eyeL, "Pupil", _black, 0.5f);
@@ -68,6 +129,13 @@ namespace Worms.Game.Render
             }
             _mouth = Ball(_body, "Mouth", _mouthMat, 0.1f);
             _cheek = Ball(_body, "Cheek", _cheekMat, 0.1f);
+            if (_paintedSprite != null)
+            {
+                _eyeL.gameObject.SetActive(false);
+                _eyeR.gameObject.SetActive(false);
+                _mouth.gameObject.SetActive(false);
+                _cheek.gameObject.SetActive(false);
+            }
             var skin = _renderer.sharedMaterial;
             _handL = Ball(_body, "HandL", skin, 0.1f);
             _handR = Ball(_body, "HandR", skin, 0.1f);
@@ -140,8 +208,11 @@ namespace Worms.Game.Render
 
             Root.position = position;
             _rig.Update(new WormAnimInput { State = w.State, Aim = aim, Holding = holding, Vx = w.Vx, Vy = w.Vy, Time = Time.time }, dt);
-            _rig.BuildMesh(_buffers, WorldSpace.Scale);
-            _util.Apply(_buffers, _mesh);
+            if (_paintedSprite == null)
+            {
+                _rig.BuildMesh(_buffers, WorldSpace.Scale);
+                _util.Apply(_buffers, _mesh);
+            }
 
             // Mirror to face left or right; spin while tumbling.
             if (w.State == WormState.Tumbling)
@@ -150,6 +221,13 @@ namespace Worms.Game.Render
                 _spin = Mathf.MoveTowardsAngle(_spin, 0, 900 * dt);
             _body.localScale = new Vector3(w.Facing >= 0 ? 1 : -1, 1, 1);
             _body.localRotation = Quaternion.Euler(0, 0, _spin);
+            if (_paintedSprite != null)
+            {
+                float bob = w.State == WormState.Walking ? 0.025f * Mathf.Sin(Time.time * 12f) : 0f;
+                _paintedSprite.localPosition = Vector3.up * bob;
+                _paintedSprite.localScale = w.State == WormState.Airborne
+                    ? new Vector3(0.96f, 1.06f, 1f) : Vector3.one;
+            }
 
             // Eyes on the front of the head, looking along the aim; blink now and then.
             _rig.HeadDirection(out float hx, out float hy);
@@ -159,6 +237,12 @@ namespace Worms.Game.Render
             var up = Vector3.Slerp(Vector3.up, new Vector3(hx, hy, 0), 0.35f).normalized;
             var side = new Vector3(up.y, -up.x, 0);
             float r = _rig.HeadR * s;
+            if (_paintedSprite != null)
+            {
+                // The cutout's oversized face sits right of the old spine head.
+                head += new Vector3(0.24f, 0.04f, 0);
+                r = 0.46f;
+            }
             _blinkAt -= dt;
             float blink = _blinkAt < 0.12f ? 0.15f : 1f;
             if (_blinkAt < 0) _blinkAt = Random.Range(2f, 5f);
@@ -228,6 +312,7 @@ namespace Worms.Game.Render
             _renderer.GetPropertyBlock(_block);
             _block.SetFloat(FlashId, _flash);
             _renderer.SetPropertyBlock(_block);
+            if (_paintedRenderer != null) _paintedRenderer.SetPropertyBlock(_block);
         }
 
         public void Destroy()

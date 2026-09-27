@@ -93,7 +93,7 @@ namespace Worms.Game.Render
             {
                 if (!_worms.TryGetValue(w.Id, out var view))
                 {
-                    _worms[w.Id] = view = new WormView(transform, w.Id, TeamColors.Of(w.Team));
+                    _worms[w.Id] = view = new WormView(transform, w.Id, w.Team, TeamColors.Of(w.Team));
                     view.SetLoadout(LoadoutOf(w.Team));
                 }
                 _seen.Add(w.Id);
