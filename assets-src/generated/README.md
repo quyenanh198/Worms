@@ -17,6 +17,7 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/backdrop/foreground-oak.png` | `exec-03d25051-1fe2-485f-887c-95012f65a954.png` | `Resources/Backdrop/foreground-oak.png` |
 | `runtime/backdrop/midground-island.png` | `exec-d6f75f22-7b74-478f-b2c4-49c412d57b69.png` | `Resources/Backdrop/midground-island.png` |
 | `runtime/characters/worm-red.png` | `exec-f9cc9a35-5cba-4d10-bee2-cab2843285b0.png` | `Resources/Characters/worm-red.png` |
+| `runtime/characters/worm-red-blink.png` | `exec-62da925b-4130-4c5d-a545-7ab9203b0dd8.png` | `Resources/Characters/worm-red-blink.png`; shared idle blink pose |
 | `runtime/characters/worm-red-aim.png` | `exec-8c96e9bc-c83f-4506-9f4b-a3071e731a42.png` | `Resources/Characters/worm-red-aim.png`; aiming pose |
 | `runtime/characters/worm-red-hurt.png` | `exec-80c7f530-5597-443b-aa74-f71b67a4952a.png` | `Resources/Characters/worm-red-hurt.png`; hit reaction |
 | `runtime/characters/worm-red-walk-a.png` | `exec-7bb01a11-2663-4aba-8072-cd1fe13c39e4.png` | `Resources/Characters/worm-red-walk-a.png`; shared walking pose A |

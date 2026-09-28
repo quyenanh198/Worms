@@ -15,6 +15,7 @@ namespace Worms.Game.Render
         static Mesh _eyeMesh, _handMesh;
         static Mesh _paintedQuad;
         static Material _paintedMaterial;
+        static Material _blinkMaterial;
         static Material _aimMaterial;
         static Material _hurtMaterial;
         static Material _airborneMaterial;
@@ -77,12 +78,14 @@ namespace Worms.Game.Render
                 // Source dimensions are used because Unity can downsample on WebGL/mobile.
                 var crop = new Rect(50, 60, 1200, 1140);
                 var idle = Resources.Load<Texture2D>("Characters/worm-red");
+                var blink = Resources.Load<Texture2D>("Characters/worm-red-blink");
                 var aim = Resources.Load<Texture2D>("Characters/worm-red-aim");
                 var hurt = Resources.Load<Texture2D>("Characters/worm-red-hurt");
                 var airborne = Resources.Load<Texture2D>("Characters/worm-red-airborne");
                 var walkA = Resources.Load<Texture2D>("Characters/worm-red-walk-a");
                 var walkB = Resources.Load<Texture2D>("Characters/worm-red-walk-b");
                 if (idle != null) _paintedMaterial = PaintedMaterial(idle, "Worm idle", crop, 1263, 1246);
+                if (blink != null) _blinkMaterial = PaintedMaterial(blink, "Worm blink", crop, 1263, 1246);
                 if (aim != null) _aimMaterial = PaintedMaterial(aim, "Worm aim", crop, 1263, 1246);
                 if (hurt != null) _hurtMaterial = PaintedMaterial(hurt, "Worm hurt", crop, 1263, 1246);
                 if (airborne != null) _airborneMaterial = PaintedMaterial(airborne, "Worm airborne", crop, 1263, 1246);
@@ -250,7 +253,9 @@ namespace Worms.Game.Render
                     : w.State == WormState.Airborne && _airborneMaterial != null
                         ? _airborneMaterial
                     : holding && w.State != WormState.Tumbling && _aimMaterial != null
-                        ? _aimMaterial : _paintedMaterial;
+                        ? _aimMaterial
+                    : _blinkAt < 0.12f && _blinkMaterial != null
+                        ? _blinkMaterial : _paintedMaterial;
                 if (_paintedRenderer.sharedMaterial != pose) _paintedRenderer.sharedMaterial = pose;
                 float footOffset = activeWalk ? (walkFrame == 0 ? -0.11f : -0.038f) : 0f;
                 float bob = activeWalk ? 0.012f * Mathf.Sin(Time.time * 14f) : 0f;
