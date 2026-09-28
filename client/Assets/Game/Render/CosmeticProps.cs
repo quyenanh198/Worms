@@ -155,25 +155,25 @@ namespace Worms.Game.Render
                     PaintedHat(root, "black-sunglasses", "Painted black sunglasses", new Vector3(0.26f, 0.24f, 0), new Vector2(2.45f, 1.23f));
                     break;
                 case 18: // Coastal brown hat
-                    PaintedHat(root, "coastal-brown-hat", "Coastal brown hat", new Vector3(0, 0.98f, 0), new Vector2(2.75f, 1.95f));
+                    PaintedHat(root, "coastal-brown-hat", "Coastal brown hat", new Vector3(-0.12f, 0.85f, 0), new Vector2(1.80f, 1.27f));
                     break;
                 case 19: // Coastal red bandana
-                    PaintedHat(root, "coastal-red-bandana", "Coastal red bandana", new Vector3(0, 0.62f, 0), new Vector2(2.70f, 1.72f));
+                    PaintedHat(root, "coastal-red-bandana", "Coastal red bandana", new Vector3(0, 0.79f, 0), new Vector2(2.16f, 1.38f));
                     break;
                 case 20: // Coastal green helmet
-                    PaintedHat(root, "coastal-green-helmet", "Coastal green helmet", new Vector3(0, 1.02f, 0), new Vector2(2.80f, 2.13f));
+                    PaintedHat(root, "coastal-green-helmet", "Coastal green helmet", new Vector3(-0.05f, 0.75f, 0), new Vector2(2.10f, 1.60f));
                     break;
                 case 21: // Neon blue helmet
-                    PaintedHat(root, "neon-blue-helmet", "Neon blue helmet", new Vector3(0, 0.98f, 0), new Vector2(2.82f, 2.15f));
+                    PaintedHat(root, "neon-blue-helmet", "Neon blue helmet", new Vector3(-0.12f, 0.77f, 0), new Vector2(1.97f, 1.51f));
                     break;
                 case 22: // Neon purple bandana
-                    PaintedHat(root, "neon-purple-bandana", "Neon purple bandana", new Vector3(0, 0.52f, 0), new Vector2(2.67f, 1.65f));
+                    PaintedHat(root, "neon-purple-bandana", "Neon purple bandana", new Vector3(0, 0.68f, 0), new Vector2(1.80f, 1.10f));
                     break;
                 case 23: // Neon black cap
-                    PaintedHat(root, "neon-black-cap", "Neon black cap", new Vector3(0, 0.98f, 0), new Vector2(2.75f, 2.04f));
+                    PaintedHat(root, "neon-black-cap", "Neon black cap", new Vector3(-0.12f, 0.85f, 0), new Vector2(1.90f, 1.41f));
                     break;
                 case 24: // Neon blue goggles
-                    PaintedHat(root, "neon-blue-goggles", "Neon blue goggles", new Vector3(0.24f, 0.25f, 0), new Vector2(2.48f, 1.35f));
+                    PaintedHat(root, "neon-blue-goggles", "Neon blue goggles", new Vector3(0.22f, 0.16f, 0), new Vector2(1.61f, 0.88f));
                     break;
                 default:
                     Object.Destroy(root.gameObject);

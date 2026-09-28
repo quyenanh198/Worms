@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Worm cosmetic fit preview</title>
+<style>
+  body { margin: 0; background: #25354a; color: white; font: 16px system-ui; }
+  h1 { margin: 18px 24px 4px; font-size: 24px; }
+  p { margin: 0 24px 14px; color: #c6d8e8; }
+  #grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 0 18px 18px; }
+  .card { border-radius: 14px; background: linear-gradient(#80c6ea 0 65%, #8e683d 65%); overflow: hidden; }
+  .label { padding: 9px 13px; background: #17283b; font-weight: 700; }
+  canvas { width: 100%; display: block; }
+</style>
+<h1>Worm accessory fit</h1>
+<p>Approximate idle pose using the game's worm quad, head point, and cosmetic mesh sizes. For visual review, not a Unity runtime capture.</p>
+<div id="grid"></div>
+<script>
+const base = '../../client/Assets/Resources/';
+const items = [
+ ['Brown hat','coastal-brown-hat',-.12,.85,1.80,1.27],
+ ['Red bandana','coastal-red-bandana',0,.79,2.16,1.38],
+ ['Green helmet','coastal-green-helmet',-.05,.75,2.10,1.60],
+ ['Blue helmet','neon-blue-helmet',-.12,.77,1.97,1.51],
+ ['Purple bandana','neon-purple-bandana',0,.68,1.80,1.10],
+ ['Black cap','neon-black-cap',-.12,.85,1.90,1.41],
+ ['Blue goggles','neon-blue-goggles',.22,.16,1.61,.88],
+ ['Black sunglasses','black-sunglasses',.26,.24,2.45,1.23]
+];
+function load(path) { return new Promise(resolve => { const im = new Image(); im.onload = () => resolve(im); im.onerror = () => resolve(null); im.src = base + path; }); }
+Promise.all([load('Characters/worm-red.png'), ...items.map(x=>load('Cosmetics/'+x[1]+'.png'))]).then(images=> {
+  const worm = images[0], grid = document.getElementById('grid');
+  items.forEach((it,i)=> {
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML='<div class="label">'+it[0]+'</div>';
+    const canvas=document.createElement('canvas'); canvas.width=370; canvas.height=370; card.append(canvas); grid.append(card);
+    const c=canvas.getContext('2d'), scale=220, ox=185, oy=278;
+    // WormView quad: x=-.72..+.72, y=-.45..+1.20; UV crop (50,60,1200,1140).
+    if(worm) c.drawImage(worm,50,46,1200,1140,ox-.72*scale,oy-1.20*scale,1.44*scale,1.65*scale);
+    // Idle rig head: x=0, y=(-8+3.4+16.5)*.05, then painted face offset.
+    const hx=.24, hy=.635, r=.46, x=it[2], y=it[3], w=it[4], h=it[5];
+    if(images[i+1]) c.drawImage(images[i+1],ox+(hx+r*(x-w/2))*scale,oy-(hy+r*(y+h/2))*scale,r*w*scale,r*h*scale);
+  });
+});
+</script>
