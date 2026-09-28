@@ -40,6 +40,7 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/terrain/clay-soil.png` | `exec-81fb0f1e-4e22-40ff-9dbe-b2a437a68948.png` | `Resources/Terrain/clay-soil.png`; reusable dirt-only map surface |
 | `runtime/terrain/granite-boulder.png` | `exec-d14ab836-3b4c-4604-85e2-2b2b8ce8c181.png` | `Resources/Terrain/granite-boulder.png`; reusable gray rock inlay |
 | `runtime/terrain/sandstone-boulder.png` | `exec-f547981b-92e2-4cac-b8d8-77066a276b15.png` | `Resources/Terrain/sandstone-boulder.png`; reusable warm rock inlay |
+| `runtime/terrain/basalt-boulder.png` | `exec-858f6a02-0716-411d-8c01-37c771ec72ba.png` | `Resources/Terrain/basalt-boulder.png`; reusable dark freestanding rock cutout and cliff inlay |
 | `runtime/ui/foreground-foliage.png` | `exec-08dbc81c-c4f1-4029-8fd2-9ac14ee71925.png` | `Resources/UI/foreground-foliage.png` |
 | `runtime/ui/team-portraits.png` | `exec-52898453-e9b1-4727-b571-68e31cb47067.png` | `Resources/UI/team-portraits.png` |
 | `runtime/ui/weapon-icons.png` | `exec-9410194d-e587-4026-86d4-66f705bd4fbe.png` | `Resources/UI/weapon-icons.png` |
@@ -62,4 +63,4 @@ This directory preserves the original PNG outputs used during the approved carto
 
 All images were generated for this project with OpenAI image generation on 2026-09-26, 2026-09-27, or 2026-09-28. See [CREDITS.md](../CREDITS.md) for attribution. The generated cutouts may have soft or imperfect alpha at the edges; inspect before reusing them in a new scene.
 
-The clay-soil variant contains no painted stones; map seed modulo four selects it and omits decorative rock cutouts. Other seeds reuse natural, stratified, and sculpted soil and mix three reusable rock cutouts. The red idle, aim, hurt, walk and airborne cutouts are shared across teams and recolored in the sprite shader. Existing per-team PNGs remain in the source library, but are not loaded for the main worm view. Independent collision rock obstacles are not yet implemented.
+The clay-soil variant contains no painted stones; map seed modulo four selects it and omits decorative rock cutouts. Other seeds reuse natural, stratified, and sculpted soil and mix four reusable rock cutouts. The red idle, aim, hurt, walk and airborne cutouts are shared across teams and recolored in the sprite shader. Existing per-team PNGs remain in the source library, but are not loaded for the main worm view. Independent collision rock obstacles are not yet implemented.
