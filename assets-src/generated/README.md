@@ -50,6 +50,9 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/vfx/earth-dust.png` | `exec-0d24f78e-7391-4c98-8a4e-98494d0b5329.png` | `Resources/VFX/earth-dust.png`; brown dust particle for terrain destruction |
 | `runtime/waiting/coastal-background.png` | `exec-52adfb84-69b7-40bd-ba87-b4c498386df6.png` | `Resources/Waiting/Coastal/background.png`; full coastal opening backdrop derived from user cutouts |
 | `runtime/waiting/neon-background.png` | `exec-436cf4bc-81e5-4d4e-a0fe-029d5bdbab69.png` | `Resources/Waiting/Neon/background.png`; full neon opening backdrop derived from user cutouts |
+| `runtime/waiting/coastal-logo-clean.png` | `exec-91d3fcf0-6f80-4513-8b11-53a96063fed8.png` | `Resources/Waiting/Coastal/logo-clean.png`; isolated title without sky rectangle |
+| `runtime/waiting/neon-logo-clean.png` | `exec-b3718ca4-ea29-42f6-b15f-338ddc91207f.png` | `Resources/Waiting/Neon/logo-clean.png`; single title replacing duplicated fragments |
+| `runtime/waiting/coastal-platform-solid.png` | `exec-f5ee92aa-87f3-4fa6-a5db-198147247f08.png` | `Resources/Waiting/Coastal/platform-solid.png`; repaired continuous wooden platform |
 | `runtime/vfx/smoke-puff.png` | `exec-b1262120-aa6d-448d-998c-6f943b6ae0d2.png` | `Resources/VFX/smoke-puff.png`; textured smoke and rocket trail particle |
 | `drafts/crate-rocks-alt.png` | `exec-7ef1294d-f597-4a94-8a05-17c539b0e83c.png` | Unused prop variant |
 | `drafts/worm-red-alt.png` | `exec-8fafd05d-16fd-4d90-a32b-1bda6e5fe5e7.png` | Unused character variant |

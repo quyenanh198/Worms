@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<title>Waiting screen layout preview</title>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: #061026; }
+  img { position: absolute; object-fit: contain; }
+  img.background { inset: 0; width: 100%; height: 100%; object-fit: cover; }
+</style>
+<div id="scene"></div>
+<script>
+const resources = '../../client/Assets/Resources/';
+const theme = new URLSearchParams(location.search).get('theme') === 'neon' ? 'Neon' : 'Coastal';
+const portrait = innerHeight > innerWidth;
+const scene = document.getElementById('scene');
+function sprite(path, x, y, w, h, background = false) {
+  const element = document.createElement('img');
+  element.src = resources + path + '.png';
+  if (background) element.className = 'background';
+  else Object.assign(element.style, {left: x * 100 + '%', top: y * 100 + '%',
+    width: w * 100 + '%', height: h * 100 + '%'});
+  scene.appendChild(element);
+}
+sprite('Waiting/' + theme + '/background', 0, 0, 1, 1, true);
+if (theme === 'Neon') {
+  sprite('Waiting/Neon/green-worm', portrait ? .33 : .65, .43,
+    portrait ? .35 : .17, portrait ? .31 : .32);
+  sprite('Waiting/Neon/logo-clean', portrait ? .04 : .30, .04,
+    portrait ? .92 : .42, portrait ? .33 : .37);
+  sprite('Waiting/Neon/start', portrait ? .14 : .36, portrait ? .81 : .80,
+    portrait ? .72 : .28, .12);
+} else {
+  sprite('Waiting/Coastal/platform-solid', 0, portrait ? .55 : .62, 1,
+    portrait ? .45 : .60);
+  sprite('Waiting/Coastal/red-worm', portrait ? .17 : .58, portrait ? .49 : .43,
+    portrait ? .33 : .17, portrait ? .26 : .32);
+  sprite('Waiting/Coastal/green-worm', portrait ? .56 : .79, portrait ? .49 : .43,
+    portrait ? .31 : .15, portrait ? .26 : .32);
+  sprite('Waiting/Coastal/logo-clean', portrait ? .07 : .32, .03,
+    portrait ? .86 : .36, portrait ? .28 : .31);
+  sprite('Waiting/Coastal/start', portrait ? .16 : .37, portrait ? .81 : .80,
+    portrait ? .68 : .26, .12);
+}
+</script>
+</html>

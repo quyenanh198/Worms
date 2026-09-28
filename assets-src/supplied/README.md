@@ -5,3 +5,5 @@
 `client/Assets/Resources/Waiting/` contains selected scene layers used by the randomized opening card. Seven separate accessory PNGs are copied to `client/Assets/Resources/Cosmetics/` as purchasable hat-slot items (IDs 18–24). The remaining source cutouts stay here for later compositions. The existing menu and store run after the opening card is dismissed.
 
 The two full background images in `assets-src/generated/runtime/waiting/` were generated from these source cutouts to fill transparent gaps in the segmented scenery. Their runtime copies sit in `Resources/Waiting/Coastal/` and `Resources/Waiting/Neon/`; the supplied logos, worms, accessories and buttons remain separate foreground sprites.
+
+Previewing the composition exposed a rectangular sky patch behind the coastal title, duplicate neon title fragments, and transparent holes in the wooden platform. Isolated title cutouts and a repaired platform were generated from the supplied pieces and are stored beside the backgrounds in `assets-src/generated/runtime/waiting/`. The original pieces remain untouched here.
