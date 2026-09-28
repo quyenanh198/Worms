@@ -3,3 +3,5 @@
 `coastal/` is extracted from `segments (1).zip`; `neon/` is extracted from `segments.zip`, both supplied by the project owner. The original PNG bytes and names are preserved here. No executable or document instructions from the archives are used.
 
 `client/Assets/Resources/Waiting/` contains selected scene layers used by the randomized opening card. Seven separate accessory PNGs are copied to `client/Assets/Resources/Cosmetics/` as purchasable hat-slot items (IDs 18–24). The remaining source cutouts stay here for later compositions. The existing menu and store run after the opening card is dismissed.
+
+The two full background images in `assets-src/generated/runtime/waiting/` were generated from these source cutouts to fill transparent gaps in the segmented scenery. Their runtime copies sit in `Resources/Waiting/Coastal/` and `Resources/Waiting/Neon/`; the supplied logos, worms, accessories and buttons remain separate foreground sprites.

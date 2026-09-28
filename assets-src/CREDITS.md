@@ -4,7 +4,7 @@ Repo này public, nên chỉ chứa asset CC0 hoặc tự tạo (docs/PLAN.md §
 
 Game không dùng asset bên ngoài có giấy phép hạn chế. Các hình sau do dự án tự tạo:
 
-Bản gốc của 50 ảnh tạo trong đợt concept Worms được lưu tại [generated/README.md](generated/README.md): 2 ảnh tham chiếu, 43 ảnh trong thư mục Unity và 5 phương án chưa dùng. Các ảnh runtime trong thư mục đó trùng byte với PNG tương ứng dưới `client/Assets/Resources/`. Texture đất cũ vẫn có trong Unity làm phương án dự phòng.
+Bản gốc của 52 ảnh tạo trong đợt concept Worms được lưu tại [generated/README.md](generated/README.md): 2 ảnh tham chiếu, 45 ảnh trong thư mục Unity và 5 phương án chưa dùng. Các ảnh runtime trong thư mục đó trùng byte với PNG tương ứng dưới `client/Assets/Resources/`. Texture đất cũ vẫn có trong Unity làm phương án dự phòng.
 
 Hai bộ PNG màn chờ ven biển và neon do chủ dự án cung cấp được lưu nguyên bản tại [supplied/README.md](supplied/README.md). Những ảnh dùng cho màn chờ và phụ kiện cửa hàng được sao chép vào `client/Assets/Resources/`.
 
