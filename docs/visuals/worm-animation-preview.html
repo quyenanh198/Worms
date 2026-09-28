@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shared worm animation poses</title>
+<style>
+  body { margin: 0; background: #20334a; color: white; font: 16px system-ui; }
+  h1 { margin: 16px 22px 4px; font-size: 25px; }
+  p { margin: 0 22px 16px; color: #c9d9e8; }
+  #grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 0 18px 18px; }
+  .card { overflow: hidden; border-radius: 12px; background: linear-gradient(#86cbee 0 78%, #a27443 78%); }
+  .label { padding: 9px 13px; background: #132338; font-weight: 700; }
+  canvas { display: block; width: 100%; }
+</style>
+<h1>Shared worm animation poses</h1>
+<p>Unity crop (50, 60, 1200, 1140), identical quad size. Walk A/B include the game's vertical offsets.</p>
+<div id="grid"></div>
+<script>
+const frames = [
+  ['Idle','worm-red.png',0], ['Aim','worm-red-aim.png',0],
+  ['Hurt','worm-red-hurt.png',0], ['Airborne','worm-red-airborne.png',0],
+  ['Walk A','worm-red-walk-a.png',-.11], ['Walk B','worm-red-walk-b.png',-.038]
+];
+const grid=document.getElementById('grid');
+frames.forEach(([label,file,offset])=>{
+  const card=document.createElement('div'); card.className='card';
+  card.innerHTML='<div class="label">'+label+'</div>';
+  const canvas=document.createElement('canvas'); canvas.width=430; canvas.height=345;
+  card.append(canvas); grid.append(card);
+  const img=new Image(); img.onload=()=>{
+    const c=canvas.getContext('2d'), scale=210, ox=215, oy=252;
+    c.drawImage(img,50,46,1200,1140,ox-.72*scale,oy-1.20*scale-offset*scale,1.44*scale,1.65*scale);
+  };
+  img.src='../../client/Assets/Resources/Characters/'+file;
+});
+</script>
