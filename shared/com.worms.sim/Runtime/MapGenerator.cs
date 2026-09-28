@@ -12,16 +12,20 @@ namespace Worms.Sim
             float twoPi = (float)(Math.PI * 2);
 
             float baseY = height * rng.Range(0.42f, 0.52f);
-            float a1 = rng.Range(80f, 140f), f1 = twoPi / width * rng.Range(1f, 2f), p1 = rng.Range(0f, twoPi);
-            float a2 = rng.Range(30f, 70f), f2 = twoPi / width * rng.Range(3f, 5f), p2 = rng.Range(0f, twoPi);
+            float a1 = rng.Range(55f, 85f), f1 = twoPi / width * rng.Range(1f, 2f), p1 = rng.Range(0f, twoPi);
+            float a2 = rng.Range(20f, 40f), f2 = twoPi / width * rng.Range(3f, 5f), p2 = rng.Range(0f, twoPi);
             float f3 = twoPi / width * rng.Range(9f, 14f), p3 = rng.Range(0f, twoPi);
             int margin = 60;
-            const float terraceHeight = 80f;
+            const float terraceHeight = 65f;
             var surfaceTops = new int[width];
 
             for (int x = 0; x < width; x++)
             {
                 float surface = baseY + a1 * (float)Math.Sin(x * f1 + p1) + a2 * (float)Math.Sin(x * f2 + p2);
+                // A broad central basin keeps the playable cliffs on both sides
+                // of an open middle ground, as in the approved battle concept.
+                float basinX = (x - width * 0.5f) / (width * 0.15f);
+                surface += 135f * (float)Math.Exp(-basinX * basinX);
                 // Taper both edges down into the sea so the map reads as islands.
                 float edge = Math.Min(x, width - 1 - x);
                 if (edge < margin * 3) surface += (margin * 3 - edge) * 1.6f;
@@ -35,15 +39,18 @@ namespace Worms.Sim
             }
 
             var squareTops = (int[])surfaceTops.Clone();
-            for (int x = 4; x < width - 4; x++)
+            // Spread each terrace change over a short, uneven rock face. This
+            // keeps the playable shelf but removes the nearly vertical boxes.
+            for (int x = 12; x < width - 12; x++)
             {
                 if (Math.Abs(squareTops[x] - squareTops[x - 1]) < 40) continue;
-                int left = squareTops[x - 4], right = squareTops[x + 4];
-                for (int offset = -3; offset <= 3; offset++)
+                int left = squareTops[x - 12], right = squareTops[x + 12];
+                for (int offset = -11; offset <= 11; offset++)
                 {
-                    float blend = (offset + 4) / 8f;
+                    float blend = (offset + 12) / 24f;
                     blend = blend * blend * (3f - 2f * blend);
-                    surfaceTops[x + offset] = (int)(left + (right - left) * blend);
+                    float rock = 1.6f * (float)Math.Sin((x + offset) * 0.53f + p2) * (float)Math.Sin(Math.PI * blend);
+                    surfaceTops[x + offset] = (int)(left + (right - left) * blend + rock);
                 }
             }
             for (int x = 0; x < width; x++)
@@ -60,11 +67,14 @@ namespace Worms.Sim
                 t.CarveCircle(landX, upper + Math.Abs(delta) / 2, 13);
             }
 
-            // One or two sea channels split the land into islands.
+            // Narrow sea channels at the outer quarters reveal the backdrop while
+            // leaving the central battle basin intact.
             int channels = rng.Range(1, 3);
             for (int i = 0; i < channels; i++)
             {
-                int cx = rng.Range(width / 4, width * 3 / 4);
+                bool left = (rng.NextUInt() & 1u) == 0u;
+                int cx = left ? rng.Range(width / 8, width / 4)
+                              : rng.Range(width * 3 / 4, width * 7 / 8);
                 int w = rng.Range(50, 110);
                 t.FillRect(cx - w / 2, 0, cx + w / 2, height, false);
             }

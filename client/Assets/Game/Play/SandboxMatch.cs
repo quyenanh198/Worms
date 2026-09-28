@@ -107,6 +107,15 @@ namespace Worms.Game.Play
         {
             _pending.Add(new SimInput { Team = World.ActiveTeam, Kind = InputKind.Select, Weapon = weapon });
         }
+#if DEVELOPMENT_BUILD
+        // Routes a visual capture through the same fixed-step input path as play.
+        public void FireCaptureShot()
+        {
+            if (World == null || World.Phase != Phase.Aiming) return;
+            _pending.Add(new SimInput { Team = World.ActiveTeam, Kind = InputKind.Fire,
+                Weapon = WeaponId.Bazooka, Angle = -0.2f, Power = 0.65f });
+        }
+#endif
         public Action Leave { get; set; }
 
         public void Restart()

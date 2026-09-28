@@ -35,7 +35,7 @@ namespace Worms.Game.UI
         GUIStyle _label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine, _weaponCaption;
         bool _weaponMenu;
         Texture2D _white;
-        Texture2D _weaponIcons, _teamPortraits;
+        Texture2D _weaponIcons, _teamPortraits, _foregroundFoliage;
         int _styleWidth, _styleHeight;
 
         static readonly string[] WeaponNames = { "Bazooka", "Lựu đạn", "Bom chùm", "Shotgun", "Uzi", "Dynamite", "Gậy bóng chày", "Không kích", "Bom napalm" };
@@ -71,6 +71,7 @@ namespace Worms.Game.UI
             UiFont.Apply(_label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine, _weaponCaption);
             _weaponIcons = Resources.Load<Texture2D>("UI/weapon-icons");
             _teamPortraits = Resources.Load<Texture2D>("UI/team-portraits");
+            _foregroundFoliage = Resources.Load<Texture2D>("UI/foreground-foliage");
         }
 
         void Box(Rect r, Color c)
@@ -160,6 +161,14 @@ namespace Worms.Game.UI
             var safe = Screen.safeArea;
             float safeTop = h - safe.yMax, safeBottom = safe.yMin;
             bool compact = safe.width < 700f;
+            if (!compact && _foregroundFoliage != null)
+            {
+                var oldColor = GUI.color;
+                GUI.color = new Color(1f, 1f, 1f, 0.82f);
+                GUI.DrawTexture(new Rect(0, h - u * 9f, w, u * 9f),
+                    _foregroundFoliage, ScaleMode.StretchToFill, true);
+                GUI.color = oldColor;
+            }
 
             // Name tags over every worm: the player's name, then HP (pending damage in red).
             var cam = Source.Presenter.Rig.Camera;
@@ -191,7 +200,7 @@ namespace Worms.Game.UI
             TurnOrder(s, timer, u);
 
             // Top right: wind, a bar filling from the middle toward where it blows.
-            float windW = u * 8;
+            float windW = u * (compact ? 5.8f : 8f);
             var windBadge = new Rect(safe.xMax - windW - u * 1.2f, safeTop + u * 0.4f, windW + u * 1.2f, u * 2.7f);
             UiSkin.Pill(windBadge, new Color(0.07f, 0.09f, 0.13f, 0.8f));
             var windRect = new Rect(windBadge.x + u * 0.6f, windBadge.y + u * 1.45f, windW, u * 0.5f);
@@ -216,9 +225,13 @@ namespace Worms.Game.UI
                 {
                     if (worm.Team != t) continue;
                     members++;
-                    if (worm.Alive) hp += worm.Hp;
+                    // Simulation settles damage at turn end; show the health
+                    // players can already see in the hit popup and worm label.
+                    if (worm.Alive) hp += Mathf.Max(0, worm.Hp - worm.PendingDamage);
                 }
-                var back = new Rect(safe.center.x - barW * teams / 2 + t * barW + u * 0.08f,
+                float healthLeft = compact ? safe.center.x - barW * teams / 2
+                    : safe.xMax - barW * teams - u * 0.55f;
+                var back = new Rect(healthLeft + t * barW + u * 0.08f,
                     compact ? safeTop + u * 5.2f : h - safeBottom - u * 2.95f, barW - u * 0.16f, u * 2.7f);
                 UiSkin.Pill(back, t == s.ActiveTeam ? new Color(0.14f, 0.17f, 0.24f, 0.92f) : new Color(0.07f, 0.09f, 0.13f, 0.75f));
                 float portraitW = _teamPortraits != null && barW >= u * 6f ? Mathf.Min(u * 1.6f, barW * 0.26f) : 0f;
@@ -245,18 +258,19 @@ namespace Worms.Game.UI
                 if (def.UsesFuse) weapon += "  ·  ngòi " + Source.Controls.Fuse + "s";
                 var weaponSize = _oneLine.CalcSize(new GUIContent(weapon));
                 float weaponX = safe.xMin + u * 0.6f;
-                float weaponY = compact ? safeTop + u * 8.2f : h - safeBottom - u * 3.55f;
+                float weaponY = compact ? safeTop + u * 8.2f : h - safeBottom - u * 6.8f;
                 float weaponWidth = Mathf.Min(weaponSize.x + u * 1.4f, safe.width - u * 1.2f);
                 UiSkin.Pill(new Rect(weaponX, weaponY, weaponWidth, u * 1.5f), new Color(0.07f, 0.09f, 0.13f, 0.8f));
                 Shadowed(new Rect(weaponX + u * 0.4f, weaponY + u * 0.12f, weaponWidth - u * 0.8f, u * 1.2f), weapon, _oneLine, Color.white);
                 if (def.Targets) Shadowed(new Rect(0, h - u * 5.5f, w, u * 1.2f), "Bấm chuột trái vào bản đồ để chọn mục tiêu", _label, Color.white);
                 if (Source.Controls.Charging)
                 {
-                    var r = new Rect(safe.center.x - u * 6, h - safeBottom - u * 4.2f, u * 12, u * 0.8f);
+                    var r = new Rect(safe.center.x - u * 6, h - safeBottom - u * 6.2f, u * 12, u * 0.8f);
                     UiSkin.Pill(new Rect(r.x - 3, r.y - 3, r.width + 6, r.height + 6), new Color(0.07f, 0.09f, 0.13f, 0.85f));
                     UiSkin.Pill(new Rect(r.x, r.y, Mathf.Max(r.height, r.width * Source.Controls.Power), r.height),
                         Color.Lerp(new Color(1f, 0.85f, 0.3f), new Color(1f, 0.3f, 0.2f), Source.Controls.Power));
                 }
+                if (!compact) QuickWeaponBar(s, u, safe, h);
                 WeaponMenu(s, w, h, u, compact, safe);
             }
             else
@@ -267,11 +281,46 @@ namespace Worms.Game.UI
             if (Play.TouchInput.Visible && Source.IsLocalTurn && (s.Phase == Phase.Aiming || s.Phase == Phase.Retreat)) TouchButtons(s, h);
 
             var audio = Audio.AudioManager.Instance;
-            if (audio != null && GUI.Button(new Rect(safe.xMin + u * 0.5f, safeTop + u * 0.5f, u * 6.5f, u * 1.6f), audio.Muted ? "Âm thanh: tắt" : "Âm thanh: bật", _button))
+            if (audio != null && GUI.Button(new Rect(safe.xMin + u * 0.5f, safeTop + u * 0.5f, u * 5.5f, u * 1.9f), audio.Muted ? "Âm: tắt" : "Âm: bật", _button))
                 audio.SetMuted(!audio.Muted);
 
             Kamikaze(w, h, u);
             if (s.Phase == Phase.GameOver) GameOverPanel(s, w, h, u);
+        }
+
+        /// <summary>Desktop quick picks follow the five visible icon slots in the approved concept.</summary>
+        void QuickWeaponBar(Snapshot s, float u, Rect safe, float h)
+        {
+            const int slots = 5;
+            float size = u * 3.55f, gap = u * 0.25f;
+            float x = safe.xMin + u * 0.6f, y = h - safe.yMin - size - u * 0.55f;
+            float width = slots * size + (slots - 1) * gap;
+            UiSkin.Pill(new Rect(x - u * 0.32f, y - u * 0.32f,
+                width + u * 0.64f, size + u * 0.64f), new Color(0.055f, 0.09f, 0.14f, 0.9f));
+            bool oldEnabled = GUI.enabled;
+            for (int i = 0; i < slots; i++)
+            {
+                var id = (WeaponId)i;
+                var r = new Rect(x + i * (size + gap), y, size, size);
+                bool selected = s.ActiveWeapon == id;
+                if (selected) UiSkin.Pill(new Rect(r.x - 3f, r.y - 3f, r.width + 6f, r.height + 6f), UiSkin.Accent);
+                int ammo = s.ActiveAmmo[i];
+                GUI.enabled = oldEnabled && ammo != 0 && !s.AttackInProgress;
+                if (GUI.Button(r, _weaponIcons == null ? WeaponName(id) : "", selected ? _buttonOn : _button))
+                    Source.SelectWeapon(id);
+                if (_weaponIcons != null)
+                {
+                    var oldColor = GUI.color;
+                    if (!GUI.enabled) GUI.color = new Color(1f, 1f, 1f, 0.4f);
+                    GUI.DrawTextureWithTexCoords(new Rect(r.x + u * 0.35f, r.y + u * 0.2f,
+                        size - u * 0.7f, size - u * 0.85f), _weaponIcons,
+                        new Rect((i % 4) * 0.25f, (1 - i / 4) * 0.5f, 0.25f, 0.5f), true);
+                    GUI.color = oldColor;
+                }
+                string count = ammo < 0 ? "∞" : ammo.ToString();
+                Shadowed(new Rect(r.x, r.yMax - u * 0.8f, r.width, u * 0.7f), count, _weaponCaption, Color.white);
+            }
+            GUI.enabled = oldEnabled;
         }
 
         /// <summary>Draws the on-screen buttons (input itself is read from touches in TouchInput).</summary>
@@ -313,13 +362,13 @@ namespace Worms.Game.UI
                 currentEvent.Use();
             }
 
-            float bottom = h - safe.yMin - u * 1.2f;
+            float bottom = h - safe.yMin - (compact ? u * 1.2f : u * 3.7f);
             if (Play.TouchInput.Visible)
             {
                 var fire = Source.Touch.Layout.Fire;
                 bottom = Mathf.Min(bottom, h - (fire.Y + fire.H) - u * 0.6f);
             }
-            float bh = compact ? Mathf.Max(44f, u * 1.9f) : u * 1.9f;
+            float bh = compact ? Mathf.Max(44f, u * 1.9f) : u * 2.4f;
             float right = safe.xMax - u * 0.6f;
             var toggle = new Rect(right - u * 6.4f, bottom - bh, u * 6.4f, bh);
             var grenade = new Rect(toggle.x - u * 5.4f, toggle.y, u * 5f, bh);
@@ -396,6 +445,8 @@ namespace Worms.Game.UI
                 }
             }
             var blocked = new Rect(grenade.x - u * 0.2f, top, right - grenade.x + u * 0.2f, toggle.yMax - top);
+            if (!compact) blocked = new Rect(safe.xMin, Mathf.Min(top, h - safe.yMin - u * 4.5f),
+                safe.width, h - safe.yMin - Mathf.Min(top, h - safe.yMin - u * 4.5f));
             if (_weaponMenu || dismissed) blocked = new Rect(0, 0, w, h);
             Play.KeyboardInput.BlockedArea = blocked;
             Play.TouchInput.BlockedArea = blocked;

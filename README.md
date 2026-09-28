@@ -8,15 +8,17 @@ Kế hoạch đầy đủ: [docs/PLAN.md](docs/PLAN.md). Deploy: [docs/DEPLOY.md
 
 Game đang hướng tới phong cách hoạt hình sắc nét của [ảnh tham chiếu được chọn](docs/visuals/approved-cartoon-reference.png): địa hình có lớp đất và mép cỏ, biển và đảo nhiều lớp, sâu có biểu cảm, hiệu ứng đạn/nổ, HUD và menu cùng bảng màu. Bản chạy hiện tại chưa đạt mức chi tiết và bố cục của ảnh mẫu. Có hai cảnh Beach và Meadow, ba mức chất lượng Low/Medium/High và tùy chọn giảm chuyển động. Nguồn gốc các asset được ghi trong [assets-src/CREDITS.md](assets-src/CREDITS.md).
 
-![Cảnh chiến đấu hiện tại chụp từ build Windows, không gồm HUD](docs/visuals/world-current-fixed-seed.png)
+Bản đồ họa hiện tại đã thêm hình sâu cho bốn đội, thung lũng ở giữa bản đồ, đạo cụ tránh điểm xuất hiện, lá tiền cảnh, hiệu ứng nổ vẽ tay và HUD desktop. Ảnh dưới chụp từ **development preview build Windows thật**, seed `123456`, chế độ bốn đội mỗi đội một sâu, bằng Unity 6000.3.25f1 trên desktop tách biệt để không lấy focus. Vách địa hình đã được làm thoải hơn trong dữ liệu va chạm thật; đất dùng texture đá khối mới với tông nâu trầm hơn, HUD hiển thị sát thương đang chờ xử lý; tên lửa, khói, va chạm và hố nổ đã được chụp trong lượt bắn thực. Đây là tiến độ đang kiểm tra, chưa phải bản đồ họa được nghiệm thu: bậc đất còn đều, sâu nhỏ trong khung hình, trời chiếm nhiều diện tích và chất liệu cảnh vẫn khác concept; các trạng thái khác và hiệu năng trên thiết bị cần đối chiếu thêm.
 
-[Xem cùng địa hình bậc ở cảnh Meadow](docs/visuals/world-terraces-meadow.png).
+![Cảnh chiến đấu preview bốn đội với HUD](docs/visuals/concept-rebuild-battle-preview.png)
 
-Ảnh trên là **trận đấu**, không phải màn hình đầu khi mở app. Menu dùng cảnh đội sâu riêng; bản chụp camera menu sau khi chỉnh nền ở dưới cũng không gồm nút và chữ giao diện.
+[Xem chế độ mặc định hai đội, bốn sâu mỗi đội](docs/visuals/concept-rebuild-two-team-preview.png) · [màn hình dọc 390×844](docs/visuals/concept-rebuild-portrait-preview.png) · [tên lửa bay](docs/visuals/concept-rebuild-shot-flight.png) · [va chạm](docs/visuals/concept-rebuild-shot-impact.png) · [hố nổ sau khi khói tan](docs/visuals/concept-rebuild-shot-aftermath.png). Ba ảnh cuối lấy từ cùng một lượt bắn trong mô phỏng trận thật. [Ảnh hiệu ứng kích hoạt riêng](docs/visuals/concept-rebuild-vfx-preview.png) chỉ dùng để kiểm tra asset nổ.
 
-![Cảnh đội sâu ở menu sau khi chỉnh nền, không gồm giao diện](docs/visuals/menu-integrated-camera.png)
+Ảnh trên là **trận đấu**, không phải màn hình đầu khi mở app. Menu dùng cảnh đội sâu riêng; ảnh dưới bao gồm cả chữ và giao diện menu, ở trạng thái máy chủ báo cần cập nhật.
 
-Ảnh tham chiếu đã chọn là **concept**, còn hai ảnh trên là camera chụp từ build thật. Bản đồ trận đấu nay có các mặt bằng và vách đất nhiều tầng; sâu vẫn nhỏ hơn và cảnh còn ít chi tiết tiền cảnh hơn concept. Vách cao thay đổi cách đi bộ/nhảy, còn điểm xuất hiện được đặt trên đoạn đất đi được ở cả hai phía. Ảnh camera không chứa HUD/menu IMGUI. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
+![Menu preview thực tế với bốn nhân vật](docs/visuals/concept-rebuild-menu-preview.png)
+
+Ảnh tham chiếu đã chọn là **concept**, còn các ảnh preview là hình từ build thật. Bản đồ mới có hai bờ và thung lũng ở giữa; vách cao thay đổi cách đi bộ/nhảy. Khi các đội còn gần nhau, camera bao quát toàn trận; trên màn hình dọc, camera theo sâu đang chơi. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
 
 ## Cấu trúc
 
@@ -41,4 +43,8 @@ Bản build desktop có thể chạy thẳng vào trận offline bằng tham s�
 
 Build Unity chạy trên GitHub Actions (GameCI) sau khi thêm secret `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD`.
 
-Đợt đồ họa ngày 2026-09-27 đã qua 156 bài test .NET và build Windows/WebGL bằng Unity 6000.3.25f1 trong batch mode, không có lỗi. Giao diện WebGL khi chạy trong trình duyệt, thao tác chạm và FPS/bộ nhớ trên thiết bị thật vẫn cần kiểm tra; xem [ma trận xác minh](docs/GRAPHICS_HANDOFF.md#verification-matrix).
+Đợt đồ họa ngày 2026-09-27 đã qua 158 bài test .NET và build Windows/WebGL bằng Unity 6000.3.25f1 trong batch mode, không có lỗi. Giao diện WebGL khi chạy trong trình duyệt, thao tác chạm và FPS/bộ nhớ trên thiết bị thật vẫn cần kiểm tra; xem [ma trận xác minh](docs/GRAPHICS_HANDOFF.md#verification-matrix).
+
+## Asset đồ họa từ concept
+
+[Bộ 23 ảnh PNG gốc đã tạo](assets-src/generated/README.md) được lưu trong repo: `concept/` chứa ảnh chuẩn và bảng định hướng, `runtime/` chứa bản gốc của 16 ảnh mà Unity nạp từ `client/Assets/Resources/`, `drafts/` chứa các phương án chưa dùng. Ảnh chuẩn trong `assets-src/generated/concept/approved-battle.png` trùng byte với ảnh đối chiếu ở tài liệu. Các bản runtime cũng trùng byte với asset Unity tương ứng; ảnh concept nguyên cảnh và bản nháp không được nạp làm sprite trong game.

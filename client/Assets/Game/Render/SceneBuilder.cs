@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Worms.Game.Core;
+using Worms.Protocol;
 using Worms.Sim;
 
 namespace Worms.Game.Render
@@ -9,6 +10,12 @@ namespace Worms.Game.Render
     /// <summary>Builds the static scenery around the playing field: light, sky, fog, distant hills and the sea.</summary>
     public static class SceneBuilder
     {
+        public static void RefreshSurfaceProps(Transform parent, Worms.Sim.Terrain terrain)
+        {
+            foreach (var anchor in parent.GetComponentsInChildren<SurfacePropAnchor>(true))
+                anchor.Refresh(terrain);
+        }
+
         public static Light CreateSun(Transform parent, Theme theme)
         {
             var go = new GameObject("Sun");
@@ -220,9 +227,89 @@ namespace Worms.Game.Render
                 mesh.RecalculateBounds();
                 var go = new GameObject("Painted oak " + i);
                 go.transform.SetParent(parent, false);
+                var anchor = go.AddComponent<SurfacePropAnchor>();
+                anchor.CellX = cellX;
+                anchor.OriginalTop = top;
+                anchor.MaxDropCells = 50;
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var renderer = go.AddComponent<MeshRenderer>();
                 renderer.sharedMaterial = Materials.BackdropSprite(texture, "Painted oak", 0.92f);
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+        }
+
+        public static void CreateCrateProps(Transform parent, Worms.Sim.Terrain terrain, IReadOnlyList<WormSnap> worms)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/crate-rocks");
+            if (texture == null) return;
+            float[] fractions = { 0.13f, 0.33f, 0.55f, 0.76f, 0.94f };
+            var material = Materials.BackdropSprite(texture, "Crate and rocks", 1f, alphaThreshold: 0.25f);
+            // Crop the generator's transparent padding and keep the props below worm height.
+            const float u0 = 112f / 1536f, u1 = 1452f / 1536f;
+            const float v0 = 141f / 1024f, v1 = 895f / 1024f;
+            for (int i = 0; i < fractions.Length; i++)
+            {
+                float width = i % 2 == 0 ? 2.35f : 2.9f;
+                float height = width * (1.65f / 2.9f);
+                int originX = Mathf.RoundToInt((terrain.Width - 1) * fractions[i]);
+                int cellX = originX, top = terrain.Height;
+                int[] offsets = { 0, -48, 48, -96, 96 };
+                bool found = false;
+                foreach (int offset in offsets)
+                {
+                    int candidate = Mathf.Clamp(originX + offset, 0, terrain.Width - 1);
+                    int surface = 0;
+                    while (surface < terrain.Height && !terrain.IsSolid(candidate, surface)) surface++;
+                    if (surface >= terrain.Height - 8) continue;
+                    float candidateX = candidate * WorldSpace.Scale;
+                    float y = -surface * WorldSpace.Scale;
+                    bool nearWorm = false;
+                    foreach (var worm in worms)
+                    {
+                        if (!worm.Alive) continue;
+                        if (Mathf.Abs(worm.X * WorldSpace.Scale - candidateX) < width * 0.5f + 0.8f &&
+                            Mathf.Abs(-worm.Y * WorldSpace.Scale - y) < 2.3f)
+                        {
+                            nearWorm = true;
+                            break;
+                        }
+                    }
+                    if (nearWorm) continue;
+                    cellX = candidate;
+                    top = surface;
+                    found = true;
+                    break;
+                }
+                if (!found) continue;
+                float x = cellX * WorldSpace.Scale, bottom = -top * WorldSpace.Scale - 0.12f;
+                float leftUv = i % 2 == 0 ? u0 : u1;
+                float rightUv = i % 2 == 0 ? u1 : u0;
+                var mesh = new Mesh
+                {
+                    name = "Painted crate and rocks",
+                    vertices = new[]
+                    {
+                        new Vector3(x - width / 2, bottom, -0.12f),
+                        new Vector3(x - width / 2, bottom + height, -0.12f),
+                        new Vector3(x + width / 2, bottom + height, -0.12f),
+                        new Vector3(x + width / 2, bottom, -0.12f),
+                    },
+                    uv = new[] { new Vector2(leftUv, v0), new Vector2(leftUv, v1),
+                        new Vector2(rightUv, v1), new Vector2(rightUv, v0) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                mesh.RecalculateBounds();
+                var go = new GameObject("Crate and rocks " + i);
+                go.transform.SetParent(parent, false);
+                var anchor = go.AddComponent<SurfacePropAnchor>();
+                anchor.CellX = cellX;
+                anchor.OriginalTop = top;
+                anchor.MaxDropCells = 35;
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                renderer.sortingOrder = -10;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
             }
@@ -270,4 +357,5 @@ namespace Worms.Game.Render
             return go.transform;
         }
     }
+
 }

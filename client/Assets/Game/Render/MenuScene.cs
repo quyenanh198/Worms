@@ -93,7 +93,7 @@ namespace Worms.Game.Render
                 int top = 0;
                 while (top < _terrain.Height && !_terrain.IsSolid(x, top)) top++;
                 _spots[i] = WorldSpace.ToWorld(x, top - C.WormRadius);
-                _worms[i] = new WormView(transform, 900 + i, TeamColors.Of(i));
+                _worms[i] = new WormView(transform, 900 + i, i, TeamColors.Of(i));
                 _looks[i] = Showcase[i];
                 _worms[i].SetLoadout(_looks[i]);
             }
