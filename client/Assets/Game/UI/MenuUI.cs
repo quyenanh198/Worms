@@ -17,6 +17,7 @@ namespace Worms.Game.UI
         public NetClient Net;
         public Action StartSandbox;
         public bool Hidden;
+        public bool Waiting;
 
         string _code = string.Empty;
         string _username = string.Empty;
@@ -44,6 +45,7 @@ namespace Worms.Game.UI
         bool _store;
         int _tab;
         byte _preview;
+        Vector2 _storeScroll;
         static readonly string[] Tabs = { "Mũ", "Áo giáp", "Vũ khí" };
 
         void Update()
@@ -148,7 +150,7 @@ namespace Worms.Game.UI
         void OnGUI()
         {
             UiFont.UseForSkin();
-            if (Hidden) return;
+            if (Hidden || Waiting) return;
             Styles();
             if (CompactLayout && _showSettings)
             {
@@ -427,16 +429,27 @@ namespace Worms.Game.UI
                 {
                     _tab = t;
                     _preview = 0;
+                    _storeScroll = Vector2.zero;
                 }
             y += _u * 2.3f;
 
+            int rowCount = 0;
+            foreach (var item in Cosmetics.All)
+            {
+                int tab = item.Slot == CosmeticSlot.Hat ? 0 : item.Slot == CosmeticSlot.Armor ? 1 : 2;
+                if (tab == _tab) rowCount++;
+            }
+            float viewHeight = Mathf.Max(_u * 4f, Screen.height - y - _u * 5f);
+            _storeScroll = GUI.BeginScrollView(new Rect(x0, y, w + _u * 0.8f, viewHeight),
+                _storeScroll, new Rect(0, 0, w, rowCount * _u * 2.8f + _u * 0.2f));
+            float rowY = 0f;
             foreach (var item in Cosmetics.All)
             {
                 int tab = item.Slot == CosmeticSlot.Hat ? 0 : item.Slot == CosmeticSlot.Armor ? 1 : 2;
                 if (tab != _tab) continue;
                 bool owned = profile.Owns(item.Id);
                 bool worn = profile.Loadout[item.Slot] == item.Id;
-                var row = new Rect(x0, y, w, _u * 2.5f);
+                var row = new Rect(0, rowY, w, _u * 2.5f);
                 UiSkin.Pill(row, _preview == item.Id ? new Color(0.2f, 0.25f, 0.34f, 0.95f) : new Color(0.1f, 0.12f, 0.17f, 0.85f));
                 // The whole row (except its button) previews the item.
                 if (GUI.Button(new Rect(row.x, row.y, row.width - _u * 6.4f, row.height), GUIContent.none, GUIStyle.none)) _preview = item.Id;
@@ -464,9 +477,10 @@ namespace Worms.Game.UI
                     }
                 }
                 GUI.enabled = old;
-                y += _u * 2.8f;
+                rowY += _u * 2.8f;
             }
-            y += _u * 0.3f;
+            GUI.EndScrollView();
+            y += viewHeight + _u * 0.3f;
             if (Button(ref y, "Quay lại"))
             {
                 _store = false;

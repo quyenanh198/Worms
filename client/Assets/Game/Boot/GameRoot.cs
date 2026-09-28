@@ -20,6 +20,7 @@ namespace Worms.Game.Boot
     {
         NetClient _net;
         MenuUI _menu;
+        WaitingScreen _waiting;
         Render.MenuScene _menuScene;
         SandboxMatch _sandbox;
         NetMatch _netMatch;
@@ -47,8 +48,13 @@ namespace Worms.Game.Boot
             _menu = gameObject.AddComponent<MenuUI>();
             _menu.Net = _net;
             _menu.StartSandbox = StartSandbox;
+            _waiting = gameObject.AddComponent<WaitingScreen>();
 
-            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sandbox") >= 0) StartSandbox();
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sandbox") >= 0)
+            {
+                _waiting.Visible = false;
+                StartSandbox();
+            }
 #if DEVELOPMENT_BUILD
             var capturePath = CommandLineArg("-capture-path");
             if (!string.IsNullOrEmpty(capturePath)) StartCoroutine(CapturePreview(capturePath));
@@ -71,6 +77,8 @@ namespace Worms.Game.Boot
                 else if (session.Match == null && _netMatch != null) EndNetMatch();
             }
             _menu.Hidden = _sandbox != null || _netMatch != null;
+            if (_menu.Hidden && _waiting != null) _waiting.Visible = false;
+            _menu.Waiting = _waiting != null && _waiting.Visible;
         }
 
         /// <summary>The menu's 3D backdrop: the Worms squad on its island (it brings its own camera).</summary>

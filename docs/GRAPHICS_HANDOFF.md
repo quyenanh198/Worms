@@ -206,6 +206,10 @@ An additional painted brown dust puff now drives the terrain damage particles in
 
 The shared red character set now includes a dedicated airborne cutout. WormView selects it in the airborne state for all teams through the same selective body recoloring shader and no longer stretches the idle image for that state. Its source dimensions are 1263×1246 with opaque bounds inside the common UV crop. Runtime motion, transitions and accessory overlap remain to be inspected in Unity.
 
+Worm materials are now shared by pose across every character. Each renderer receives its actual `teamColor` through a material property block, so the same animation art accepts arbitrary future team colors rather than only four prebuilt palette entries. The hit flash remains a separate property in the same block.
+
+The project owner supplied two segmented opening scenes in `segments (1).zip` and `segments.zip`. Their original PNG cutouts are preserved under `assets-src/supplied/`. `WaitingScreen` randomly selects the coastal or neon card at launch, uses selected layers and a touch button, then hands control to the existing menu. Seven wearable cutouts from those packs are new purchasable hat-slot items with unique wire IDs. The store list scrolls so all items remain accessible. An actual Unity player capture is still needed to judge the composition and accessory alignment.
+
 The crater-aware surface grass mesh now builds fewer but wider five-leaf tufts with taller, curved silhouettes and a brighter biome-tinted green. It remains anchored to exposed terrain cells, so rebuilding a damaged chunk redraws the matching foliage. This mesh change needs a player capture at normal and close zoom to judge whether the grass lip is lush without hiding worms or shimmering.
 
 Cliff-rock inlays and shelf grass/stone clumps now use deterministic size variants instead of repeated identical quads. Each rock inlay also uses a distinct depth below the local surface, with solid-ground sampling recalculated for its own dimensions. These are visual placement changes; the terrain mask and collisions are unchanged.

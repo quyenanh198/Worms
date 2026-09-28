@@ -14,13 +14,14 @@ namespace Worms.Game.Render
     {
         static Mesh _eyeMesh, _handMesh;
         static Mesh _paintedQuad;
-        static Material[] _paintedMaterials;
-        static Material[] _aimMaterials;
-        static Material[] _hurtMaterials;
-        static Material[] _airborneMaterials;
-        static Material[,] _walkMaterials;
+        static Material _paintedMaterial;
+        static Material _aimMaterial;
+        static Material _hurtMaterial;
+        static Material _airborneMaterial;
+        static Material[] _walkMaterials;
         static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
+        static readonly int TeamColorId = Shader.PropertyToID("_TeamColor");
 
         public readonly Transform Root;
         readonly Transform _body, _eyeL, _eyeR, _pupilL, _pupilR, _handL, _handR, _weaponPivot, _mouth, _cheek;
@@ -31,7 +32,7 @@ namespace Worms.Game.Render
         readonly MeshRenderer _renderer;
         readonly MeshRenderer _paintedRenderer;
         readonly Transform _paintedSprite;
-        readonly int _palette;
+        readonly Color _teamColor;
         readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         Transform _prop;
         WeaponId _propId;
@@ -49,6 +50,7 @@ namespace Worms.Game.Render
         public WormView(Transform parent, int id, int team, Color teamColor, float paintedScale = 1f)
         {
             _paintedScale = paintedScale;
+            _teamColor = teamColor;
             if (_eyeMesh == null)
             {
                 _eyeMesh = MeshUtil.Create(Shapes.Sphere(0.5f, 10, 14), "Eye");
@@ -58,7 +60,7 @@ namespace Worms.Game.Render
                 _mouthMat = Materials.Toon(new Color(0.32f, 0.07f, 0.09f));
                 _cheekMat = Materials.Toon(new Color(1f, 0.55f, 0.6f));
             }
-            Root = new GameObject("Worm " + id).transform;
+            Root = new GameObject("Worm " + id + " team " + team).transform;
             Root.SetParent(parent, false);
             _body = new GameObject("Body").transform;
             _body.SetParent(Root, false);
@@ -68,13 +70,9 @@ namespace Worms.Game.Render
             _renderer = _body.gameObject.AddComponent<MeshRenderer>();
             _renderer.sharedMaterial = Materials.Toon(teamColor, segments: true);
 
-            if (_paintedMaterials == null)
+            if (_walkMaterials == null)
             {
-                _paintedMaterials = new Material[4];
-                _aimMaterials = new Material[4];
-                _hurtMaterials = new Material[4];
-                _airborneMaterials = new Material[4];
-                _walkMaterials = new Material[4, 2];
+                _walkMaterials = new Material[2];
                 // A single source-space crop keeps idle and aim poses at the same scale.
                 // Source dimensions are used because Unity can downsample on WebGL/mobile.
                 var crop = new Rect(50, 60, 1200, 1140);
@@ -84,19 +82,14 @@ namespace Worms.Game.Render
                 var airborne = Resources.Load<Texture2D>("Characters/worm-red-airborne");
                 var walkA = Resources.Load<Texture2D>("Characters/worm-red-walk-a");
                 var walkB = Resources.Load<Texture2D>("Characters/worm-red-walk-b");
-                for (int i = 0; i < 4; i++)
-                {
-                    var color = TeamColors.Of(i);
-                    if (idle != null) _paintedMaterials[i] = PaintedMaterial(idle, "Worm idle " + i, crop, 1263, 1246, color);
-                    if (aim != null) _aimMaterials[i] = PaintedMaterial(aim, "Worm aim " + i, crop, 1263, 1246, color);
-                    if (hurt != null) _hurtMaterials[i] = PaintedMaterial(hurt, "Worm hurt " + i, crop, 1263, 1246, color);
-                    if (airborne != null) _airborneMaterials[i] = PaintedMaterial(airborne, "Worm airborne " + i, crop, 1263, 1246, color);
-                    if (walkA != null) _walkMaterials[i, 0] = PaintedMaterial(walkA, "Worm walk A " + i, crop, 1263, 1246, color);
-                    if (walkB != null) _walkMaterials[i, 1] = PaintedMaterial(walkB, "Worm walk B " + i, crop, 1263, 1246, color);
-                }
+                if (idle != null) _paintedMaterial = PaintedMaterial(idle, "Worm idle", crop, 1263, 1246);
+                if (aim != null) _aimMaterial = PaintedMaterial(aim, "Worm aim", crop, 1263, 1246);
+                if (hurt != null) _hurtMaterial = PaintedMaterial(hurt, "Worm hurt", crop, 1263, 1246);
+                if (airborne != null) _airborneMaterial = PaintedMaterial(airborne, "Worm airborne", crop, 1263, 1246);
+                if (walkA != null) _walkMaterials[0] = PaintedMaterial(walkA, "Worm walk A", crop, 1263, 1246);
+                if (walkB != null) _walkMaterials[1] = PaintedMaterial(walkB, "Worm walk B", crop, 1263, 1246);
             }
-            _palette = ((team % 4) + 4) % 4;
-            if (_paintedMaterials[_palette] != null)
+            if (_paintedMaterial != null)
             {
                 if (_paintedQuad == null)
                 {
@@ -119,7 +112,9 @@ namespace Worms.Game.Render
                 _paintedSprite.SetParent(_body, false);
                 _paintedSprite.gameObject.AddComponent<MeshFilter>().sharedMesh = _paintedQuad;
                 _paintedRenderer = _paintedSprite.gameObject.AddComponent<MeshRenderer>();
-                _paintedRenderer.sharedMaterial = _paintedMaterials[_palette];
+                _paintedRenderer.sharedMaterial = _paintedMaterial;
+                _block.SetColor(TeamColorId, _teamColor);
+                _paintedRenderer.SetPropertyBlock(_block);
                 _paintedRenderer.sortingOrder = 10;
                 _paintedRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 _paintedRenderer.receiveShadows = false;
@@ -153,10 +148,9 @@ namespace Worms.Game.Render
             _blinkAt = Random.Range(1f, 4f);
         }
 
-        static Material PaintedMaterial(Texture2D texture, string name, Rect crop, int width, int height, Color teamColor)
+        static Material PaintedMaterial(Texture2D texture, string name, Rect crop, int width, int height)
         {
             var material = Materials.BackdropSprite(texture, name, 1f);
-            material.SetColor("_TeamColor", teamColor);
             material.SetFloat("_RecolorStrength", 1f);
             material.SetTextureScale("_MainTex", new Vector2(crop.width / width, crop.height / height));
             material.SetTextureOffset("_MainTex", new Vector2(crop.x / width,
@@ -246,17 +240,17 @@ namespace Worms.Game.Render
             _body.localRotation = Quaternion.Euler(0, 0, _spin);
             if (_paintedSprite != null)
             {
-                var hurt = (w.State == WormState.Tumbling || _hurtPoseTime > 0f) && _hurtMaterials[_palette] != null;
-                bool walking = w.State == WormState.Walking && _walkMaterials[_palette, 0] != null
-                    && _walkMaterials[_palette, 1] != null;
+                var hurt = (w.State == WormState.Tumbling || _hurtPoseTime > 0f) && _hurtMaterial != null;
+                bool walking = w.State == WormState.Walking && _walkMaterials[0] != null
+                    && _walkMaterials[1] != null;
                 int walkFrame = Mathf.FloorToInt(Time.time * 7f) & 1;
                 bool activeWalk = walking && !hurt;
-                var pose = hurt ? _hurtMaterials[_palette]
-                    : activeWalk ? _walkMaterials[_palette, walkFrame]
-                    : w.State == WormState.Airborne && _airborneMaterials[_palette] != null
-                        ? _airborneMaterials[_palette]
-                    : holding && w.State != WormState.Tumbling && _aimMaterials[_palette] != null
-                        ? _aimMaterials[_palette] : _paintedMaterials[_palette];
+                var pose = hurt ? _hurtMaterial
+                    : activeWalk ? _walkMaterials[walkFrame]
+                    : w.State == WormState.Airborne && _airborneMaterial != null
+                        ? _airborneMaterial
+                    : holding && w.State != WormState.Tumbling && _aimMaterial != null
+                        ? _aimMaterial : _paintedMaterial;
                 if (_paintedRenderer.sharedMaterial != pose) _paintedRenderer.sharedMaterial = pose;
                 float footOffset = activeWalk ? (walkFrame == 0 ? -0.11f : -0.038f) : 0f;
                 float bob = activeWalk ? 0.012f * Mathf.Sin(Time.time * 14f) : 0f;
@@ -347,6 +341,7 @@ namespace Worms.Game.Render
             if (_hurtPoseTime > 0) _hurtPoseTime = Mathf.Max(0, _hurtPoseTime - dt);
             _renderer.GetPropertyBlock(_block);
             _block.SetFloat(FlashId, _flash);
+            _block.SetColor(TeamColorId, _teamColor);
             _renderer.SetPropertyBlock(_block);
             if (_paintedRenderer != null) _paintedRenderer.SetPropertyBlock(_block);
         }
