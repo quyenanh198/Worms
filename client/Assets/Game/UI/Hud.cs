@@ -35,7 +35,7 @@ namespace Worms.Game.UI
         GUIStyle _label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine, _weaponCaption;
         bool _weaponMenu;
         Texture2D _white;
-        Texture2D _weaponIcons, _teamPortraits;
+        Texture2D _weaponIcons, _teamPortraits, _foregroundFoliage;
         int _styleWidth, _styleHeight;
 
         static readonly string[] WeaponNames = { "Bazooka", "Lựu đạn", "Bom chùm", "Shotgun", "Uzi", "Dynamite", "Gậy bóng chày", "Không kích", "Bom napalm" };
@@ -71,6 +71,7 @@ namespace Worms.Game.UI
             UiFont.Apply(_label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine, _weaponCaption);
             _weaponIcons = Resources.Load<Texture2D>("UI/weapon-icons");
             _teamPortraits = Resources.Load<Texture2D>("UI/team-portraits");
+            _foregroundFoliage = Resources.Load<Texture2D>("UI/foreground-foliage");
         }
 
         void Box(Rect r, Color c)
@@ -160,6 +161,14 @@ namespace Worms.Game.UI
             var safe = Screen.safeArea;
             float safeTop = h - safe.yMax, safeBottom = safe.yMin;
             bool compact = safe.width < 700f;
+            if (!compact && _foregroundFoliage != null)
+            {
+                var oldColor = GUI.color;
+                GUI.color = new Color(1f, 1f, 1f, 0.82f);
+                GUI.DrawTexture(new Rect(0, h - u * 9f, w, u * 9f),
+                    _foregroundFoliage, ScaleMode.StretchToFill, true);
+                GUI.color = oldColor;
+            }
 
             // Name tags over every worm: the player's name, then HP (pending damage in red).
             var cam = Source.Presenter.Rig.Camera;
@@ -191,7 +200,7 @@ namespace Worms.Game.UI
             TurnOrder(s, timer, u);
 
             // Top right: wind, a bar filling from the middle toward where it blows.
-            float windW = u * 8;
+            float windW = u * (compact ? 5.8f : 8f);
             var windBadge = new Rect(safe.xMax - windW - u * 1.2f, safeTop + u * 0.4f, windW + u * 1.2f, u * 2.7f);
             UiSkin.Pill(windBadge, new Color(0.07f, 0.09f, 0.13f, 0.8f));
             var windRect = new Rect(windBadge.x + u * 0.6f, windBadge.y + u * 1.45f, windW, u * 0.5f);

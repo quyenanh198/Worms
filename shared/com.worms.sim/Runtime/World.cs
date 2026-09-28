@@ -461,7 +461,11 @@ namespace Worms.Sim
         {
             for (int attempt = 0; attempt < 500; attempt++)
             {
-                int x = rng.Range(80, Terrain.Width - 80);
+                // Start teams around the central basin so opponents and the
+                // opposing cliff can share a normal camera frame.
+                int halfBattle = Math.Min(400, Terrain.Width / 3);
+                int x = rng.Range(Math.Max(80, Terrain.Width / 2 - halfBattle),
+                    Math.Min(Terrain.Width - 80, Terrain.Width / 2 + halfBattle));
                 float? y = SurfaceY(x);
                 if (y == null || y.Value > WaterLevel - 3 * C.WormRadius) continue;
                 // Keep a short walkable shelf on both sides of every spawn. On the

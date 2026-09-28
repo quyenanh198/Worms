@@ -8,17 +8,17 @@ Kế hoạch đầy đủ: [docs/PLAN.md](docs/PLAN.md). Deploy: [docs/DEPLOY.md
 
 Game đang hướng tới phong cách hoạt hình sắc nét của [ảnh tham chiếu được chọn](docs/visuals/approved-cartoon-reference.png): địa hình có lớp đất và mép cỏ, biển và đảo nhiều lớp, sâu có biểu cảm, hiệu ứng đạn/nổ, HUD và menu cùng bảng màu. Bản chạy hiện tại chưa đạt mức chi tiết và bố cục của ảnh mẫu. Có hai cảnh Beach và Meadow, ba mức chất lượng Low/Medium/High và tùy chọn giảm chuyển động. Nguồn gốc các asset được ghi trong [assets-src/CREDITS.md](assets-src/CREDITS.md).
 
-Nhánh `feat/concept-character-rebuild` đã thêm hình sâu cho bốn đội, đạo cụ thùng gỗ/đá và bố cục HUD desktop. Hai ảnh dưới đây chụp từ **development preview build Windows thật** bằng Unity 6000.3.25f1 trên desktop Windows tách biệt để không lấy focus. Chúng cho thấy tiến độ, chưa phải bản đồ họa được nghiệm thu: trận đấu vẫn có khối đất quá lớn, ít nhân vật trong khung hình và chưa có cảnh đạn/nổ như concept.
+Nhánh `feat/concept-character-rebuild` đã thêm hình sâu cho bốn đội, thung lũng ở giữa bản đồ, đạo cụ tránh điểm xuất hiện, lá tiền cảnh, hiệu ứng nổ vẽ tay và HUD desktop. Ảnh dưới chụp từ **development preview build Windows thật**, seed `123456`, chế độ bốn đội mỗi đội một sâu, bằng Unity 6000.3.25f1 trên desktop tách biệt để không lấy focus. Vách địa hình đã được làm thoải hơn trong dữ liệu va chạm thật. Đây là tiến độ đang kiểm tra, chưa phải bản đồ họa được nghiệm thu: bậc đất còn đều, sâu nhỏ trong khung hình, trời chiếm nhiều diện tích và chất liệu cảnh vẫn khác concept; chuyển động đạn/hố nổ trong lượt chơi cần đối chiếu thêm.
 
-![Cảnh chiến đấu preview thực tế với HUD](docs/visuals/concept-rebuild-battle-preview.png)
+![Cảnh chiến đấu preview bốn đội với HUD](docs/visuals/concept-rebuild-battle-preview.png)
 
-[Xem cùng địa hình bậc ở cảnh Meadow](docs/visuals/world-terraces-meadow.png).
+[Xem chế độ mặc định hai đội, bốn sâu mỗi đội](docs/visuals/concept-rebuild-two-team-preview.png) · [màn hình dọc 390×844](docs/visuals/concept-rebuild-portrait-preview.png) · [hiệu ứng nổ kích hoạt để kiểm tra hình](docs/visuals/concept-rebuild-vfx-preview.png). Ảnh hiệu ứng không phải một lượt bắn đầy đủ và chưa chứng minh hố nổ sau va chạm.
 
 Ảnh trên là **trận đấu**, không phải màn hình đầu khi mở app. Menu dùng cảnh đội sâu riêng; ảnh dưới bao gồm cả chữ và giao diện menu, ở trạng thái máy chủ báo cần cập nhật.
 
 ![Menu preview thực tế với bốn nhân vật](docs/visuals/concept-rebuild-menu-preview.png)
 
-Ảnh tham chiếu đã chọn là **concept**, còn hai ảnh trên là hình từ build thật. Bản đồ trận đấu có các mặt bằng và vách đất nhiều tầng nhưng bố cục hiện tại khác xa concept. Vách cao thay đổi cách đi bộ/nhảy; điểm xuất hiện được đặt trên đoạn đất đi được ở cả hai phía. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
+Ảnh tham chiếu đã chọn là **concept**, còn các ảnh preview là hình từ build thật. Bản đồ mới có hai bờ và thung lũng ở giữa; vách cao thay đổi cách đi bộ/nhảy. Khi các đội còn gần nhau, camera bao quát toàn trận; trên màn hình dọc, camera theo sâu đang chơi. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
 
 ## Cấu trúc
 

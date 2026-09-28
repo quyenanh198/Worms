@@ -28,3 +28,5 @@ Khi thêm một file asset, ghi một dòng vào bảng dưới đây (nguồn, 
 | `client/Assets/Resources/Characters/worm-green.png` | Biến thể màu lục từ sprite sâu đỏ bằng OpenAI image generation, 2026-09-27 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/UI/weapon-icons.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-26 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/UI/team-portraits.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-26 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/UI/foreground-foliage.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; lá cây tiền cảnh nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/VFX/explosion-burst.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; lửa, khói và đất bay nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |

@@ -39,9 +39,12 @@ namespace Worms.Game.Play
         // so "damage this turn >= HP" means the worm will not survive it.
         readonly Dictionary<int, int> _turnDamage = new Dictionary<int, int>();
         bool _kamikazeThisTurn;
+        SimTerrain _sourceTerrain;
+        bool _cratePropsCreated;
 
         public void Init(SimTerrain terrain, float waterLevel, uint seed, int teamCount)
         {
+            _sourceTerrain = terrain;
             WaterLevel = waterLevel;
             TeamCount = teamCount;
             var theme = Theme.ForSeed(seed);
@@ -81,6 +84,11 @@ namespace Worms.Game.Play
         {
             Previous = previous;
             Current = current;
+            if (!_cratePropsCreated && current != null && current.Worms.Count > 0)
+            {
+                SceneBuilder.CreateCrateProps(transform, _sourceTerrain, current.Worms);
+                _cratePropsCreated = true;
+            }
         }
 
         /// <summary>Turns simulation events into terrain updates, effects and popups.</summary>
@@ -96,6 +104,7 @@ namespace Worms.Game.Play
                         // Value is the crater, Amount the blast (weapons dig and hurt by different amounts).
                         float blast = e.Amount > 0 ? e.Amount : e.Value;
                         Terrain.RefreshCircle(e.X, e.Y, e.Value);
+                        SceneBuilder.RefreshSurfaceProps(transform, _sourceTerrain);
                         Vfx.Explosion(at, blast * WorldSpace.Scale);
                         ShakeFrom(at, blast);
                         Sound(blast < 25 ? Sfx.ExplosionSmall : blast < 60 ? Sfx.ExplosionMedium : Sfx.ExplosionLarge, at.x);
@@ -265,6 +274,7 @@ namespace Worms.Game.Play
 
         /// <summary>Called every frame after the snapshots are up to date.</summary>
         int _lastTickSecond = -1;
+        int _framedWorm = -1;
         readonly System.Collections.Generic.Dictionary<int, WormState> _lastState = new System.Collections.Generic.Dictionary<int, WormState>();
 
         public void Render(float alpha, bool localTurn, float localAim)
@@ -297,9 +307,67 @@ namespace Worms.Game.Play
                 return WorldSpace.ToWorld(p.X, p.Y, 0);
             }
             var worm = Current.FindWorm(Current.ActiveWorm);
-            // Keep the active worm below the middle of the frame so upper shelves
-            // and worms on them remain visible during a normal turn.
-            if (worm.HasValue) return WorldSpace.ToWorld(worm.Value.X, worm.Value.Y, 0) + Vector3.up * 1.5f;
+            if (worm.HasValue)
+            {
+                var active = WorldSpace.ToWorld(worm.Value.X, worm.Value.Y, 0);
+                if (Rig.Camera.aspect < 0.75f)
+                {
+                    if (_framedWorm != worm.Value.Id)
+                    {
+                        _framedWorm = worm.Value.Id;
+                        Rig.Distance = 19f;
+                    }
+                    return active + Vector3.down * 0.4f;
+                }
+                Vector3 nearest = default;
+                float nearestSqr = float.MaxValue;
+                float minX = float.MaxValue, maxX = float.MinValue;
+                float minY = float.MaxValue, maxY = float.MinValue;
+                int living = 0;
+                foreach (var other in Current.Worms)
+                {
+                    if (!other.Alive) continue;
+                    var at = WorldSpace.ToWorld(other.X, other.Y, 0);
+                    living++;
+                    minX = Mathf.Min(minX, at.x);
+                    maxX = Mathf.Max(maxX, at.x);
+                    minY = Mathf.Min(minY, at.y);
+                    maxY = Mathf.Max(maxY, at.y);
+                    if (other.Team == worm.Value.Team) continue;
+                    float sqr = (at - active).sqrMagnitude;
+                    if (sqr >= nearestSqr) continue;
+                    nearestSqr = sqr;
+                    nearest = at;
+                }
+
+                bool overview = living >= 2 && maxX - minX <= 50f && maxY - minY <= 20f;
+                bool pairVisible = nearestSqr <= 30f * 30f &&
+                    Mathf.Abs(nearest.y - active.y) <= 12f;
+                if (_framedWorm != worm.Value.Id)
+                {
+                    _framedWorm = worm.Value.Id;
+                    if (overview || pairVisible)
+                    {
+                        float tan = Mathf.Tan(Rig.Camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                        float aspect = Mathf.Max(1f, Rig.Camera.aspect);
+                        float width = overview ? maxX - minX : Mathf.Abs(nearest.x - active.x);
+                        float height = overview ? maxY - minY : Mathf.Abs(nearest.y - active.y);
+                        Rig.Distance = overview
+                            ? Mathf.Clamp(Mathf.Max(25f, width / (1.65f * tan * aspect),
+                                height / (1.35f * tan)), 25f, 42f)
+                            : Mathf.Clamp(Mathf.Max(30f, width / (1.45f * tan * aspect),
+                                height / (1.30f * tan)), 30f, 35f);
+                    }
+                    else Rig.Distance = 25f;
+                }
+                if (overview)
+                    return new Vector3((minX + maxX) * 0.5f, (minY + maxY) * 0.5f + 1f, 0);
+                // The center of the shot stays between the current actor and the
+                // nearest close opponent; distant enemies cannot displace the actor.
+                return pairVisible
+                    ? Vector3.Lerp(active, nearest, 0.5f)
+                    : active + Vector3.up * 1.5f;
+            }
             return null;
         }
     }

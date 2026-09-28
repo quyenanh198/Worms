@@ -112,6 +112,7 @@ namespace Worms.Game.Render
                 _paintedSprite.gameObject.AddComponent<MeshFilter>().sharedMesh = _paintedQuad;
                 _paintedRenderer = _paintedSprite.gameObject.AddComponent<MeshRenderer>();
                 _paintedRenderer.sharedMaterial = _paintedMaterials[palette];
+                _paintedRenderer.sortingOrder = 10;
                 _paintedRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 _paintedRenderer.receiveShadows = false;
                 _renderer.enabled = false;

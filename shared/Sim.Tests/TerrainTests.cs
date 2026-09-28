@@ -23,6 +23,34 @@ namespace Worms.Sim.Tests
             Assert.False(t.IsSolid(0, t.Height / 3)); // edges taper into the sea
         }
 
+        [Fact]
+        public void SelectedConceptSeedHasCentralBasinBetweenTwoHighShelves()
+        {
+            var t = MapGenerator.Generate(123456);
+            int Surface(int x)
+            {
+                for (int y = 0; y < t.Height; y++)
+                    if (t.IsSolid(x, y)) return y;
+                return t.Height;
+            }
+
+            int basin = Surface(t.Width / 2);
+            Assert.True(basin - Surface(640) >= 100, "Left shelf must stand above the basin");
+            Assert.True(basin - Surface(1408) >= 100, "Right shelf must stand above the basin");
+        }
+
+        [Fact]
+        public void GeneratedSpawnsStayInTheCentralBattleArea()
+        {
+            foreach (uint seed in new uint[] { 0, 1, 5, 42, 123456, 123457 })
+            {
+                var world = new World(new MatchSetup { Seed = seed, Teams = 4, WormsPerTeam = 4 });
+                foreach (var worm in world.Worms)
+                    Assert.InRange(worm.Pos.X, world.Terrain.Width / 2f - 400f,
+                        world.Terrain.Width / 2f + 400f);
+            }
+        }
+
         [Theory]
         [InlineData(5u)]
         [InlineData(123456u)]

@@ -34,9 +34,22 @@ namespace Worms.Game.Render
         int _scorchNext, _scorchCount;
         readonly List<(LineRenderer line, float age)> _tracers = new List<(LineRenderer, float)>();
         readonly Stack<LineRenderer> _freeTracers = new Stack<LineRenderer>();
+        sealed class BurstSprite
+        {
+            public Transform Root;
+            public MeshRenderer Renderer;
+            public readonly MaterialPropertyBlock Block = new MaterialPropertyBlock();
+            public float Age;
+            public float Radius;
+        }
+        static Mesh _burstQuad;
+        Material _burstMaterial;
+        readonly List<BurstSprite> _activeBursts = new List<BurstSprite>();
+        readonly Stack<BurstSprite> _freeBursts = new Stack<BurstSprite>();
 
         static readonly int ScorchId = Shader.PropertyToID("_WormsScorch");
         static readonly int ScorchCountId = Shader.PropertyToID("_WormsScorchCount");
+        static readonly int OpacityId = Shader.PropertyToID("_Opacity");
 
         public void Init(Color dirt)
         {
@@ -49,12 +62,16 @@ namespace Worms.Game.Render
             _additive.SetFloat("_DstBlend", (float)BlendMode.One);
             _additive.renderQueue = 3100;
 
-            _smoke = System("Smoke", _alpha, 0f, new[] { new Color(0.35f, 0.33f, 0.32f, 0.7f), new Color(0.6f, 0.6f, 0.6f, 0f) }, 0.6f, 1.8f);
+            _smoke = System("Smoke", _alpha, 0f, new[] { new Color(0.35f, 0.33f, 0.32f, 0.55f), new Color(0.6f, 0.6f, 0.6f, 0f) }, 0.6f, 1.8f);
             _dirt = System("Dirt", _alpha, 1.6f, new[] { Color.white, new Color(1, 1, 1, 0.9f) }, 1f, 0.8f);
-            _fire = System("Fire", _additive, -0.05f, new[] { new Color(1f, 0.95f, 0.6f, 1f), new Color(1f, 0.45f, 0.1f, 0.8f), new Color(0.4f, 0.1f, 0.05f, 0f) }, 0.8f, 1.6f);
+            _fire = System("Fire", _additive, -0.05f, new[] { new Color(1f, 0.76f, 0.26f, 0.85f), new Color(1f, 0.31f, 0.07f, 0.68f), new Color(0.4f, 0.1f, 0.05f, 0f) }, 0.75f, 1.35f);
             _sparks = System("Sparks", _additive, 1.2f, new[] { new Color(1f, 0.9f, 0.5f, 1f), new Color(1f, 0.4f, 0.1f, 0f) }, 1f, 0.3f);
             _water = System("Water", _alpha, 1.4f, new[] { new Color(0.85f, 0.95f, 1f, 0.9f), new Color(0.7f, 0.85f, 0.95f, 0f) }, 1f, 0.7f);
             _trail = System("Trail", _alpha, -0.02f, new[] { new Color(0.9f, 0.9f, 0.9f, 0.55f), new Color(0.8f, 0.8f, 0.8f, 0f) }, 0.4f, 2.6f);
+            var burstTexture = Resources.Load<Texture2D>("VFX/explosion-burst");
+            if (burstTexture != null)
+                _burstMaterial = Materials.BackdropSprite(burstTexture, "Painted explosion burst", 1f,
+                    alphaThreshold: 0.04f);
             Shader.SetGlobalVectorArray(ScorchId, _scorch);
             Shader.SetGlobalFloat(ScorchCountId, 0);
         }
@@ -97,6 +114,7 @@ namespace Worms.Game.Render
             var r = go.GetComponent<ParticleSystemRenderer>();
             r.sharedMaterial = mat;
             r.renderMode = ParticleSystemRenderMode.Billboard;
+            if (name == "Smoke") r.sortingOrder = 1;
             r.shadowCastingMode = ShadowCastingMode.Off;
             r.receiveShadows = false;
             ps.Play();
@@ -122,10 +140,16 @@ namespace Worms.Game.Render
         /// <summary>Fireball, smoke, flying dirt and sparks; radius in world units.</summary>
         public void Explosion(Vector3 pos, float radius)
         {
-            for (int i = 0; i < Count(18); i++)
-                Emit(_fire, pos + Random.insideUnitSphere * radius * 0.3f, Random.insideUnitSphere * radius * 2.2f, radius * Random.Range(0.6f, 1.1f), Random.Range(0.25f, 0.5f), Color.white);
-            for (int i = 0; i < Count(14); i++)
-                Emit(_smoke, pos + Random.insideUnitSphere * radius * 0.5f, Random.insideUnitSphere * radius + Vector3.up * radius, radius * Random.Range(0.7f, 1.2f), Random.Range(1.2f, 2.2f), Color.white);
+            PaintedBurst(pos, radius);
+            float visualRadius = radius * 1.35f;
+            for (int i = 0; i < Count(8); i++)
+                Emit(_fire, pos + Random.insideUnitSphere * visualRadius * 0.25f, Random.insideUnitSphere * visualRadius * 1.8f,
+                    visualRadius * Random.Range(0.3f, 0.6f), Random.Range(0.3f, 0.55f), Color.white);
+            for (int i = 0; i < Count(10); i++)
+                Emit(_smoke, pos + Random.insideUnitSphere * visualRadius * 0.65f,
+                    Random.insideUnitSphere * visualRadius + Vector3.up * visualRadius,
+                    visualRadius * Random.Range(0.35f, 0.65f), Random.Range(1.2f, 2.2f),
+                    new Color(0.85f, 0.78f, 0.72f, 0.85f));
             for (int i = 0; i < Count(26); i++)
             {
                 var dir = Random.insideUnitSphere + Vector3.up * 0.8f;
@@ -136,6 +160,45 @@ namespace Worms.Game.Render
             for (int i = 0; i < Count(20); i++)
                 Emit(_sparks, pos, (Random.insideUnitSphere + Vector3.up * 0.5f) * radius * Random.Range(4f, 9f), radius * 0.08f, Random.Range(0.3f, 0.7f), Color.white);
             AddScorch(pos, radius);
+        }
+
+        void PaintedBurst(Vector3 pos, float radius)
+        {
+            if (_burstMaterial == null || _activeBursts.Count >= 16) return;
+            var burst = _freeBursts.Count > 0 ? _freeBursts.Pop() : NewBurstSprite();
+            burst.Root.gameObject.SetActive(true);
+            burst.Root.position = new Vector3(pos.x, pos.y - radius * 0.12f, -0.18f);
+            burst.Age = 0f;
+            burst.Radius = radius;
+            burst.Block.SetFloat(OpacityId, 1f);
+            burst.Renderer.SetPropertyBlock(burst.Block);
+            _activeBursts.Add(burst);
+        }
+
+        BurstSprite NewBurstSprite()
+        {
+            if (_burstQuad == null)
+            {
+                _burstQuad = new Mesh
+                {
+                    name = "Explosion cutout quad",
+                    vertices = new[] { new Vector3(-0.5f, 0, 0), new Vector3(-0.5f, 1, 0),
+                        new Vector3(0.5f, 1, 0), new Vector3(0.5f, 0, 0) },
+                    uv = new[] { new Vector2(0, 0), new Vector2(0, 1),
+                        new Vector2(1, 1), new Vector2(1, 0) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                _burstQuad.RecalculateBounds();
+            }
+            var go = new GameObject("Painted explosion");
+            go.transform.SetParent(transform, false);
+            go.AddComponent<MeshFilter>().sharedMesh = _burstQuad;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = _burstMaterial;
+            renderer.sortingOrder = 5;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return new BurstSprite { Root = go.transform, Renderer = renderer };
         }
 
         public void Muzzle(Vector3 pos, Vector3 dir)
@@ -220,6 +283,23 @@ namespace Worms.Game.Render
         void Update()
         {
             float dt = Time.deltaTime;
+            for (int i = _activeBursts.Count - 1; i >= 0; i--)
+            {
+                var burst = _activeBursts[i];
+                burst.Age += dt;
+                if (burst.Age >= 0.65f)
+                {
+                    burst.Root.gameObject.SetActive(false);
+                    _freeBursts.Push(burst);
+                    _activeBursts.RemoveAt(i);
+                    continue;
+                }
+                float growth = Mathf.Lerp(0.85f, 1.12f, burst.Age / 0.65f);
+                burst.Root.localScale = new Vector3(burst.Radius * 3.2f * growth,
+                    burst.Radius * 2.8f * growth, 1f);
+                burst.Block.SetFloat(OpacityId, Mathf.Clamp01((0.65f - burst.Age) / 0.45f));
+                burst.Renderer.SetPropertyBlock(burst.Block);
+            }
             for (int i = Popups.Count - 1; i >= 0; i--)
             {
                 var p = Popups[i];

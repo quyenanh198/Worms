@@ -116,10 +116,13 @@ namespace Worms.Game.Boot
                 _sandbox.PlayerWormNames = profile.WormNames;
             }
             uint seed = (uint)UnityEngine.Random.Range(1, int.MaxValue);
+            int teams = 2, wormsPerTeam = 4;
 #if DEVELOPMENT_BUILD
             if (uint.TryParse(CommandLineArg("-capture-seed"), out uint captureSeed)) seed = captureSeed;
+            if (int.TryParse(CommandLineArg("-capture-teams"), out int captureTeams)) teams = Mathf.Clamp(captureTeams, 2, 4);
+            if (int.TryParse(CommandLineArg("-capture-worms"), out int captureWorms)) wormsPerTeam = Mathf.Clamp(captureWorms, 1, 4);
 #endif
-            _sandbox.Begin(seed, 2, 4);
+            _sandbox.Begin(seed, teams, wormsPerTeam);
             go.AddComponent<Hud>().Source = _sandbox;
         }
 
@@ -147,6 +150,15 @@ namespace Worms.Game.Boot
         {
             // Wait through the menu squad drop so a menu capture shows the final layout.
             for (int i = 0; i < 240; i++) yield return new WaitForEndOfFrame();
+            if (CommandLineArg("-capture-vfx") == "explosion" &&
+                FindAnyObjectByType<SandboxMatch>() is SandboxMatch match)
+            {
+                int x = match.World.Terrain.Width * 63 / 100;
+                float y = match.World.SurfaceY(x) ?? match.World.Terrain.Height * 0.55f;
+                var at = Render.WorldSpace.ToWorld(x, y) + Vector3.up * 0.8f;
+                match.Presenter.Vfx.Explosion(at, 2.6f);
+                for (int i = 0; i < 9; i++) yield return new WaitForEndOfFrame();
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
             var capture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
             capture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
