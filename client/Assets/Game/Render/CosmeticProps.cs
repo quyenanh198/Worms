@@ -56,6 +56,35 @@ namespace Worms.Game.Render
             return root;
         }
 
+        static bool PaintedHat(Transform parent, string resource, string name, Vector3 center, Vector2 size)
+        {
+            var texture = Resources.Load<Texture2D>("Cosmetics/" + resource);
+            if (texture == null) return false;
+            var mesh = new Mesh
+            {
+                name = name,
+                vertices = new[]
+                {
+                    new Vector3(center.x - size.x * 0.5f, center.y - size.y * 0.5f, -1.4f),
+                    new Vector3(center.x - size.x * 0.5f, center.y + size.y * 0.5f, -1.4f),
+                    new Vector3(center.x + size.x * 0.5f, center.y + size.y * 0.5f, -1.4f),
+                    new Vector3(center.x + size.x * 0.5f, center.y - size.y * 0.5f, -1.4f),
+                },
+                uv = new[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0) },
+                triangles = new[] { 0, 1, 2, 0, 2, 3 },
+            };
+            mesh.RecalculateBounds();
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = Materials.BackdropSprite(texture, name, 1f, alphaThreshold: 0.08f);
+            renderer.sortingOrder = 12;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return true;
+        }
+
         /// <summary>A hat, or null for "no hat" / unknown ids.</summary>
         public static Transform BuildHat(byte id, Transform parent)
         {
@@ -69,11 +98,12 @@ namespace Worms.Game.Render
                     Part(root, _cyl, straw * 0.85f, new Vector3(0, 0.52f, 0), new Vector3(3.14f, 0.05f, 3.14f));
                     break;
                 case 2: // Mũ cối
-                    var olive = new Color(0.47f, 0.5f, 0.3f);
-                    Part(root, _sphere, olive, new Vector3(0, 0.62f, 0), new Vector3(2.1f, 1.35f, 2.1f));
-                    Part(root, _cyl, olive * 0.9f, new Vector3(0, 0.42f, 0), new Vector3(2.5f, 0.06f, 2.5f));
-                    Part(root, _cyl, new Color(0.85f, 0.12f, 0.12f), new Vector3(0.1f, 0.85f, -0.93f), new Vector3(0.45f, 0.04f, 0.45f), new Vector3(-72f, 0, 0));
-                    Part(root, _sphere, new Color(1f, 0.85f, 0.2f), new Vector3(0.1f, 0.86f, -0.97f), new Vector3(0.2f, 0.2f, 0.06f));
+                    if (!PaintedHat(root, "military-helmet", "Painted military helmet", new Vector3(0, 1.05f, 0), new Vector2(2.7f, 1.95f)))
+                    {
+                        var olive = new Color(0.47f, 0.5f, 0.3f);
+                        Part(root, _sphere, olive, new Vector3(0, 0.62f, 0), new Vector3(2.1f, 1.35f, 2.1f));
+                        Part(root, _cyl, olive * 0.9f, new Vector3(0, 0.42f, 0), new Vector3(2.5f, 0.06f, 2.5f));
+                    }
                     break;
                 case 3: // Băng đô Rambo
                     var red = new Color(0.86f, 0.12f, 0.14f);
@@ -109,6 +139,9 @@ namespace Worms.Game.Render
                     Part(root, _sphere, new Color(0.9f, 0.1f, 0.2f), new Vector3(0, 0.96f, -0.82f), new Vector3(0.26f, 0.26f, 0.1f));
                     Part(root, _sphere, new Color(0.2f, 0.45f, 1f), new Vector3(0.62f, 0.96f, -0.55f), new Vector3(0.18f, 0.18f, 0.08f));
                     Part(root, _sphere, new Color(0.2f, 0.45f, 1f), new Vector3(-0.62f, 0.96f, -0.55f), new Vector3(0.18f, 0.18f, 0.08f));
+                    break;
+                case 17: // Sunglasses
+                    PaintedHat(root, "black-sunglasses", "Painted black sunglasses", new Vector3(0.26f, 0.24f, 0), new Vector2(2.45f, 1.23f));
                     break;
                 default:
                     Object.Destroy(root.gameObject);

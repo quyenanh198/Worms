@@ -39,6 +39,7 @@ namespace Worms.Protocol
             new CosmeticItem { Id = 5, Slot = CosmeticSlot.Hat, Name = "Mũ cao bồi", Price = 220, Blurb = "Rút súng nhanh nhất miền Tây" },
             new CosmeticItem { Id = 6, Slot = CosmeticSlot.Hat, Name = "Mũ phù thủy", Price = 320, Blurb = "Lựu đạn biết bay theo ý muốn" },
             new CosmeticItem { Id = 7, Slot = CosmeticSlot.Hat, Name = "Vương miện", Price = 650, Blurb = "Vua của những con sâu" },
+            new CosmeticItem { Id = 17, Slot = CosmeticSlot.Hat, Name = "Kính đen", Price = 180, Blurb = "Nhìn thật ngầu" },
             new CosmeticItem { Id = 8, Slot = CosmeticSlot.Armor, Name = "Áo phao", Price = 150, Blurb = "Rơi xuống nước vẫn đẹp" },
             new CosmeticItem { Id = 9, Slot = CosmeticSlot.Armor, Name = "Đai ninja", Price = 250, Blurb = "Im lặng và nguy hiểm" },
             new CosmeticItem { Id = 10, Slot = CosmeticSlot.Armor, Name = "Áo choàng anh hùng", Price = 380, Blurb = "Bay trong gió, rất ngầu" },

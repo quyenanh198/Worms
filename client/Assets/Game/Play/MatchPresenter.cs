@@ -62,7 +62,7 @@ namespace Worms.Game.Play
             if (!clayOnly)
             {
                 SceneBuilder.CreateGroundFoliage(transform, terrain, seed);
-                SceneBuilder.CreateCliffRocks(transform, terrain);
+                SceneBuilder.CreateCliffRocks(transform, terrain, seed);
             }
 
             Terrain = new GameObject("Terrain").AddComponent<TerrainView>();

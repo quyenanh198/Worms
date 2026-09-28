@@ -405,18 +405,23 @@ namespace Worms.Game.Render
         }
 
         /// <summary>Painted stones embedded inside broad dirt faces, without collision.</summary>
-        public static void CreateCliffRocks(Transform parent, Worms.Sim.Terrain terrain)
+        public static void CreateCliffRocks(Transform parent, Worms.Sim.Terrain terrain, uint seed = 0)
         {
             var texture = Resources.Load<Texture2D>("Backdrop/cliff-rock-inlay");
             if (texture == null) return;
             var material = Materials.BackdropSprite(texture, "Cliff rock inlay", 0.86f);
+            var granite = Resources.Load<Texture2D>("Terrain/granite-boulder");
+            var sandstone = Resources.Load<Texture2D>("Terrain/sandstone-boulder");
+            var graniteMaterial = granite != null ? Materials.BackdropSprite(granite, "Granite face rock", 0.95f, alphaThreshold: 0.08f) : material;
+            var sandstoneMaterial = sandstone != null ? Materials.BackdropSprite(sandstone, "Sandstone face rock", 0.95f, alphaThreshold: 0.25f) : material;
             float[] fractions = { 0.11f, 0.23f, 0.36f, 0.64f, 0.78f, 0.91f };
             float[] widths = { 4.8f, 5.5f, 4.2f, 6.1f, 4.6f, 5.7f };
             float[] depths = { 3.5f, 4.2f, 3.1f, 4.5f, 3.8f, 4.0f };
             int[] offsets = { 0, -48, 48, -96, 96 };
             for (int i = 0; i < fractions.Length; i++)
             {
-                float width = widths[i], height = width * (3.1f / 5.2f);
+                int rockKind = (i + (int)(seed % 3u)) % 3;
+                float width = widths[i], height = width * (rockKind == 1 ? 0.82f : rockKind == 2 ? 0.62f : 3.1f / 5.2f);
                 // The visible art spans roughly 74% by 58% of the PNG; do not
                 // reject a face because its transparent padding crosses a rim.
                 int halfX = Mathf.CeilToInt(width * 0.37f / WorldSpace.Scale);
@@ -455,7 +460,7 @@ namespace Worms.Game.Render
                     triangles = new[] { 0, 1, 2, 0, 2, 3 },
                 };
                 mesh.RecalculateBounds();
-                var go = new GameObject("Cliff rock inlay " + i);
+                var go = new GameObject("Cliff rock " + i);
                 go.transform.SetParent(parent, false);
                 var anchor = go.AddComponent<FaceRockAnchor>();
                 anchor.CellX = cellX;
@@ -464,7 +469,7 @@ namespace Worms.Game.Render
                 anchor.HalfHeightCells = halfY;
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var renderer = go.AddComponent<MeshRenderer>();
-                renderer.sharedMaterial = material;
+                renderer.sharedMaterial = rockKind == 1 ? graniteMaterial : rockKind == 2 ? sandstoneMaterial : material;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
             }
