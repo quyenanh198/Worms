@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Reusable terrain art atlas</title>
+<style>
+  body { margin:0; background:#243449; color:white; font:16px system-ui; }
+  h1 { margin:18px 22px 4px; font-size:26px; }
+  p { margin:0 22px 18px; color:#c7d7e8; }
+  h2 { margin:12px 22px; font-size:20px; }
+  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:0 18px 22px; }
+  .card { overflow:hidden; border-radius:12px; background:#192637; }
+  .label { padding:8px 12px; font-weight:700; }
+  .soil { display:block; width:100%; height:225px; object-fit:cover; }
+  .rockbox { height:210px; display:grid; place-items:center; background:linear-gradient(#86c7e9 0 75%, #8d633b 75%); }
+  .rockbox img { display:block; width:86%; height:174px; object-fit:contain; }
+</style>
+<h1>Reusable terrain art</h1>
+<p>Game resource PNGs. The four soil images are reusable terrain fills; the rock cutouts can be placed on mixed terrain.</p>
+<h2>Soil styles</h2>
+<div class="grid">
+  <div class="card"><div class="label">Natural</div><img class="soil" src="../../client/Assets/Resources/Terrain/natural-soil.png"></div>
+  <div class="card"><div class="label">Stratified</div><img class="soil" src="../../client/Assets/Resources/Terrain/stratified-soil.png"></div>
+  <div class="card"><div class="label">Sculpted</div><img class="soil" src="../../client/Assets/Resources/Terrain/sculpted-soil.png"></div>
+  <div class="card"><div class="label">Clay only</div><img class="soil" src="../../client/Assets/Resources/Terrain/clay-soil.png"></div>
+</div>
+<h2>Reusable rock cutouts</h2>
+<div class="grid">
+  <div class="card"><div class="label">Cliff inlay</div><div class="rockbox"><img src="../../client/Assets/Resources/Backdrop/cliff-rock-inlay.png"></div></div>
+  <div class="card"><div class="label">Granite</div><div class="rockbox"><img src="../../client/Assets/Resources/Terrain/granite-boulder.png"></div></div>
+  <div class="card"><div class="label">Sandstone</div><div class="rockbox"><img src="../../client/Assets/Resources/Terrain/sandstone-boulder.png"></div></div>
+  <div class="card"><div class="label">Basalt</div><div class="rockbox"><img src="../../client/Assets/Resources/Terrain/basalt-boulder.png"></div></div>
+</div>
