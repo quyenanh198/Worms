@@ -118,6 +118,12 @@ Shader "Worms/Terrain"
                     {
                         half3 painted = SAMPLE_TEXTURE2D(_PaintedSoil, sampler_PaintedSoil,
                             ws.xy * 0.07 + float2(0.13, 0.27)).rgb;
+                        // Pull the generated orange swatch toward the reference's
+                        // deeper, less saturated clay. Broad value changes keep a
+                        // large cliff from reading as one flat tiled plane.
+                        painted *= half3(0.72, 0.78, 1.15);
+                        float strata = WormsValueNoise(ws.xy * 0.10 + 29.7);
+                        painted *= 0.66 + 0.58 * strata;
                         soil = lerp(soil, painted, _PaintStrength * 0.72);
                     }
 

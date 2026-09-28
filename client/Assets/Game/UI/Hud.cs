@@ -225,7 +225,9 @@ namespace Worms.Game.UI
                 {
                     if (worm.Team != t) continue;
                     members++;
-                    if (worm.Alive) hp += worm.Hp;
+                    // Simulation settles damage at turn end; show the health
+                    // players can already see in the hit popup and worm label.
+                    if (worm.Alive) hp += Mathf.Max(0, worm.Hp - worm.PendingDamage);
                 }
                 float healthLeft = compact ? safe.center.x - barW * teams / 2
                     : safe.xMax - barW * teams - u * 0.55f;
