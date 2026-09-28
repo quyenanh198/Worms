@@ -47,4 +47,4 @@ Build Unity chạy trên GitHub Actions (GameCI) sau khi thêm secret `UNITY_LIC
 
 ## Asset đồ họa từ concept
 
-[Bộ 49 ảnh PNG gốc đã tạo](assets-src/generated/README.md) được lưu trong repo: `concept/` chứa ảnh chuẩn và bảng định hướng, `runtime/` chứa bản gốc của 42 ảnh trong `client/Assets/Resources/`, `drafts/` chứa các phương án chưa dùng. Ảnh chuẩn trong `assets-src/generated/concept/approved-battle.png` trùng byte với ảnh đối chiếu ở tài liệu. Các bản runtime cũng trùng byte với asset Unity tương ứng; ảnh concept nguyên cảnh và bản nháp không được nạp làm sprite trong game. Texture đất cũ vẫn được giữ làm phương án dự phòng.
+[Bộ 50 ảnh PNG gốc đã tạo](assets-src/generated/README.md) được lưu trong repo: `concept/` chứa ảnh chuẩn và bảng định hướng, `runtime/` chứa bản gốc của 43 ảnh trong `client/Assets/Resources/`, `drafts/` chứa các phương án chưa dùng. Ảnh chuẩn trong `assets-src/generated/concept/approved-battle.png` trùng byte với ảnh đối chiếu ở tài liệu. Các bản runtime cũng trùng byte với asset Unity tương ứng; ảnh concept nguyên cảnh và bản nháp không được nạp làm sprite trong game. Texture đất cũ vẫn được giữ làm phương án dự phòng.

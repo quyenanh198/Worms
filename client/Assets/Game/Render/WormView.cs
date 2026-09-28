@@ -17,6 +17,7 @@ namespace Worms.Game.Render
         static Material[] _paintedMaterials;
         static Material[] _aimMaterials;
         static Material[] _hurtMaterials;
+        static Material[] _airborneMaterials;
         static Material[,] _walkMaterials;
         static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
@@ -72,6 +73,7 @@ namespace Worms.Game.Render
                 _paintedMaterials = new Material[4];
                 _aimMaterials = new Material[4];
                 _hurtMaterials = new Material[4];
+                _airborneMaterials = new Material[4];
                 _walkMaterials = new Material[4, 2];
                 // A single source-space crop keeps idle and aim poses at the same scale.
                 // Source dimensions are used because Unity can downsample on WebGL/mobile.
@@ -79,6 +81,7 @@ namespace Worms.Game.Render
                 var idle = Resources.Load<Texture2D>("Characters/worm-red");
                 var aim = Resources.Load<Texture2D>("Characters/worm-red-aim");
                 var hurt = Resources.Load<Texture2D>("Characters/worm-red-hurt");
+                var airborne = Resources.Load<Texture2D>("Characters/worm-red-airborne");
                 var walkA = Resources.Load<Texture2D>("Characters/worm-red-walk-a");
                 var walkB = Resources.Load<Texture2D>("Characters/worm-red-walk-b");
                 for (int i = 0; i < 4; i++)
@@ -87,6 +90,7 @@ namespace Worms.Game.Render
                     if (idle != null) _paintedMaterials[i] = PaintedMaterial(idle, "Worm idle " + i, crop, 1263, 1246, color);
                     if (aim != null) _aimMaterials[i] = PaintedMaterial(aim, "Worm aim " + i, crop, 1263, 1246, color);
                     if (hurt != null) _hurtMaterials[i] = PaintedMaterial(hurt, "Worm hurt " + i, crop, 1263, 1246, color);
+                    if (airborne != null) _airborneMaterials[i] = PaintedMaterial(airborne, "Worm airborne " + i, crop, 1263, 1246, color);
                     if (walkA != null) _walkMaterials[i, 0] = PaintedMaterial(walkA, "Worm walk A " + i, crop, 1263, 1246, color);
                     if (walkB != null) _walkMaterials[i, 1] = PaintedMaterial(walkB, "Worm walk B " + i, crop, 1263, 1246, color);
                 }
@@ -249,14 +253,15 @@ namespace Worms.Game.Render
                 bool activeWalk = walking && !hurt;
                 var pose = hurt ? _hurtMaterials[_palette]
                     : activeWalk ? _walkMaterials[_palette, walkFrame]
+                    : w.State == WormState.Airborne && _airborneMaterials[_palette] != null
+                        ? _airborneMaterials[_palette]
                     : holding && w.State != WormState.Tumbling && _aimMaterials[_palette] != null
                         ? _aimMaterials[_palette] : _paintedMaterials[_palette];
                 if (_paintedRenderer.sharedMaterial != pose) _paintedRenderer.sharedMaterial = pose;
                 float footOffset = activeWalk ? (walkFrame == 0 ? -0.11f : -0.038f) : 0f;
                 float bob = activeWalk ? 0.012f * Mathf.Sin(Time.time * 14f) : 0f;
                 _paintedSprite.localPosition = Vector3.up * (footOffset + bob);
-                _paintedSprite.localScale = w.State == WormState.Airborne
-                    ? new Vector3(0.96f, 1.06f, 1f) : Vector3.one;
+                _paintedSprite.localScale = Vector3.one;
             }
 
             // Eyes on the front of the head, looking along the aim; blink now and then.

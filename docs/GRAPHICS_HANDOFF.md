@@ -204,6 +204,8 @@ Two additional transparent boulder cutouts, granite and sandstone, now join the 
 
 An additional painted brown dust puff now drives the terrain damage particles independently from gray weapon smoke. The worm's common UV crop was widened after inspecting the opaque pixel bounds of all five shared poses; frame A had previously lost part of its tail. Walking frames now have small per-frame vertical offsets derived from their foot positions to keep contact with the terrain. These are source-image and code inspections, not an in-game capture.
 
+The shared red character set now includes a dedicated airborne cutout. WormView selects it in the airborne state for all teams through the same selective body recoloring shader and no longer stretches the idle image for that state. Its source dimensions are 1263×1246 with opaque bounds inside the common UV crop. Runtime motion, transitions and accessory overlap remain to be inspected in Unity.
+
 The crater-aware surface grass mesh now builds fewer but wider five-leaf tufts with taller, curved silhouettes and a brighter biome-tinted green. It remains anchored to exposed terrain cells, so rebuilding a damaged chunk redraws the matching foliage. This mesh change needs a player capture at normal and close zoom to judge whether the grass lip is lush without hiding worms or shimmering.
 
 Cliff-rock inlays and shelf grass/stone clumps now use deterministic size variants instead of repeated identical quads. Each rock inlay also uses a distinct depth below the local surface, with solid-ground sampling recalculated for its own dimensions. These are visual placement changes; the terrain mask and collisions are unchanged.
