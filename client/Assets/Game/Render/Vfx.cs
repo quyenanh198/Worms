@@ -51,7 +51,7 @@ namespace Worms.Game.Render
         static readonly int ScorchCountId = Shader.PropertyToID("_WormsScorchCount");
         static readonly int OpacityId = Shader.PropertyToID("_Opacity");
 
-        public void Init(Color dirt, bool rockyTerrain = true)
+        public void Init(Color dirt, bool rockyTerrain = true, bool beachSoil = false)
         {
             _dirtColor = dirt;
             _alpha = Materials.Create("Worms/Particle", "Particles Alpha");
@@ -84,7 +84,8 @@ namespace Worms.Game.Render
                 _debrisMaterial.SetTextureScale("_MainTex", new Vector2(0.54f, 0.54f));
                 _debrisMaterial.SetTextureOffset("_MainTex", new Vector2(0.23f, 0.23f));
             }
-            var clodTexture = Resources.Load<Texture2D>("VFX/earth-clod");
+            var clodTexture = Resources.Load<Texture2D>(beachSoil ? "VFX/sand-clod" : "VFX/earth-clod");
+            if (clodTexture == null) clodTexture = Resources.Load<Texture2D>("VFX/earth-clod");
             if (clodTexture != null)
             {
                 _clodMaterial = new Material(_alpha) { name = "Painted earth clod" };
