@@ -48,6 +48,7 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/vfx/explosion-burst.png` | `exec-b91c8b79-69cb-4f73-961d-7637495975ec.png` | `Resources/VFX/explosion-burst.png` |
 | `runtime/vfx/rocket.png` | `exec-deb5f223-5f80-4441-b064-697227f7caf9.png` | `Resources/VFX/rocket.png` |
 | `runtime/vfx/rock-debris.png` | `exec-0fdd24b4-1be1-4775-9ce5-7722da05ba81.png` | `Resources/VFX/rock-debris.png`; explosion stone particle |
+| `runtime/vfx/earth-clod.png` | `exec-3f2e979b-459f-48d8-9daa-44a1cc284777.png` | `Resources/VFX/earth-clod.png`; dirt chunk particle for every terrain style, with no rock debris on clay-only maps |
 | `runtime/vfx/earth-dust.png` | `exec-0d24f78e-7391-4c98-8a4e-98494d0b5329.png` | `Resources/VFX/earth-dust.png`; brown dust particle for terrain destruction |
 | `runtime/waiting/coastal-background.png` | `exec-52adfb84-69b7-40bd-ba87-b4c498386df6.png` | `Resources/Waiting/Coastal/background.png`; full coastal opening backdrop derived from user cutouts |
 | `runtime/waiting/neon-background.png` | `exec-436cf4bc-81e5-4d4e-a0fe-029d5bdbab69.png` | `Resources/Waiting/Neon/background.png`; full neon opening backdrop derived from user cutouts |

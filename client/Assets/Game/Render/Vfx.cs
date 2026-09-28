@@ -27,8 +27,8 @@ namespace Worms.Game.Render
         /// <summary>Particle count multiplier for the quality tier.</summary>
         public float Density = 1f;
 
-        ParticleSystem _fire, _smoke, _earth, _dirt, _sparks, _water, _trail;
-        Material _alpha, _additive, _smokeMaterial, _earthMaterial, _debrisMaterial;
+        ParticleSystem _fire, _smoke, _earth, _dirt, _rock, _sparks, _water, _trail;
+        Material _alpha, _additive, _smokeMaterial, _earthMaterial, _clodMaterial, _debrisMaterial;
         Color _dirtColor = new Color(0.5f, 0.35f, 0.2f);
         readonly Vector4[] _scorch = new Vector4[MaxScorch];
         int _scorchNext, _scorchCount;
@@ -51,7 +51,7 @@ namespace Worms.Game.Render
         static readonly int ScorchCountId = Shader.PropertyToID("_WormsScorchCount");
         static readonly int OpacityId = Shader.PropertyToID("_Opacity");
 
-        public void Init(Color dirt)
+        public void Init(Color dirt, bool rockyTerrain = true)
         {
             _dirtColor = dirt;
             _alpha = Materials.Create("Worms/Particle", "Particles Alpha");
@@ -84,6 +84,15 @@ namespace Worms.Game.Render
                 _debrisMaterial.SetTextureScale("_MainTex", new Vector2(0.54f, 0.54f));
                 _debrisMaterial.SetTextureOffset("_MainTex", new Vector2(0.23f, 0.23f));
             }
+            var clodTexture = Resources.Load<Texture2D>("VFX/earth-clod");
+            if (clodTexture != null)
+            {
+                _clodMaterial = new Material(_alpha) { name = "Painted earth clod" };
+                _clodMaterial.SetTexture("_MainTex", clodTexture);
+                _clodMaterial.SetFloat("_RadialFade", 0f);
+                _clodMaterial.SetTextureScale("_MainTex", new Vector2(0.56f, 0.56f));
+                _clodMaterial.SetTextureOffset("_MainTex", new Vector2(0.22f, 0.22f));
+            }
             _additive = Materials.Create("Worms/Particle", "Particles Additive");
             _additive.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
             _additive.SetFloat("_DstBlend", (float)BlendMode.One);
@@ -92,7 +101,9 @@ namespace Worms.Game.Render
             _smoke = System("Smoke", _smokeMaterial != null ? _smokeMaterial : _alpha, 0f, new[] { new Color(0.35f, 0.33f, 0.32f, 0.55f), new Color(0.6f, 0.6f, 0.6f, 0f) }, 0.6f, 1.8f);
             _earth = System("Earth dust", _earthMaterial != null ? _earthMaterial : _smokeMaterial != null ? _smokeMaterial : _alpha, 0.55f,
                 new[] { Color.white, new Color(1f, 1f, 1f, 0f) }, 0.9f, 1.25f);
-            _dirt = System("Dirt", _debrisMaterial != null ? _debrisMaterial : _alpha, 1.6f, new[] { Color.white, new Color(1, 1, 1, 0.9f) }, 1f, 0.8f);
+            _dirt = System("Dirt clods", _clodMaterial != null ? _clodMaterial : _alpha, 1.6f, new[] { Color.white, new Color(1, 1, 1, 0.9f) }, 1f, 0.8f);
+            if (rockyTerrain && _debrisMaterial != null)
+                _rock = System("Rock shards", _debrisMaterial, 1.6f, new[] { Color.white, new Color(1, 1, 1, 0.9f) }, 1f, 0.8f);
             _fire = System("Fire", _additive, -0.05f, new[] { new Color(1f, 0.76f, 0.26f, 0.85f), new Color(1f, 0.31f, 0.07f, 0.68f), new Color(0.4f, 0.1f, 0.05f, 0f) }, 0.75f, 1.35f);
             _sparks = System("Sparks", _additive, 1.2f, new[] { new Color(1f, 0.9f, 0.5f, 1f), new Color(1f, 0.4f, 0.1f, 0f) }, 1f, 0.3f);
             _water = System("Water", _alpha, 1.4f, new[] { new Color(0.85f, 0.95f, 1f, 0.9f), new Color(0.7f, 0.85f, 0.95f, 0f) }, 1f, 0.7f);
@@ -187,13 +198,17 @@ namespace Worms.Game.Render
                     (Random.insideUnitSphere + Vector3.up * 0.5f) * radius * Random.Range(0.9f, 2.1f),
                     radius * Random.Range(0.2f, 0.4f), Random.Range(0.45f, 0.9f), c);
             }
-            for (int i = 0; i < Count(18); i++)
+            for (int i = 0; i < Count(_rock != null ? 14 : 18); i++)
             {
                 var dir = Random.insideUnitSphere + Vector3.up * 0.8f;
-                var c = (_debrisMaterial != null ? Color.white : _dirtColor) * Random.Range(0.72f, 1.06f);
+                var c = (_clodMaterial != null ? Color.white : _dirtColor) * Random.Range(0.72f, 1.06f);
                 c.a = 1;
                 Emit(_dirt, pos, dir * radius * Random.Range(3f, 7f), radius * Random.Range(0.08f, 0.2f), Random.Range(0.6f, 1.3f), c);
             }
+            if (_rock != null)
+                for (int i = 0; i < Count(4); i++)
+                    Emit(_rock, pos, (Random.insideUnitSphere + Vector3.up * 0.8f) * radius * Random.Range(3f, 7f),
+                        radius * Random.Range(0.08f, 0.2f), Random.Range(0.6f, 1.3f), Color.white);
             for (int i = 0; i < Count(20); i++)
                 Emit(_sparks, pos, (Random.insideUnitSphere + Vector3.up * 0.5f) * radius * Random.Range(4f, 9f), radius * 0.08f, Random.Range(0.3f, 0.7f), Color.white);
             AddScorch(pos, radius);

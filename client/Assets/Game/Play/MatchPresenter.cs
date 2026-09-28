@@ -71,7 +71,7 @@ namespace Worms.Game.Play
 
             Vfx = new GameObject("Vfx").AddComponent<Vfx>();
             Vfx.transform.SetParent(transform, false);
-            Vfx.Init(theme.Dirt);
+            Vfx.Init(theme.Dirt, !clayOnly);
 
             Actors = new GameObject("Actors").AddComponent<ActorViews>();
             Actors.transform.SetParent(transform, false);
