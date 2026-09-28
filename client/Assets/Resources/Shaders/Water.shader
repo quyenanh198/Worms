@@ -6,8 +6,8 @@ Shader "Worms/Water"
         _ShallowColor ("Shallow", Color) = (0.18, 0.55, 0.62, 0.78)
         _DeepColor ("Deep", Color) = (0.05, 0.18, 0.32, 0.92)
         _FoamColor ("Foam", Color) = (0.9, 0.97, 1, 1)
-        _WaveHeight ("Wave Height", Float) = 0.18
-        _WaveSpeed ("Wave Speed", Float) = 1.2
+        _WaveHeight ("Wave Height", Float) = 0.12
+        _WaveSpeed ("Wave Speed", Float) = 0.85
     }
 
     HLSLINCLUDE
@@ -87,13 +87,13 @@ Shader "Worms/Water"
                 half4 baseColor = lerp(_DeepColor, _ShallowColor, saturate(n.y * 0.5 + fresnel));
                 Light light = GetMainLight();
                 float3 h = normalize(light.direction + v);
-                half spec = pow(saturate(dot(n, h)), 90.0) * 1.5;
-                float foamNoise = WormsValueNoise(input.positionWS.xz * 3.0 + _Time.y);
-                half foam = smoothstep(0.55, 0.9, input.crest + foamNoise * 0.4);
+                half spec = pow(saturate(dot(n, h)), 110.0) * 0.8;
+                float foamNoise = WormsValueNoise(input.positionWS.xz * 2.0 + _Time.y * 0.7);
+                half foam = smoothstep(0.8, 1.15, input.crest + foamNoise * 0.28);
                 half3 color = baseColor.rgb * (light.color * 0.6 + SampleSH(n) * 0.6) + light.color * spec;
-                color = lerp(color, _FoamColor.rgb, foam * 0.6);
+                color = lerp(color, _FoamColor.rgb, foam * 0.32);
                 color = MixFog(color, input.fogFactor);
-                return half4(color, saturate(baseColor.a + fresnel * 0.2 + foam * 0.3));
+                return half4(color, saturate(baseColor.a + fresnel * 0.2 + foam * 0.14));
             }
             ENDHLSL
         }

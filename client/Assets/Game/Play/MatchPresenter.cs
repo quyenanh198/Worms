@@ -56,6 +56,8 @@ namespace Worms.Game.Play
             SceneBuilder.CreateBackdrop(transform, theme, seed, mapWidth, waterY);
             SceneBuilder.CreateWater(transform, theme, mapWidth, waterY);
             SceneBuilder.CreateSurfaceProps(transform, terrain);
+            SceneBuilder.CreateGroundFoliage(transform, terrain);
+            SceneBuilder.CreateCliffRocks(transform, terrain);
 
             Terrain = new GameObject("Terrain").AddComponent<TerrainView>();
             Terrain.transform.SetParent(transform, false);

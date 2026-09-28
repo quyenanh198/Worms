@@ -1,5 +1,5 @@
 // Destructible terrain: dirt front face shaded by depth below the surface,
-// grassy top walls, rocky side walls. Colors come from noise, not textures.
+// grassy top walls, rocky side walls, and optional painted soil detail.
 Shader "Worms/Terrain"
 {
     Properties
@@ -34,6 +34,7 @@ Shader "Worms/Terrain"
     SAMPLER(sampler_Field);
     TEXTURE2D(_PaintedSoil);
     SAMPLER(sampler_PaintedSoil);
+    float4 _PaintedSoil_TexelSize;
     ENDHLSL
 
     SubShader
@@ -118,15 +119,20 @@ Shader "Worms/Terrain"
                     soil = lerp(soil, _DeepColor.rgb, 0.45 * smoothstep(10.0, 24.0, above));
                     if (_PaintStrength > 0.001)
                     {
-                        half3 painted = SAMPLE_TEXTURE2D(_PaintedSoil, sampler_PaintedSoil,
-                            ws.xy * 0.07 + float2(0.13, 0.27)).rgb;
+                        float2 soilUv = ws.xy * 0.05 + float2(0.13, 0.27);
+                        // Mirror alternate tiles so neighboring cliffs meet at identical
+                        // texels even when the source PNG's opposite edges differ.
+                        soilUv = 1.0 - abs(frac(soilUv * 0.5) * 2.0 - 1.0);
+                        soilUv = clamp(soilUv, _PaintedSoil_TexelSize.xy * 0.5,
+                            1.0 - _PaintedSoil_TexelSize.xy * 0.5);
+                        half3 painted = SAMPLE_TEXTURE2D(_PaintedSoil, sampler_PaintedSoil, soilUv).rgb;
                         // Pull the generated orange swatch toward the reference's
                         // deeper, less saturated clay. Broad value changes keep a
                         // large cliff from reading as one flat tiled plane.
                         painted *= _PaintTint.rgb;
                         float strata = WormsValueNoise(ws.xy * 0.10 + 29.7);
                         painted *= 0.66 + 0.58 * strata;
-                        soil = lerp(soil, painted, _PaintStrength * 0.72);
+                        soil = lerp(soil, painted, _PaintStrength * 0.85);
                     }
 
                     // Grass on top surfaces only, in uneven tufts.
@@ -143,8 +149,8 @@ Shader "Worms/Terrain"
                     float inward = smoothstep(2.0, 8.0, edge);
                     albedo *= lerp(1.0, 1.18, crust * (1.0 - isGrass));
                     albedo *= lerp(1.06, 0.9, inward);
-                    half3 ink = lerp(_DirtColor.rgb * 0.28, _GrassColor.rgb * 0.35, isGrass);
-                    albedo = lerp(albedo, ink, outline * 0.9);
+                    half3 ink = lerp(_DeepColor.rgb * 0.78, _GrassColor.rgb * 0.52, isGrass);
+                    albedo = lerp(albedo, ink, outline * 0.78);
                     // Shadow of the turf on the soil just below it.
                     float under = smoothstep(tuft, tuft + 0.5, above) * (1.0 - smoothstep(tuft + 0.5, tuft + 3.5, above));
                     albedo *= 1.0 - 0.28 * under * (1.0 - isGrass);

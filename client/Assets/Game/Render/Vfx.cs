@@ -28,7 +28,7 @@ namespace Worms.Game.Render
         public float Density = 1f;
 
         ParticleSystem _fire, _smoke, _dirt, _sparks, _water, _trail;
-        Material _alpha, _additive;
+        Material _alpha, _additive, _smokeMaterial, _debrisMaterial;
         Color _dirtColor = new Color(0.5f, 0.35f, 0.2f);
         readonly Vector4[] _scorch = new Vector4[MaxScorch];
         int _scorchNext, _scorchCount;
@@ -57,17 +57,34 @@ namespace Worms.Game.Render
             _alpha = Materials.Create("Worms/Particle", "Particles Alpha");
             _alpha.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
             _alpha.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            var smokeTexture = Resources.Load<Texture2D>("VFX/smoke-puff");
+            if (smokeTexture != null)
+            {
+                _smokeMaterial = new Material(_alpha) { name = "Painted smoke puff" };
+                _smokeMaterial.SetTexture("_MainTex", smokeTexture);
+                // Crop the transparent canvas so a particle fills its billboard.
+                _smokeMaterial.SetTextureScale("_MainTex", new Vector2(0.72f, 0.72f));
+                _smokeMaterial.SetTextureOffset("_MainTex", new Vector2(0.14f, 0.14f));
+            }
+            var debrisTexture = Resources.Load<Texture2D>("VFX/rock-debris");
+            if (debrisTexture != null)
+            {
+                _debrisMaterial = new Material(_alpha) { name = "Painted rock debris" };
+                _debrisMaterial.SetTexture("_MainTex", debrisTexture);
+                _debrisMaterial.SetTextureScale("_MainTex", new Vector2(0.54f, 0.54f));
+                _debrisMaterial.SetTextureOffset("_MainTex", new Vector2(0.23f, 0.23f));
+            }
             _additive = Materials.Create("Worms/Particle", "Particles Additive");
             _additive.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
             _additive.SetFloat("_DstBlend", (float)BlendMode.One);
             _additive.renderQueue = 3100;
 
-            _smoke = System("Smoke", _alpha, 0f, new[] { new Color(0.35f, 0.33f, 0.32f, 0.55f), new Color(0.6f, 0.6f, 0.6f, 0f) }, 0.6f, 1.8f);
-            _dirt = System("Dirt", _alpha, 1.6f, new[] { Color.white, new Color(1, 1, 1, 0.9f) }, 1f, 0.8f);
+            _smoke = System("Smoke", _smokeMaterial != null ? _smokeMaterial : _alpha, 0f, new[] { new Color(0.35f, 0.33f, 0.32f, 0.55f), new Color(0.6f, 0.6f, 0.6f, 0f) }, 0.6f, 1.8f);
+            _dirt = System("Dirt", _debrisMaterial != null ? _debrisMaterial : _alpha, 1.6f, new[] { Color.white, new Color(1, 1, 1, 0.9f) }, 1f, 0.8f);
             _fire = System("Fire", _additive, -0.05f, new[] { new Color(1f, 0.76f, 0.26f, 0.85f), new Color(1f, 0.31f, 0.07f, 0.68f), new Color(0.4f, 0.1f, 0.05f, 0f) }, 0.75f, 1.35f);
             _sparks = System("Sparks", _additive, 1.2f, new[] { new Color(1f, 0.9f, 0.5f, 1f), new Color(1f, 0.4f, 0.1f, 0f) }, 1f, 0.3f);
             _water = System("Water", _alpha, 1.4f, new[] { new Color(0.85f, 0.95f, 1f, 0.9f), new Color(0.7f, 0.85f, 0.95f, 0f) }, 1f, 0.7f);
-            _trail = System("Trail", _alpha, -0.02f, new[] { new Color(0.97f, 0.94f, 0.87f, 0.88f), new Color(0.8f, 0.82f, 0.84f, 0f) }, 0.65f, 2.1f);
+            _trail = System("Trail", _smokeMaterial != null ? _smokeMaterial : _alpha, -0.02f, new[] { new Color(0.97f, 0.94f, 0.87f, 0.88f), new Color(0.8f, 0.82f, 0.84f, 0f) }, 0.65f, 2.1f);
             var burstTexture = Resources.Load<Texture2D>("VFX/explosion-burst");
             if (burstTexture != null)
                 _burstMaterial = Materials.BackdropSprite(burstTexture, "Painted explosion burst", 1f,
@@ -153,7 +170,7 @@ namespace Worms.Game.Render
             for (int i = 0; i < Count(26); i++)
             {
                 var dir = Random.insideUnitSphere + Vector3.up * 0.8f;
-                var c = _dirtColor * Random.Range(0.6f, 1.1f);
+                var c = (_debrisMaterial != null ? Color.white : _dirtColor) * Random.Range(0.72f, 1.06f);
                 c.a = 1;
                 Emit(_dirt, pos, dir * radius * Random.Range(3f, 7f), radius * Random.Range(0.08f, 0.2f), Random.Range(0.6f, 1.3f), c);
             }
@@ -330,6 +347,11 @@ namespace Worms.Game.Render
         void OnDestroy()
         {
             Shader.SetGlobalFloat(ScorchCountId, 0);
+            if (_alpha != null) Destroy(_alpha);
+            if (_additive != null) Destroy(_additive);
+            if (_smokeMaterial != null) Destroy(_smokeMaterial);
+            if (_debrisMaterial != null) Destroy(_debrisMaterial);
+            if (_burstMaterial != null) Destroy(_burstMaterial);
         }
     }
 }

@@ -93,7 +93,7 @@ namespace Worms.Game.Render
             {
                 if (!_worms.TryGetValue(w.Id, out var view))
                 {
-                    _worms[w.Id] = view = new WormView(transform, w.Id, w.Team, TeamColors.Of(w.Team));
+                    _worms[w.Id] = view = new WormView(transform, w.Id, w.Team, TeamColors.Of(w.Team), 1.4f);
                     view.SetLoadout(LoadoutOf(w.Team));
                 }
                 _seen.Add(w.Id);
@@ -126,7 +126,8 @@ namespace Worms.Game.Render
                 {
                     _activeMarker.gameObject.SetActive(true);
                     _activeMarker.position = pos + new Vector3(0,
-                        1.35f + (QualitySettingsManager.ReducedMotion ? 0f : Mathf.Sin(Time.time * 4f) * 0.08f), -0.65f);
+                        (view.UsesPaintedArt ? 2.28f : 1.35f) +
+                        (QualitySettingsManager.ReducedMotion ? 0f : Mathf.Sin(Time.time * 4f) * 0.08f), -0.65f);
                     if (Camera.main != null)
                     {
                         float distance = Vector3.Distance(Camera.main.transform.position, _activeMarker.position);
@@ -217,7 +218,8 @@ namespace Worms.Game.Render
         {
             screen = default;
             if (!_wormPos.TryGetValue(wormId, out var p)) return false;
-            screen = cam.WorldToScreenPoint(p + Vector3.up * 1.25f);
+            float height = _worms.TryGetValue(wormId, out var view) && view.UsesPaintedArt ? 2.75f : 1.25f;
+            screen = cam.WorldToScreenPoint(p + Vector3.up * height);
             return screen.z > 0;
         }
     }

@@ -28,7 +28,11 @@ namespace Worms.Game.Render
             _terrainMaterial = material;
             _mesher = new TerrainMesher(terrain, WorldSpace.Scale, WorldSpace.TerrainFrontZ, WorldSpace.TerrainBackZ);
             _decorMesher = new SurfaceDecorMesher(terrain, WorldSpace.Scale, WorldSpace.TerrainFrontZ - 0.06f);
-            _decorMaterial = Materials.Toon(new Color(0.30f, 0.64f, 0.13f));
+            // Match the tuft mesh to this biome's turf instead of using a fixed
+            // electric green that stands apart from the painted grass lip.
+            var turf = material.GetColor("_GrassColor");
+            _decorMaterial = Materials.Toon(new Color(turf.r * 0.84f, turf.g * 0.88f,
+                turf.b * 0.78f, 1f));
             // Edge distance and land-above per cell: the shader paints outlines, crater rims and grass from it.
             _field = new TerrainField(terrain);
             _fieldTex = new Texture2D(terrain.Width, terrain.Height, TextureFormat.RG16, false, true)

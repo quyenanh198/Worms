@@ -156,8 +156,13 @@ namespace Worms.Game.UI
                 return;
             }
 
-            // A soft panel behind the menu column keeps it readable over the 3D scene.
-            UiSkin.Pill(new Rect(Cx - _u * 10.6f, Screen.height * 0.04f, _u * 21.2f, Screen.height * 0.92f), new Color(0.05f, 0.07f, 0.1f, 0.55f));
+            // Short connection and version notices need only the upper half of
+            // the column; leave the island and water visible below them.
+            bool shortPanel = !CompactLayout && (Net.Outdated ||
+                (!Net.Unauthorized && (!Net.Connected || !Net.Session.HasHello)));
+            float panelHeight = Screen.height * (shortPanel ? 0.52f : 0.92f);
+            UiSkin.Pill(new Rect(Cx - _u * 10.6f, Screen.height * 0.04f,
+                _u * 21.2f, panelHeight), new Color(0.04f, 0.10f, 0.18f, 0.62f));
 
             // The title drops in with a bounce; the squad's name follows once they have landed.
             float age = MenuScene.Instance != null ? MenuScene.Instance.Age : 10f;

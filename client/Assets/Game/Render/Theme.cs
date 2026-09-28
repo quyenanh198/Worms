@@ -38,7 +38,7 @@ namespace Worms.Game.Render
             Fog = new Color(0.76f, 0.89f, 0.95f),
             HillsNear = new[] { new Color(0.41f, 0.64f, 0.53f), new Color(0.27f, 0.51f, 0.46f) },
             HillsFar = new[] { new Color(0.59f, 0.76f, 0.82f), new Color(0.42f, 0.64f, 0.74f) },
-            WaterShallow = new Color(0.22f, 0.75f, 0.87f, 0.78f), WaterDeep = new Color(0.04f, 0.36f, 0.65f, 0.92f), WaterFoam = new Color(0.94f, 0.99f, 1f),
+            WaterShallow = new Color(0.17f, 0.65f, 0.83f, 0.78f), WaterDeep = new Color(0.04f, 0.32f, 0.61f, 0.92f), WaterFoam = new Color(0.94f, 0.99f, 1f),
             SunLight = new Color(1f, 0.97f, 0.88f),
             AmbientSky = new Color(0.62f, 0.75f, 0.88f), AmbientEquator = new Color(0.57f, 0.58f, 0.52f), AmbientGround = new Color(0.39f, 0.31f, 0.24f),
         };
@@ -69,13 +69,26 @@ namespace Worms.Game.Render
             m.SetColor("_DirtColor", t.Dirt);
             m.SetColor("_DeepColor", t.Deep);
             m.SetColor("_RockColor", t.Rock);
-            var sculptedSoil = Resources.Load<Texture2D>("Terrain/sculpted-soil");
-            var paintedSoil = sculptedSoil ?? Resources.Load<Texture2D>("Terrain/painted-soil");
+            var paintedSoil = Resources.Load<Texture2D>("Terrain/natural-soil");
+            var paintTint = new Color(0.83f, 0.8f, 0.89f);
+            if (paintedSoil == null)
+            {
+                paintedSoil = Resources.Load<Texture2D>("Terrain/stratified-soil");
+                paintTint = new Color(0.85f, 0.82f, 0.9f);
+            }
+            if (paintedSoil == null)
+            {
+                paintedSoil = Resources.Load<Texture2D>("Terrain/sculpted-soil");
+                paintTint = new Color(0.94f, 0.92f, 1.02f);
+            }
+            if (paintedSoil == null)
+            {
+                paintedSoil = Resources.Load<Texture2D>("Terrain/painted-soil");
+                paintTint = new Color(0.72f, 0.78f, 1.15f);
+            }
             if (paintedSoil != null) m.SetTexture("_PaintedSoil", paintedSoil);
-            m.SetColor("_PaintTint", sculptedSoil != null
-                ? new Color(0.94f, 0.92f, 1.02f)
-                : new Color(0.72f, 0.78f, 1.15f));
-            m.SetFloat("_PaintStrength", paintedSoil != null ? 0.65f : 0f);
+            m.SetColor("_PaintTint", paintTint);
+            m.SetFloat("_PaintStrength", paintedSoil != null ? 0.75f : 0f);
             return m;
         }
 
@@ -93,6 +106,8 @@ namespace Worms.Game.Render
             m.SetColor("_ShallowColor", t.WaterShallow);
             m.SetColor("_DeepColor", t.WaterDeep);
             m.SetColor("_FoamColor", t.WaterFoam);
+            m.SetFloat("_WaveHeight", 0.12f);
+            m.SetFloat("_WaveSpeed", 0.85f);
             return m;
         }
 

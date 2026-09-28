@@ -26,13 +26,17 @@ namespace Worms.Game.Core
                 {
                     if (!_terrain.IsSolid(x, y) || _terrain.IsSolid(x, y - 1)) continue;
                     uint hash = Hash(x, y);
-                    if (hash % 7 != 0) continue;
+                    if (hash % 12 != 0 || !SkyExposed(x, y)) continue;
                     float px = (x + 0.5f) * _scale;
                     float py = -y * _scale;
-                    float height = (5f + hash % 4) * _scale;
-                    Blade(mesh, px - 1.4f * _scale, py, height * 0.72f, -1.2f * _scale, 2.2f * _scale);
-                    Blade(mesh, px, py, height, 0.5f * _scale, 2.6f * _scale);
-                    Blade(mesh, px + 1.4f * _scale, py, height * 0.82f, 1.2f * _scale, 2.2f * _scale);
+                    float height = (8f + hash % 6) * _scale;
+                    // Five broad, curved leaves form a tuft instead of three
+                    // narrow spikes. All geometry still rebuilds with crater chunks.
+                    Blade(mesh, px - 4f * _scale, py, height * 0.55f, -5f * _scale, 5f * _scale);
+                    Blade(mesh, px - 2f * _scale, py, height * 0.8f, -2.5f * _scale, 5f * _scale);
+                    Blade(mesh, px, py, height, 0.5f * _scale, 6f * _scale);
+                    Blade(mesh, px + 2f * _scale, py, height * 0.78f, 3f * _scale, 5f * _scale);
+                    Blade(mesh, px + 4f * _scale, py, height * 0.6f, 5f * _scale, 5f * _scale);
                 }
         }
 
@@ -46,12 +50,27 @@ namespace Worms.Game.Core
             }
         }
 
+        bool SkyExposed(int x, int y)
+        {
+            // A cave ceiling can have air immediately above it too. Only put
+            // grass where the column remains open all the way to the sky.
+            for (int above = y - 2; above >= 0; above--)
+                if (_terrain.IsSolid(x, above)) return false;
+            return true;
+        }
+
         void Blade(MeshBuffers mesh, float x, float y, float height, float lean, float width)
         {
             int a = mesh.AddVertex(x - width / 2, y, _frontZ, 0, 0, -1, 0, 0);
-            int b = mesh.AddVertex(x + lean, y + height, _frontZ, 0, 0, -1, 0.5f, 1);
-            int c = mesh.AddVertex(x + width / 2, y, _frontZ, 0, 0, -1, 1, 0);
-            mesh.AddTriangle(a, b, c);
+            int b = mesh.AddVertex(x + lean * 0.35f - width * 0.32f,
+                y + height * 0.55f, _frontZ, 0, 0, -1, 0.2f, 0.55f);
+            int c = mesh.AddVertex(x + lean, y + height, _frontZ, 0, 0, -1, 0.5f, 1);
+            int d = mesh.AddVertex(x + lean * 0.35f + width * 0.32f,
+                y + height * 0.55f, _frontZ, 0, 0, -1, 0.8f, 0.55f);
+            int e = mesh.AddVertex(x + width / 2, y, _frontZ, 0, 0, -1, 1, 0);
+            mesh.AddTriangle(a, b, e);
+            mesh.AddTriangle(b, d, e);
+            mesh.AddTriangle(b, c, d);
         }
     }
 }

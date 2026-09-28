@@ -15,6 +15,8 @@ namespace Worms.Game.Render
         static Mesh _eyeMesh, _handMesh;
         static Mesh _paintedQuad;
         static Material[] _paintedMaterials;
+        static Material[] _aimMaterials;
+        static Material[] _hurtMaterials;
         static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
@@ -27,6 +29,7 @@ namespace Worms.Game.Render
         readonly MeshRenderer _renderer;
         readonly MeshRenderer _paintedRenderer;
         readonly Transform _paintedSprite;
+        readonly int _palette;
         readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         Transform _prop;
         WeaponId _propId;
@@ -34,13 +37,16 @@ namespace Worms.Game.Render
         Loadout _loadout;
         Transform _hat, _armor, _cloth;
         int _armorPoint;
-        float _spin, _flash, _blinkAt, _sinkT = -1;
+        float _spin, _flash, _hurtPoseTime, _blinkAt, _sinkT = -1;
         Vector3 _sinkFrom;
+        readonly float _paintedScale;
 
         public bool Sinking => _sinkT >= 0;
+        public bool UsesPaintedArt => _paintedSprite != null;
 
-        public WormView(Transform parent, int id, int team, Color teamColor)
+        public WormView(Transform parent, int id, int team, Color teamColor, float paintedScale = 1f)
         {
+            _paintedScale = paintedScale;
             if (_eyeMesh == null)
             {
                 _eyeMesh = MeshUtil.Create(Shapes.Sphere(0.5f, 10, 14), "Eye");
@@ -63,32 +69,34 @@ namespace Worms.Game.Render
             if (_paintedMaterials == null)
             {
                 _paintedMaterials = new Material[4];
+                _aimMaterials = new Material[4];
+                _hurtMaterials = new Material[4];
                 string[] names = { "red", "blue", "yellow", "green" };
-                // Visible alpha bounds in source pixels (top-left image coordinates).
-                // Crop transparent margins so every team occupies the same world-sized quad.
-                Rect[] crops =
-                {
-                    new Rect(0, 54, 1198, 1133),
-                    new Rect(0, 21, 1233, 1186),
-                    new Rect(106, 79, 1060, 1104),
-                    new Rect(43, 77, 1133, 1128),
-                };
+                // A single source-space crop keeps idle and aim poses at the same scale.
+                // Source dimensions are used because Unity can downsample on WebGL/mobile.
+                var crop = new Rect(100, 60, 1150, 1140);
+                int[] sourceWidths = { 1263, 1265, 1263, 1263 };
+                int[] sourceHeights = { 1246, 1243, 1246, 1246 };
+                int[] aimWidths = { 1263, 1263, 1266, 1266 };
+                int[] aimHeights = { 1246, 1246, 1243, 1243 };
                 for (int i = 0; i < names.Length; i++)
                 {
                     var texture = Resources.Load<Texture2D>("Characters/worm-" + names[i]);
                     if (texture != null)
-                    {
-                        var material = Materials.BackdropSprite(texture, "Painted worm " + names[i], 1f);
-                        var crop = crops[i];
-                        material.SetTextureScale("_MainTex", new Vector2(crop.width / texture.width, crop.height / texture.height));
-                        material.SetTextureOffset("_MainTex", new Vector2(crop.x / texture.width,
-                            (texture.height - crop.yMax) / texture.height));
-                        _paintedMaterials[i] = material;
-                    }
+                        _paintedMaterials[i] = PaintedMaterial(texture, "Painted worm " + names[i],
+                            crop, sourceWidths[i], sourceHeights[i]);
+                    var aimTexture = Resources.Load<Texture2D>("Characters/worm-" + names[i] + "-aim");
+                    if (aimTexture != null)
+                        _aimMaterials[i] = PaintedMaterial(aimTexture, "Aiming worm " + names[i],
+                            crop, aimWidths[i], aimHeights[i]);
+                    var hurtTexture = Resources.Load<Texture2D>("Characters/worm-" + names[i] + "-hurt");
+                    if (hurtTexture != null)
+                        _hurtMaterials[i] = PaintedMaterial(hurtTexture, "Hurt worm " + names[i],
+                            crop, 1263, 1246);
                 }
             }
-            int palette = ((team % 4) + 4) % 4;
-            if (_paintedMaterials[palette] != null)
+            _palette = ((team % 4) + 4) % 4;
+            if (_paintedMaterials[_palette] != null)
             {
                 if (_paintedQuad == null)
                 {
@@ -111,7 +119,7 @@ namespace Worms.Game.Render
                 _paintedSprite.SetParent(_body, false);
                 _paintedSprite.gameObject.AddComponent<MeshFilter>().sharedMesh = _paintedQuad;
                 _paintedRenderer = _paintedSprite.gameObject.AddComponent<MeshRenderer>();
-                _paintedRenderer.sharedMaterial = _paintedMaterials[palette];
+                _paintedRenderer.sharedMaterial = _paintedMaterials[_palette];
                 _paintedRenderer.sortingOrder = 10;
                 _paintedRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 _paintedRenderer.receiveShadows = false;
@@ -145,6 +153,15 @@ namespace Worms.Game.Render
             _blinkAt = Random.Range(1f, 4f);
         }
 
+        static Material PaintedMaterial(Texture2D texture, string name, Rect crop, int width, int height)
+        {
+            var material = Materials.BackdropSprite(texture, name, 1f);
+            material.SetTextureScale("_MainTex", new Vector2(crop.width / width, crop.height / height));
+            material.SetTextureOffset("_MainTex", new Vector2(crop.x / width,
+                (height - crop.yMax) / height));
+            return material;
+        }
+
         static Transform Ball(Transform parent, string name, Material mat, float scale)
         {
             var go = new GameObject(name);
@@ -155,7 +172,7 @@ namespace Worms.Game.Render
             return go.transform;
         }
 
-        public void Flash() { _flash = 1f; }
+        public void Flash() { _flash = 1f; _hurtPoseTime = 0.45f; }
 
         /// <summary>Puts on a set of store cosmetics (replacing what the worm wore).</summary>
         public void SetLoadout(Loadout loadout)
@@ -220,10 +237,18 @@ namespace Worms.Game.Render
                 _spin -= Mathf.Sign(w.Vx == 0 ? 1 : w.Vx) * w.Facing * new Vector2(w.Vx, w.Vy).magnitude * dt * 0.12f * Mathf.Rad2Deg;
             else
                 _spin = Mathf.MoveTowardsAngle(_spin, 0, 900 * dt);
-            _body.localScale = new Vector3(w.Facing >= 0 ? 1 : -1, 1, 1);
+            float visualScale = _paintedSprite != null ? _paintedScale : 1f;
+            _body.localScale = new Vector3((w.Facing >= 0 ? 1 : -1) * visualScale, visualScale, 1);
+            // The sprite grows upward from its original foot line; simulation stays put.
+            _body.localPosition = Vector3.up * ((visualScale - 1f) * 0.45f);
             _body.localRotation = Quaternion.Euler(0, 0, _spin);
             if (_paintedSprite != null)
             {
+                var hurt = (w.State == WormState.Tumbling || _hurtPoseTime > 0f) && _hurtMaterials[_palette] != null;
+                var pose = hurt ? _hurtMaterials[_palette]
+                    : holding && w.State != WormState.Tumbling && _aimMaterials[_palette] != null
+                        ? _aimMaterials[_palette] : _paintedMaterials[_palette];
+                if (_paintedRenderer.sharedMaterial != pose) _paintedRenderer.sharedMaterial = pose;
                 float bob = w.State == WormState.Walking ? 0.025f * Mathf.Sin(Time.time * 12f) : 0f;
                 _paintedSprite.localPosition = Vector3.up * bob;
                 _paintedSprite.localScale = w.State == WormState.Airborne
@@ -310,6 +335,7 @@ namespace Worms.Game.Render
             }
 
             if (_flash > 0) _flash = Mathf.Max(0, _flash - dt * 4f);
+            if (_hurtPoseTime > 0) _hurtPoseTime = Mathf.Max(0, _hurtPoseTime - dt);
             _renderer.GetPropertyBlock(_block);
             _block.SetFloat(FlashId, _flash);
             _renderer.SetPropertyBlock(_block);

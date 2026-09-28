@@ -4,6 +4,7 @@ Shader "Worms/Particle"
 {
     Properties
     {
+        _MainTex ("Particle cutout", 2D) = "white" {}
         _Softness ("Edge Softness", Range(0.05, 1)) = 0.6
         [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Src Blend", Float) = 5
         [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Dst Blend", Float) = 10
@@ -26,7 +27,11 @@ Shader "Worms/Particle"
             #pragma fragment Frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
+            TEXTURE2D(_MainTex);
+            SAMPLER(sampler_MainTex);
+
             CBUFFER_START(UnityPerMaterial)
+                float4 _MainTex_ST;
                 half _Softness;
                 float _SrcBlend;
                 float _DstBlend;
@@ -51,15 +56,16 @@ Shader "Worms/Particle"
                 Varyings o;
                 o.positionCS = TransformObjectToHClip(input.positionOS.xyz);
                 o.color = input.color;
-                o.uv = input.uv;
+                o.uv = TRANSFORM_TEX(input.uv, _MainTex);
                 return o;
             }
 
             half4 Frag(Varyings input) : SV_Target
             {
+                half4 cutout = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
                 float d = length(input.uv - 0.5) * 2.0;
                 half a = saturate((1.0 - d) / _Softness);
-                return half4(input.color.rgb, input.color.a * a);
+                return half4(input.color.rgb * cutout.rgb, input.color.a * a * cutout.a);
             }
             ENDHLSL
         }

@@ -114,6 +114,16 @@ Each step is a reviewable increment. Finish its verification before proceeding.
 
 ### Current merge checkpoint (2026-09-28)
 
+The local continuation adds four production PNGs derived from the approved art direction: `Resources/UI/napalm-icon.png` fills the ninth weapon slot, `Resources/Backdrop/coastal-citadel.png` supplies the distant right-hand lighthouse and ruins, `Resources/Backdrop/coastal-range-left.png` supplies layered cliffs on the left, and `Resources/Backdrop/grass-rock-clump.png` adds painted vegetation to stable terrain shelves. The clumps are anchored to destructible terrain and hide when their support falls away. All four are transparent cutouts with source copies and Unity import metadata. Their alpha and source/runtime byte identity were checked, but their placement, browser rendering, and memory cost have not yet been verified in a Unity player. The existing preview images below predate these additions.
+
+The painted worms in matches are now drawn at 1.4× their former size, anchored at the same foot line. The active marker and name/HP labels move above the enlarged art; menu worm scale and simulation collision stay unchanged. This still needs a player capture to check separation at all camera distances and portrait sizes.
+
+The four character PNG import caps are reduced to 1024 px. Their UV crops now use original source dimensions rather than Unity's possibly downsampled texture dimensions, so the painted body should keep the same framing across import tiers. The four new backdrop/UI textures have import caps of 1024/512/256 px according to displayed size. Source PNGs remain full resolution. Unity runtime quality and device memory use still need direct inspection.
+
+A new `stratified-soil.png` PNG replaces the round-clod look of the earlier soil texture with broader horizontal cliff strata and darker seams. The old PNG remains as a fallback in `Materials.Terrain`; Low/Medium/High tiers blend the new painted material at increasing strength. Edge-color sampling on the source PNG found a modest top/bottom seam, so a real match capture is still needed before accepting the repeat pattern or the color grade.
+
+Four new transparent `worm-*-aim.png` cutouts give the red, blue, yellow and green teams a concentrated aiming expression. Their alpha bounds and canvas sizes were checked against one another. `WormView` switches to the aiming cutout only while the worm is holding a weapon, using the same source-space crop as the idle cutout; the original sprite remains available for other states and as a fallback if an aim image is missing. The transition, accessory overlap and shot alignment need player inspection.
+
 The [four-team Windows preview](visuals/concept-rebuild-battle-preview.png) uses the newly generated `sculpted-soil.png` terrain texture. Its original generated PNG is preserved in `assets-src/generated/runtime/terrain/` and the exact runtime copy lives in `client/Assets/Resources/Terrain/`. A Unity 6000.3.25f1 Windows preview build completed with zero errors, and the player was captured on a separate Windows desktop without taking focus. The painted rock masses are clearer, but the cliff silhouette, character scale, composition and HUD still differ substantially from the approved concept. The flight, impact and aftermath images below predate this texture change; they document the actual projectile and crater behavior, not final visual fidelity. WebGL browser rendering and mobile performance remain unverified.
 
 ### Current game renders
@@ -153,3 +163,49 @@ Capture menu, lobby, aiming, flying, explosion, game-over, and disconnected/erro
 ## Boundaries
 
 Do not alter simulation, protocol, match outcomes, or platform parity for an art change. Keep all graphics features compatible with WebGL2 and Unity 6000.3.25f1. Do not open the project in a newer editor and commit automatic migration changes. Keep source asset licenses recorded. If a visual feature misses the mobile target, simplify that feature in Low tier while preserving gameplay readability.
+
+The four teams now have transparent hurt-reaction sprites in addition to idle and aim poses. WormView displays the matching hurt pose for 0.45 seconds after a hit and throughout tumbling, with the same source-space crop and foot anchor. These transitions still need inspection in a Unity player; gameplay logic is unchanged.
+
+The character source-space crop now reaches the lowest opaque foot pixels across idle, aim and hurt art. The painted soil shader mirrors neighboring texture tiles at their borders to remove the visible opposite-edge repeat seam while retaining the same source PNG. Both are graphics-only changes; the final cliff pattern and character framing need a player capture.
+
+Ten transparent cutouts in Backdrop, VFX and UI now enable Unity's alpha-edge dilation on import. This targets colored fringes after bilinear filtering and texture downsampling; visual confirmation still requires the Unity player.
+
+All 29 Backdrop, Characters, UI and VFX PNG importers now clamp texture sampling at their outer edges. This prevents opposite-edge pixels from bleeding into transparent cutouts; the terrain textures retain their separate shader sampling behavior. The result still needs a player capture.
+
+The weapon-icon and team-portrait atlases now import without mipmaps, and HUD sampling stays half a texel inside each cell. This prevents adjacent cells from bleeding into icons at smaller HUD sizes. The other scenery textures retain mipmaps for distance filtering.
+
+Procedural grass tufts now require an open column to the sky, so cave ceilings and enclosed hollows do not acquire bright foliage when their terrain chunks rebuild. Open crater rims can still grow tufts.
+
+The new transparent cliff-rock inlay adds larger angular stone clusters to broad solid dirt faces, using the approved reference's warm earth and gray rock palette. Six candidate placements sample fully solid ground; each decal hides after its center or edge support is destroyed. The asset was generated from the approved battle reference with a prompt for a straight-on embedded-stone wall patch without grass, platform edge or background. Source and Unity PNG copies are byte identical. Placement and blending need player inspection.
+
+The rocket trail and explosion smoke now use a painted puff cutout matching the approved reference's cream and warm-gray smoke lobes. The particle shader samples the cutout for those two systems while fire, sparks, dirt and water keep the white default texture. The puff was generated from the approved reference and edited to remove edge speckles; Unity import caps it at 512 px. Smoke shape, density and tint need player inspection.
+
+Explosion dirt particles now use a single painted angular rock shard matching the flying debris in the approved image. It is tinted near white to preserve its built-in warm gray facets, and rotated by the existing particle system; fire and sparks remain procedural. The PNG has transparent alpha, source/runtime copies match, and Unity import is capped at 256 px. Particle appearance still needs player inspection.
+
+The desktop turn clock now uses a dark navy badge, a code-drawn hourglass, larger white numerals and a thin active-team accent, closer to the approved HUD composition. Compact portrait keeps its smaller clock footprint. The timer value and turn-order calculation are unchanged; alignment with wind and other panels needs a player capture.
+
+The desktop wind badge now shares the timer's navy treatment, with a white wind glyph and a wider bar. The compact HUD breakpoint also accounts for screen height so near-square and portrait windows retain enough horizontal room for both top badges. Wind values and input behavior are unchanged; these layouts need runtime captures.
+
+The z=35 procedural hill strip is lowered from 16 to 6.5 world units so it no longer covers most of the new coastal-range and citadel cutouts. Those cutouts are shifted toward the left and right map edges to counter perspective convergence and frame the open bay in the approved composition. The resulting screen placement remains unverified without a Unity player capture.
+
+The preferred front-face soil texture is now `natural-soil.png`, generated from the approved battle reference as irregular large clay masses and embedded stones without masonry rows. The shader samples it at 0.05 world UV frequency instead of 0.07, using mirrored tile borders. `stratified-soil.png` and earlier textures remain fallbacks. This change targets the brick-like cliff pattern; final scale and color need a Unity match capture.
+
+The crater-aware surface grass mesh now builds fewer but wider five-leaf tufts with taller, curved silhouettes and a brighter biome-tinted green. It remains anchored to exposed terrain cells, so rebuilding a damaged chunk redraws the matching foliage. This mesh change needs a player capture at normal and close zoom to judge whether the grass lip is lush without hiding worms or shimmering.
+
+Cliff-rock inlays and shelf grass/stone clumps now use deterministic size variants instead of repeated identical quads. Each rock inlay also uses a distinct depth below the local surface, with solid-ground sampling recalculated for its own dimensions. These are visual placement changes; the terrain mask and collisions are unchanged.
+
+A resource audit found 33 runtime PNGs with matching source copies and Unity metadata; the literal image load paths in render and UI code resolve to those resources, and all four idle/aim/hurt character variants are present. Low and Medium now blend the preferred painted soil at 0.65 and 0.8 strength, respectively, because those tiers already sample the texture. This aims for one art direction across device tiers; rendered mobile quality remains unverified.
+
+The menu island now reuses two scaled-down painted grass/stone clumps at its left and right stable shelves, away from the four-worm squad. The selected x positions pass the same five-cell surface-slope check used in matches for the current menu terrain formula. A menu player capture is still needed to check visibility against the overlay and camera.
+
+On wide menu screens, the translucent navy column now stops after the short offline or outdated notice instead of covering nearly the full island height. Full-height content such as login, lobby and store keeps the tall panel; compact layouts are unchanged. This frees the lower-left landscape and water in the opening composition, pending a player capture.
+
+The sea shader now uses smaller, slower vertex waves, fewer and softer foam streaks, and a narrower sun glint. Meadow's shallow/deep blue colors are slightly less cyan. This responds to the older menu capture, where bright water marks dominated the scene; water collision and level are unchanged. A fresh match/menu capture is needed to judge the final color balance.
+
+The terrain material now loads only the first available soil PNG in its fallback chain, avoiding resident copies of unused older textures. Import caps were reduced for cloud bank, crates, distant island, oak, midground island, explosion cutout and rocket according to their projected display sizes (512 or 1024 px). Source PNGs remain full resolution. This reduces expected GPU texture memory; exact browser memory and sharpness at closest zoom still need measurement in a Unity player.
+
+The VFX component now destroys its dynamically created alpha, additive, smoke, debris and painted-burst materials when a menu or match scene closes. This bounds those particle materials across repeated scene transitions; the shared sprite textures remain Unity resources. Repeated-transition GPU memory still needs measurement in a player.
+
+The cliff-rock support test now follows the cutout's measured visible alpha bounds (about 74% of canvas width and 58% of height) instead of its transparent padding. This allows otherwise valid cliff locations while still hiding an inlay when its visible rock support is removed. The actual number and appearance of placed inlays need a player capture.
+
+The menu column's translucent backing now uses the same dark navy family as the battle HUD and compact settings panel instead of near-black gray. It remains opaque enough for white text over the moving coastal scene; visual contrast still needs player review.

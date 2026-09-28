@@ -14,6 +14,8 @@ namespace Worms.Game.Render
         {
             foreach (var anchor in parent.GetComponentsInChildren<SurfacePropAnchor>(true))
                 anchor.Refresh(terrain);
+            foreach (var anchor in parent.GetComponentsInChildren<FaceRockAnchor>(true))
+                anchor.Refresh(terrain);
         }
 
         public static Light CreateSun(Transform parent, Theme theme)
@@ -55,8 +57,12 @@ namespace Worms.Game.Render
             {
                 var layers = new[]
                 {
-                    (z: 12f, height: 9f, color: theme.HillsNear[0], dark: theme.HillsNear[1], haze: 0.08f),
-                    (z: 35f, height: 16f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.3f),
+                    // Keep the nearest procedural ridge below the painted island. A tall,
+                    // flat strip used to cover its cliff detail in the battle overview.
+                    (z: 12f, height: 4.5f, color: theme.HillsNear[0], dark: theme.HillsNear[1], haze: 0.24f),
+                    // Keep this low: the painted coastal range and citadel sit just
+                    // behind it and need their cliff faces visible above the water.
+                    (z: 35f, height: 6.5f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.38f),
                     (z: 80f, height: 28f, color: theme.HillsFar[0], dark: theme.HillsFar[1], haze: 0.58f),
                 };
                 foreach (var layer in layers)
@@ -73,8 +79,81 @@ namespace Worms.Game.Render
                 }
             }
             CreateDistantIslands(parent, seed, mapWidth, waterY);
+            if (!menuComposition)
+            {
+                CreateCoastalRange(parent, mapWidth, waterY);
+                CreateCoastalCitadel(parent, mapWidth, waterY);
+            }
             CreateMidgroundIsland(parent, mapWidth, waterY, menuComposition);
             CreateClouds(parent, seed, mapWidth, waterY, menuComposition);
+        }
+
+        static void CreateCoastalRange(Transform parent, float mapWidth, float waterY)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/coastal-range-left");
+            if (texture == null) return;
+            const float z = 48f;
+            float width = 38f;
+            float height = width * texture.height / texture.width;
+            // Perspective pulls distant scenery toward the screen center.
+            // Place this near the map edge to frame the left side of the bay.
+            float x = mapWidth * 0.06f;
+            float bottom = waterY + 2f;
+            var mesh = new Mesh
+            {
+                name = "Coastal range left",
+                vertices = new[]
+                {
+                    new Vector3(x - width / 2f, bottom, z),
+                    new Vector3(x - width / 2f, bottom + height, z),
+                    new Vector3(x + width / 2f, bottom + height, z),
+                    new Vector3(x + width / 2f, bottom, z),
+                },
+                uv = new[] { new Vector2(0, 0), new Vector2(0, 1),
+                    new Vector2(1, 1), new Vector2(1, 0) },
+                triangles = new[] { 0, 1, 2, 0, 2, 3 },
+            };
+            mesh.RecalculateBounds();
+            var go = new GameObject("Coastal range left");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = Materials.BackdropSprite(texture, "Coastal range left", 0.72f);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        static void CreateCoastalCitadel(Transform parent, float mapWidth, float waterY)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/coastal-citadel");
+            if (texture == null) return;
+            const float z = 40f;
+            float width = 40f;
+            float height = width * texture.height / texture.width;
+            float x = mapWidth * 0.96f;
+            float bottom = waterY + 2f;
+            var mesh = new Mesh
+            {
+                name = "Coastal citadel",
+                vertices = new[]
+                {
+                    new Vector3(x - width / 2f, bottom, z),
+                    new Vector3(x - width / 2f, bottom + height, z),
+                    new Vector3(x + width / 2f, bottom + height, z),
+                    new Vector3(x + width / 2f, bottom, z),
+                },
+                uv = new[] { new Vector2(0, 0), new Vector2(0, 1),
+                    new Vector2(1, 1), new Vector2(1, 0) },
+                triangles = new[] { 0, 1, 2, 0, 2, 3 },
+            };
+            mesh.RecalculateBounds();
+            var go = new GameObject("Coastal citadel");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = Materials.BackdropSprite(texture, "Coastal citadel", 0.82f);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
         }
 
         static void CreateMidgroundIsland(Transform parent, float mapWidth, float waterY, bool menuComposition)
@@ -157,10 +236,10 @@ namespace Worms.Game.Render
             var triangles = new List<int>();
             var uvs = new List<Vector2>();
             const float z = 105f;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 7; i++)
             {
-                float x = mapWidth * (i - 1f) * 0.5f + rng.Range(-7f, 7f);
-                float y = waterY + (menuComposition ? rng.Range(28f, 36f) : rng.Range(39f, 49f));
+                float x = mapWidth * (i - 2f) * 0.36f + rng.Range(-7f, 7f);
+                float y = waterY + (menuComposition ? rng.Range(28f, 36f) : rng.Range(28f, 39f));
                 float width = rng.Range(29f, 40f);
                 float height = width / 3f;
                 int first = vertices.Count;
@@ -237,6 +316,154 @@ namespace Worms.Game.Render
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
             }
+        }
+
+        /// <summary>Painted grass and stones on stable shelves, behind the actors.</summary>
+        public static void CreateGroundFoliage(Transform parent, Worms.Sim.Terrain terrain,
+            bool menuComposition = false)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/grass-rock-clump");
+            if (texture == null) return;
+            float[] positions = menuComposition
+                ? new[] { 0.09f, 0.88f }
+                : new[] { 0.08f, 0.18f, 0.30f, 0.41f, 0.58f, 0.70f, 0.82f, 0.94f };
+            float[] widths = menuComposition
+                ? new[] { 2.0f, 2.0f }
+                : new[] { 3.2f, 4.1f, 3.6f, 4.3f, 3.4f, 4.0f, 3.7f, 4.2f };
+            var material = Materials.BackdropSprite(texture, "Grass and stones", 0.94f, alphaThreshold: 0.08f);
+            const float z = 1.1f;
+            int[] offsets = { 0, -20, 20, -40, 40, -60, 60 };
+            var occupied = new List<int>();
+            for (int i = 0; i < positions.Length; i++)
+            {
+                float width = widths[i], height = width * (1.25f / 3.8f);
+                int halfCells = Mathf.RoundToInt(width * 0.35f / WorldSpace.Scale);
+                int origin = Mathf.RoundToInt((terrain.Width - 1) * positions[i]);
+                int cellX = -1, top = terrain.Height;
+                foreach (int offset in offsets)
+                {
+                    int candidate = origin + offset;
+                    if (candidate - halfCells < 0 || candidate + halfCells >= terrain.Width) continue;
+                    bool overlaps = false;
+                    foreach (int placed in occupied)
+                        if (Mathf.Abs(placed - candidate) < halfCells * 2) overlaps = true;
+                    if (overlaps) continue;
+                    int surface = SurfaceTop(terrain, candidate);
+                    if (surface >= terrain.Height - 8 ||
+                        Mathf.Abs(SurfaceTop(terrain, candidate - halfCells) - surface) > 5 ||
+                        Mathf.Abs(SurfaceTop(terrain, candidate + halfCells) - surface) > 5) continue;
+                    cellX = candidate;
+                    top = surface;
+                    break;
+                }
+                if (cellX < 0) continue;
+                occupied.Add(cellX);
+
+                float x = cellX * WorldSpace.Scale;
+                float bottom = -top * WorldSpace.Scale - 0.08f;
+                bool flip = i % 2 == 1;
+                float u0 = flip ? 1f : 0f, u1 = 1f - u0;
+                // Crop the generous transparent padding of the generated cutout.
+                var mesh = new Mesh
+                {
+                    name = "Grass and stones",
+                    vertices = new[]
+                    {
+                        new Vector3(x - width / 2f, bottom, z),
+                        new Vector3(x - width / 2f, bottom + height, z),
+                        new Vector3(x + width / 2f, bottom + height, z),
+                        new Vector3(x + width / 2f, bottom, z),
+                    },
+                    uv = new[] { new Vector2(u0, 0.07f), new Vector2(u0, 0.64f),
+                        new Vector2(u1, 0.64f), new Vector2(u1, 0.07f) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                mesh.RecalculateBounds();
+                var go = new GameObject("Grass and stones " + i);
+                go.transform.SetParent(parent, false);
+                var anchor = go.AddComponent<SurfacePropAnchor>();
+                anchor.CellX = cellX;
+                anchor.OriginalTop = top;
+                anchor.MaxDropCells = 30;
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+        }
+
+        /// <summary>Painted stones embedded inside broad dirt faces, without collision.</summary>
+        public static void CreateCliffRocks(Transform parent, Worms.Sim.Terrain terrain)
+        {
+            var texture = Resources.Load<Texture2D>("Backdrop/cliff-rock-inlay");
+            if (texture == null) return;
+            var material = Materials.BackdropSprite(texture, "Cliff rock inlay", 0.86f);
+            float[] fractions = { 0.11f, 0.23f, 0.36f, 0.64f, 0.78f, 0.91f };
+            float[] widths = { 4.8f, 5.5f, 4.2f, 6.1f, 4.6f, 5.7f };
+            float[] depths = { 3.5f, 4.2f, 3.1f, 4.5f, 3.8f, 4.0f };
+            int[] offsets = { 0, -48, 48, -96, 96 };
+            for (int i = 0; i < fractions.Length; i++)
+            {
+                float width = widths[i], height = width * (3.1f / 5.2f);
+                // The visible art spans roughly 74% by 58% of the PNG; do not
+                // reject a face because its transparent padding crosses a rim.
+                int halfX = Mathf.CeilToInt(width * 0.37f / WorldSpace.Scale);
+                int halfY = Mathf.CeilToInt(height * 0.29f / WorldSpace.Scale);
+                int origin = Mathf.RoundToInt((terrain.Width - 1) * fractions[i]);
+                int cellX = -1, cellY = -1;
+                foreach (int offset in offsets)
+                {
+                    int x = origin + offset;
+                    if (x - halfX < 0 || x + halfX >= terrain.Width) continue;
+                    int y = SurfaceTop(terrain, x) + Mathf.CeilToInt(depths[i] / WorldSpace.Scale);
+                    if (y - halfY < 0 || y + halfY >= terrain.Height) continue;
+                    if (!terrain.IsSolid(x, y) || !terrain.IsSolid(x - halfX, y) ||
+                        !terrain.IsSolid(x + halfX, y) || !terrain.IsSolid(x, y - halfY) ||
+                        !terrain.IsSolid(x, y + halfY)) continue;
+                    cellX = x;
+                    cellY = y;
+                    break;
+                }
+                if (cellX < 0) continue;
+                float cx = cellX * WorldSpace.Scale, cy = -cellY * WorldSpace.Scale;
+                bool flip = i % 2 == 1;
+                float leftUv = flip ? 1f : 0f, rightUv = 1f - leftUv;
+                var mesh = new Mesh
+                {
+                    name = "Cliff rock inlay",
+                    vertices = new[]
+                    {
+                        new Vector3(cx - width / 2f, cy - height / 2f, -0.14f),
+                        new Vector3(cx - width / 2f, cy + height / 2f, -0.14f),
+                        new Vector3(cx + width / 2f, cy + height / 2f, -0.14f),
+                        new Vector3(cx + width / 2f, cy - height / 2f, -0.14f),
+                    },
+                    uv = new[] { new Vector2(leftUv, 0), new Vector2(leftUv, 1),
+                        new Vector2(rightUv, 1), new Vector2(rightUv, 0) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                mesh.RecalculateBounds();
+                var go = new GameObject("Cliff rock inlay " + i);
+                go.transform.SetParent(parent, false);
+                var anchor = go.AddComponent<FaceRockAnchor>();
+                anchor.CellX = cellX;
+                anchor.CellY = cellY;
+                anchor.HalfWidthCells = halfX;
+                anchor.HalfHeightCells = halfY;
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+        }
+
+        static int SurfaceTop(Worms.Sim.Terrain terrain, int x)
+        {
+            int top = 0;
+            while (top < terrain.Height && !terrain.IsSolid(x, top)) top++;
+            return top;
         }
 
         public static void CreateCrateProps(Transform parent, Worms.Sim.Terrain terrain, IReadOnlyList<WormSnap> worms)

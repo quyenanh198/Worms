@@ -77,7 +77,10 @@ namespace Worms.Game.Render
             var tier = Current;
             UrpSetup.ApplyTier(tier, presenter.Sun);
             presenter.Vfx.Density = tier == QualityTier.Low ? 0.5f : tier == QualityTier.Medium ? 1f : 1.5f;
-            presenter.Terrain.SetPaintStrength(tier == QualityTier.Low ? 0f : tier == QualityTier.Medium ? 0.45f : 0.75f);
+            // All tiers already sample the painted soil. Keep the approved clay
+            // and rock forms legible on mobile while leaving the shader's edge
+            // and grass treatment intact.
+            presenter.Terrain.SetPaintStrength(tier == QualityTier.Low ? 0.65f : tier == QualityTier.Medium ? 0.8f : 0.95f);
         }
 
         /// <summary>Call once per frame during a match; returns true when the benchmark changed the tier.</summary>

@@ -32,10 +32,10 @@ namespace Worms.Game.UI
     public sealed class Hud : MonoBehaviour
     {
         public IHudSource Source;
-        GUIStyle _label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine, _weaponCaption;
+        GUIStyle _label, _big, _small, _timerStyle, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine, _weaponCaption;
         bool _weaponMenu;
         Texture2D _white;
-        Texture2D _weaponIcons, _teamPortraits, _foregroundFoliage;
+        Texture2D _weaponIcons, _napalmIcon, _teamPortraits, _foregroundFoliage;
         int _styleWidth, _styleHeight;
 
         static readonly string[] WeaponNames = { "Bazooka", "Lựu đạn", "Bom chùm", "Shotgun", "Uzi", "Dynamite", "Gậy bóng chày", "Không kích", "Bom napalm" };
@@ -57,6 +57,7 @@ namespace Worms.Game.UI
             _label.normal.textColor = Color.white;
             _big = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 1.8f), fontStyle = FontStyle.Bold };
             _small = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 0.8f) };
+            _timerStyle = new GUIStyle(_label) { fontSize = Mathf.RoundToInt(u * 2.5f), fontStyle = FontStyle.Bold };
             _panel = new GUIStyle(GUI.skin.box);
             _button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(u * 0.85f), wordWrap = true, richText = true };
             UiSkin.Panel(_panel);
@@ -68,8 +69,9 @@ namespace Worms.Game.UI
             _kamikaze = new GUIStyle(_big) { fontStyle = FontStyle.Bold };
             _oneLine = new GUIStyle(_label) { wordWrap = false, alignment = TextAnchor.MiddleLeft };
             _weaponCaption = new GUIStyle(_small) { fontSize = Mathf.RoundToInt(u * 0.7f), wordWrap = true, alignment = TextAnchor.MiddleCenter };
-            UiFont.Apply(_label, _big, _small, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine, _weaponCaption);
+            UiFont.Apply(_label, _big, _small, _timerStyle, _panel, _button, _buttonOn, _tagName, _tagHp, _kamikaze, _oneLine, _weaponCaption);
             _weaponIcons = Resources.Load<Texture2D>("UI/weapon-icons");
+            _napalmIcon = Resources.Load<Texture2D>("UI/napalm-icon");
             _teamPortraits = Resources.Load<Texture2D>("UI/team-portraits");
             _foregroundFoliage = Resources.Load<Texture2D>("UI/foreground-foliage");
         }
@@ -80,6 +82,42 @@ namespace Worms.Game.UI
             GUI.color = c;
             GUI.DrawTexture(r, _white);
             GUI.color = old;
+        }
+
+        void Line(Vector2 a, Vector2 b, float thickness, Color color)
+        {
+            var oldMatrix = GUI.matrix;
+            GUIUtility.RotateAroundPivot(Mathf.Atan2(b.y - a.y, b.x - a.x) * Mathf.Rad2Deg, a);
+            Box(new Rect(a.x, a.y - thickness * 0.5f, Vector2.Distance(a, b), thickness), color);
+            GUI.matrix = oldMatrix;
+        }
+
+        void Hourglass(Rect r)
+        {
+            float x0 = r.xMin, x1 = r.xMax, y0 = r.yMin, y1 = r.yMax;
+            float midX = r.center.x, midY = r.center.y;
+            float thick = Mathf.Max(2f, r.width * 0.09f);
+            var white = new Color(0.94f, 0.97f, 1f);
+            Line(new Vector2(x0, y0), new Vector2(x1, y0), thick, white);
+            Line(new Vector2(x0, y1), new Vector2(x1, y1), thick, white);
+            Line(new Vector2(x0 + thick, y0), new Vector2(midX, midY), thick, white);
+            Line(new Vector2(x1 - thick, y0), new Vector2(midX, midY), thick, white);
+            Line(new Vector2(midX, midY), new Vector2(x0 + thick, y1), thick, white);
+            Line(new Vector2(midX, midY), new Vector2(x1 - thick, y1), thick, white);
+        }
+
+        void WindGlyph(Rect r)
+        {
+            var pale = new Color(0.9f, 0.96f, 1f);
+            float t = Mathf.Max(1.5f, r.height * 0.08f);
+            for (int i = 0; i < 3; i++)
+            {
+                float y = r.y + r.height * (0.24f + i * 0.25f);
+                float start = r.x + r.width * (i == 1 ? 0.03f : 0.15f);
+                Line(new Vector2(start, y), new Vector2(r.xMax - r.width * 0.14f, y), t, pale);
+                Line(new Vector2(r.xMax - r.width * 0.14f, y),
+                    new Vector2(r.xMax, y - r.height * 0.12f), t, pale);
+            }
         }
 
         /// <summary>
@@ -160,7 +198,7 @@ namespace Worms.Game.UI
             float w = Screen.width, h = Screen.height, u = _label.fontSize;
             var safe = Screen.safeArea;
             float safeTop = h - safe.yMax, safeBottom = safe.yMin;
-            bool compact = safe.width < 700f;
+            bool compact = safe.width < Mathf.Max(700f, u * 48f);
             if (!compact && _foregroundFoliage != null)
             {
                 var oldColor = GUI.color;
@@ -189,21 +227,37 @@ namespace Worms.Game.UI
                 Shadowed(new Rect(sp.x - u * 3, h - sp.y - u, u * 6, u * 2), popup.Text, _big, c);
             }
 
-            // Top center: the turn timer in a badge ringed with the playing team's color.
+            // Top center: a navy hourglass badge, as in the approved battle image.
             float seconds = s.Phase == Phase.Retreat ? s.RetreatTicksLeft / (float)C.TicksPerSecond : s.TurnTicksLeft / (float)C.TicksPerSecond;
-            var timer = new Rect(safe.center.x - u * 2.2f, safeTop + u * 0.4f, u * 4.4f, u * 2.4f);
-            if (s.ActiveTeam >= 0) UiSkin.Pill(new Rect(timer.x - 3, timer.y - 3, timer.width + 6, timer.height + 6), TeamColors.Of(s.ActiveTeam));
-            UiSkin.Pill(timer, new Color(0.07f, 0.09f, 0.13f, 0.9f));
-            Shadowed(timer, Mathf.CeilToInt(Mathf.Max(0, seconds)).ToString(), _big,
+            // The desktop turn clock is the primary HUD landmark in the approved composition.
+            // Keep the compact badge on phones so it cannot collide with the wind panel.
+            var timer = compact
+                ? new Rect(safe.center.x - u * 2.2f, safeTop + u * 0.4f, u * 4.4f, u * 2.4f)
+                : new Rect(safe.center.x - u * 5.5f, safeTop, u * 11f, u * 4.2f);
+            UiSkin.Pill(timer, new Color(0.07f, 0.16f, 0.27f, 0.94f));
+            if (!compact)
+            {
+                Hourglass(new Rect(timer.x + u * 1.35f, timer.y + u * 0.8f, u * 2.1f, u * 2.7f));
+                if (s.ActiveTeam >= 0)
+                    UiSkin.Pill(new Rect(timer.x + u * 0.9f, timer.yMax - u * 0.32f,
+                        timer.width - u * 1.8f, u * 0.16f), TeamColors.Of(s.ActiveTeam));
+            }
+            var clockText = compact ? timer : new Rect(timer.x + u * 4.2f, timer.y + u * 0.15f,
+                timer.width - u * 4.7f, u * 3.7f);
+            Shadowed(clockText, Mathf.CeilToInt(Mathf.Max(0, seconds)).ToString(), compact ? _big : _timerStyle,
                 seconds <= 5 && s.Phase == Phase.Aiming ? new Color(1f, 0.45f, 0.35f) : Color.white);
 
             TurnOrder(s, timer, u);
 
             // Top right: wind, a bar filling from the middle toward where it blows.
-            float windW = u * (compact ? 5.8f : 8f);
-            var windBadge = new Rect(safe.xMax - windW - u * 1.2f, safeTop + u * 0.4f, windW + u * 1.2f, u * 2.7f);
-            UiSkin.Pill(windBadge, new Color(0.07f, 0.09f, 0.13f, 0.8f));
-            var windRect = new Rect(windBadge.x + u * 0.6f, windBadge.y + u * 1.45f, windW, u * 0.5f);
+            float windW = u * (compact ? 5.8f : 9.6f);
+            var windBadge = new Rect(safe.xMax - windW - u * 1.2f, safeTop + u * 0.4f,
+                windW + u * 1.2f, u * (compact ? 2.7f : 3.15f));
+            UiSkin.Pill(windBadge, new Color(0.07f, 0.16f, 0.27f, 0.88f));
+            if (!compact)
+                WindGlyph(new Rect(windBadge.x + u * 0.55f, windBadge.y + u * 0.4f, u * 2.3f, u * 1.4f));
+            var windRect = new Rect(windBadge.x + u * 0.6f,
+                windBadge.y + u * (compact ? 1.45f : 2.15f), windW, u * 0.5f);
             UiSkin.Pill(windRect, new Color(1f, 1f, 1f, 0.15f));
             float frac = Mathf.Clamp(s.Wind / C.WindMax, -1, 1);
             float mid = windRect.x + windRect.width / 2;
@@ -213,7 +267,8 @@ namespace Worms.Game.UI
                     new Color(0.55f, 0.85f, 1f));
             Box(new Rect(mid - 1f, windRect.y, 2f, windRect.height), Color.white);
             string windText = Mathf.Abs(frac) < 0.05f ? "Gió: lặng  0" : (frac > 0 ? "Gió  → " : "←  Gió ") + Mathf.RoundToInt(Mathf.Abs(s.Wind));
-            Shadowed(new Rect(windBadge.x, windBadge.y + u * 0.15f, windBadge.width, u * 1.2f), windText, _small, Color.white);
+            Shadowed(new Rect(windBadge.x + (compact ? 0f : u * 2.5f), windBadge.y + u * 0.2f,
+                windBadge.width - (compact ? 0f : u * 2.7f), u * 1.4f), windText, _small, Color.white);
 
             // Bottom: one rounded HP bar per team, the playing team's lit up.
             int teams = Source.Presenter.TeamCount;
@@ -237,7 +292,7 @@ namespace Worms.Game.UI
                 float portraitW = _teamPortraits != null && barW >= u * 6f ? Mathf.Min(u * 1.6f, barW * 0.26f) : 0f;
                 if (portraitW > 0)
                     GUI.DrawTextureWithTexCoords(new Rect(back.x + u * 0.12f, back.y + u * 0.16f, portraitW, portraitW * 4f / 3f),
-                        _teamPortraits, new Rect((t % 4) * 0.25f, 0, 0.25f, 1f), true);
+                        _teamPortraits, AtlasUv(_teamPortraits, t % 4, 0, 4, 1), true);
                 var r = new Rect(back.x + portraitW + u * 0.28f, back.y + u * 1.9f,
                     back.width - portraitW - u * 0.48f, u * 0.5f);
                 UiSkin.Pill(r, new Color(1f, 1f, 1f, 0.12f));
@@ -314,7 +369,7 @@ namespace Worms.Game.UI
                     if (!GUI.enabled) GUI.color = new Color(1f, 1f, 1f, 0.4f);
                     GUI.DrawTextureWithTexCoords(new Rect(r.x + u * 0.35f, r.y + u * 0.2f,
                         size - u * 0.7f, size - u * 0.85f), _weaponIcons,
-                        new Rect((i % 4) * 0.25f, (1 - i / 4) * 0.5f, 0.25f, 0.5f), true);
+                        AtlasUv(_weaponIcons, i % 4, 1 - i / 4, 4, 2), true);
                     GUI.color = oldColor;
                 }
                 string count = ammo < 0 ? "∞" : ammo.ToString();
@@ -424,7 +479,8 @@ namespace Worms.Game.UI
                     var r = new Rect(panel.x + u * 0.5f + (i % cols) * cw, panel.y + u * 0.5f + (i / cols) * ch,
                         cw - u * 0.3f, ch - u * 0.3f);
                     GUI.enabled = ammo != 0 && !s.AttackInProgress;
-                    bool hasIcon = _weaponIcons != null && i < 8;
+                    bool hasIcon = i == (int)WeaponId.Napalm ? _napalmIcon != null
+                        : _weaponIcons != null && i < 8;
                     if (GUI.Button(r, hasIcon ? "" : label, id == s.ActiveWeapon ? _buttonOn : _button))
                     {
                         Source.SelectWeapon(id);
@@ -436,8 +492,17 @@ namespace Worms.Game.UI
                         if (!GUI.enabled) GUI.color = new Color(1, 1, 1, 0.38f);
                         float iconSize = Mathf.Min(r.width * 0.42f, ch * 0.48f);
                         var iconRect = new Rect(r.center.x - iconSize * 0.5f, r.y + u * 0.08f, iconSize, iconSize);
-                        GUI.DrawTextureWithTexCoords(iconRect, _weaponIcons,
-                            new Rect((i % 4) * 0.25f, (1 - i / 4) * 0.5f, 0.25f, 0.5f), true);
+                        if (i == (int)WeaponId.Napalm)
+                        {
+                            // The single icon has wide transparent margins unlike the atlas cells.
+                            var portraitRect = new Rect(r.center.x - iconSize * 0.42f,
+                                iconRect.y, iconSize * 0.84f, iconSize);
+                            GUI.DrawTextureWithTexCoords(portraitRect, _napalmIcon,
+                                new Rect(0.24f, 0.08f, 0.55f, 0.85f), true);
+                        }
+                        else
+                            GUI.DrawTextureWithTexCoords(iconRect, _weaponIcons,
+                                AtlasUv(_weaponIcons, i % 4, 1 - i / 4, 4, 2), true);
                         GUI.Label(new Rect(r.x + 2, iconRect.yMax, r.width - 4, r.yMax - iconRect.yMax - 2), label, _weaponCaption);
                         GUI.color = oldColor;
                     }
@@ -450,6 +515,14 @@ namespace Worms.Game.UI
             if (_weaponMenu || dismissed) blocked = new Rect(0, 0, w, h);
             Play.KeyboardInput.BlockedArea = blocked;
             Play.TouchInput.BlockedArea = blocked;
+        }
+
+        static Rect AtlasUv(Texture2D texture, int column, int row, int columns, int rows)
+        {
+            float insetX = 0.5f / texture.width;
+            float insetY = 0.5f / texture.height;
+            return new Rect(column / (float)columns + insetX, row / (float)rows + insetY,
+                1f / columns - 2f * insetX, 1f / rows - 2f * insetY);
         }
 
         /// <summary>White flash, then a "CẢM TỬ!" banner that pops in and fades.</summary>
