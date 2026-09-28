@@ -40,6 +40,20 @@ namespace Worms.Sim.Tests
         }
 
         [Fact]
+        public void SelectedConceptSeedHasDryCentralBattleFloor()
+        {
+            var t = MapGenerator.Generate(123456);
+            int water = t.Height - C.WaterDepth;
+            for (int x = t.Width * 45 / 100; x <= t.Width * 55 / 100; x += 16)
+            {
+                int top = 0;
+                while (top < t.Height && !t.IsSolid(x, top)) top++;
+                Assert.True(top < water - 80,
+                    $"Central valley at x={x} reaches y={top}; water starts at {water}");
+            }
+        }
+
+        [Fact]
         public void GeneratedSpawnsStayInTheCentralBattleArea()
         {
             foreach (uint seed in new uint[] { 0, 1, 5, 42, 123456, 123457 })

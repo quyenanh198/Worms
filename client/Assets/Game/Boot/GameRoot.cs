@@ -166,8 +166,14 @@ namespace Worms.Game.Boot
                     // updates. Stop shortly after the first carve to catch the blast.
                     for (int i = 0; i < 600 && shotMatch.World.TerrainOps.Count == oldCarves; i++)
                         yield return new WaitForEndOfFrame();
+                    if (shotMatch.World.TerrainOps.Count == oldCarves)
+                    {
+                        Debug.LogError("Shot capture did not produce a terrain carve");
+                        Application.Quit(1);
+                        yield break;
+                    }
                     if (shotStage == "aftermath")
-                        for (int i = 0; i < 50; i++) yield return new WaitForEndOfFrame();
+                        for (int i = 0; i < 180; i++) yield return new WaitForEndOfFrame();
                     else
                         for (int i = 0; i < 5; i++) yield return new WaitForEndOfFrame();
                 }
