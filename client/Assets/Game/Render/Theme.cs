@@ -69,8 +69,12 @@ namespace Worms.Game.Render
             m.SetColor("_DirtColor", t.Dirt);
             m.SetColor("_DeepColor", t.Deep);
             m.SetColor("_RockColor", t.Rock);
-            var paintedSoil = Resources.Load<Texture2D>("Terrain/painted-soil");
+            var sculptedSoil = Resources.Load<Texture2D>("Terrain/sculpted-soil");
+            var paintedSoil = sculptedSoil ?? Resources.Load<Texture2D>("Terrain/painted-soil");
             if (paintedSoil != null) m.SetTexture("_PaintedSoil", paintedSoil);
+            m.SetColor("_PaintTint", sculptedSoil != null
+                ? new Color(0.94f, 0.92f, 1.02f)
+                : new Color(0.72f, 0.78f, 1.15f));
             m.SetFloat("_PaintStrength", paintedSoil != null ? 0.65f : 0f);
             return m;
         }

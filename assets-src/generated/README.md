@@ -16,6 +16,7 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/characters/worm-yellow.png` | `exec-35a9e6cb-9ce8-42ee-99f3-4bb66e970f8b.png` | `Resources/Characters/worm-yellow.png` |
 | `runtime/characters/worm-green.png` | `exec-5bc8c60b-e9e8-4c2d-8511-814e2c0b1330.png` | `Resources/Characters/worm-green.png` |
 | `runtime/terrain/painted-soil.png` | `exec-0976b58a-b4d1-49ad-b104-2a9443424539.png` | `Resources/Terrain/painted-soil.png` |
+| `runtime/terrain/sculpted-soil.png` | `exec-c9b0a2b6-2353-4252-8617-f8a5eef7151b.png` | `Resources/Terrain/sculpted-soil.png` |
 | `runtime/ui/foreground-foliage.png` | `exec-08dbc81c-c4f1-4029-8fd2-9ac14ee71925.png` | `Resources/UI/foreground-foliage.png` |
 | `runtime/ui/team-portraits.png` | `exec-52898453-e9b1-4727-b571-68e31cb47067.png` | `Resources/UI/team-portraits.png` |
 | `runtime/ui/weapon-icons.png` | `exec-9410194d-e587-4026-86d4-66f705bd4fbe.png` | `Resources/UI/weapon-icons.png` |
@@ -27,4 +28,4 @@ This directory preserves the original PNG outputs used during the approved carto
 | `drafts/mountain-cutout.png` | `exec-afd4c272-7121-43d9-91e5-e0cd63a946fb.png` | Unused background variant |
 | `drafts/boulder.png` | `exec-c6020528-f171-4413-8608-796d1aaa15db.png` | Unused rock variant |
 
-All images were generated for this project with OpenAI image generation on 2026-09-26 or 2026-09-27. See [CREDITS.md](../CREDITS.md) for attribution. The generated cutouts may have soft or imperfect alpha at the edges; inspect before reusing them in a new scene.
+All images were generated for this project with OpenAI image generation on 2026-09-26, 2026-09-27, or 2026-09-28. See [CREDITS.md](../CREDITS.md) for attribution. The generated cutouts may have soft or imperfect alpha at the edges; inspect before reusing them in a new scene.

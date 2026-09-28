@@ -4,7 +4,7 @@ Repo này public, nên chỉ chứa asset CC0 hoặc tự tạo (docs/PLAN.md §
 
 Game không dùng asset bên ngoài có giấy phép hạn chế. Các hình sau do dự án tự tạo:
 
-Bản gốc của toàn bộ 22 ảnh tạo trong đợt concept Worms được lưu tại [generated/README.md](generated/README.md): 2 ảnh tham chiếu, 15 ảnh đang dùng trong Unity và 5 phương án chưa dùng. Các ảnh runtime trong thư mục đó trùng byte với PNG tương ứng dưới `client/Assets/Resources/`.
+Bản gốc của toàn bộ 23 ảnh tạo trong đợt concept Worms được lưu tại [generated/README.md](generated/README.md): 2 ảnh tham chiếu, 16 ảnh đang dùng trong Unity và 5 phương án chưa dùng. Các ảnh runtime trong thư mục đó trùng byte với PNG tương ứng dưới `client/Assets/Resources/`.
 
 | Loại | Cách tạo | File |
 |---|---|---|
@@ -24,6 +24,7 @@ Khi thêm một file asset, ghi một dòng vào bảng dưới đây (nguồn, 
 | `client/Assets/Resources/Backdrop/foreground-oak.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; cây sồi và hàng rào, nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Backdrop/crate-rocks.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; thùng gỗ, đá và bụi cỏ, nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Terrain/painted-soil.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; texture đất vẽ tay | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/Terrain/sculpted-soil.png` | Tạo bằng OpenAI image generation theo chất đất của ảnh concept do người dùng chọn, 2026-09-28; texture đất có khối đá lớn | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Characters/worm-red.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; sâu đỏ nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Characters/worm-blue.png` | Biến thể màu xanh từ sprite sâu đỏ bằng OpenAI image generation, 2026-09-27 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Characters/worm-yellow.png` | Biến thể màu vàng từ sprite sâu đỏ bằng OpenAI image generation, 2026-09-27 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |

@@ -112,6 +112,10 @@ Each step is a reviewable increment. Finish its verification before proceeding.
 
 ## Verification matrix
 
+### Current merge checkpoint (2026-09-28)
+
+The [four-team Windows preview](visuals/concept-rebuild-battle-preview.png) uses the newly generated `sculpted-soil.png` terrain texture. Its original generated PNG is preserved in `assets-src/generated/runtime/terrain/` and the exact runtime copy lives in `client/Assets/Resources/Terrain/`. A Unity 6000.3.25f1 Windows preview build completed with zero errors, and the player was captured on a separate Windows desktop without taking focus. The painted rock masses are clearer, but the cliff silhouette, character scale, composition and HUD still differ substantially from the approved concept. The flight, impact and aftermath images below predate this texture change; they document the actual projectile and crater behavior, not final visual fidelity. WebGL browser rendering and mobile performance remain unverified.
+
 ### Current game renders
 
 The following two images use the same offline sandbox seed (`123456`), 1280×720 camera render, Windows player, High tier, and a disposable Unity **6000.6.3f1** copy. The source project remains set to 6000.3.25f1. This comparison demonstrates the current direction but does not validate the required editor version, WebGL2, mobile performance, or the HUD.
