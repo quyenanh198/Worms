@@ -320,24 +320,32 @@ namespace Worms.Game.Render
 
         /// <summary>Painted grass and stones on stable shelves, behind the actors.</summary>
         public static void CreateGroundFoliage(Transform parent, Worms.Sim.Terrain terrain,
-            bool menuComposition = false)
+            uint seed = 0, bool menuComposition = false)
         {
             var texture = Resources.Load<Texture2D>("Backdrop/grass-rock-clump");
-            if (texture == null) return;
+            var bankTexture = Resources.Load<Texture2D>("Backdrop/rocky-grass-bank");
+            if (texture == null && bankTexture == null) return;
             float[] positions = menuComposition
                 ? new[] { 0.09f, 0.88f }
                 : new[] { 0.08f, 0.18f, 0.30f, 0.41f, 0.58f, 0.70f, 0.82f, 0.94f };
             float[] widths = menuComposition
                 ? new[] { 2.0f, 2.0f }
                 : new[] { 3.2f, 4.1f, 3.6f, 4.3f, 3.4f, 4.0f, 3.7f, 4.2f };
-            var material = Materials.BackdropSprite(texture, "Grass and stones", 0.94f, alphaThreshold: 0.08f);
+            var material = texture != null
+                ? Materials.BackdropSprite(texture, "Grass and stones", 0.94f, alphaThreshold: 0.08f)
+                : null;
+            var bankMaterial = bankTexture != null
+                ? Materials.BackdropSprite(bankTexture, "Rocky grass bank", 0.94f, alphaThreshold: 0.08f)
+                : null;
             const float z = 1.1f;
             int[] offsets = { 0, -20, 20, -40, 40, -60, 60 };
             var occupied = new List<int>();
             for (int i = 0; i < positions.Length; i++)
             {
-                float width = widths[i], height = width * (1.25f / 3.8f);
-                int halfCells = Mathf.RoundToInt(width * 0.35f / WorldSpace.Scale);
+                bool rocky = bankTexture != null && (texture == null ||
+                    !menuComposition && (i + (int)(seed % 3u)) % 3 == 1);
+                float width = widths[i], height = width * (rocky ? 0.26f : 1.25f / 3.8f);
+                int halfCells = Mathf.RoundToInt(width * (rocky ? 0.45f : 0.35f) / WorldSpace.Scale);
                 int origin = Mathf.RoundToInt((terrain.Width - 1) * positions[i]);
                 int cellX = -1, top = terrain.Height;
                 foreach (int offset in offsets)
@@ -363,10 +371,12 @@ namespace Worms.Game.Render
                 float bottom = -top * WorldSpace.Scale - 0.08f;
                 bool flip = i % 2 == 1;
                 float u0 = flip ? 1f : 0f, u1 = 1f - u0;
-                // Crop the generous transparent padding of the generated cutout.
+                // Each cutout has different transparent padding around its baseline.
+                float vBottom = rocky ? 0.11f : 0.07f;
+                float vTop = rocky ? 0.84f : 0.64f;
                 var mesh = new Mesh
                 {
-                    name = "Grass and stones",
+                    name = rocky ? "Rocky grass bank" : "Grass and stones",
                     vertices = new[]
                     {
                         new Vector3(x - width / 2f, bottom, z),
@@ -374,20 +384,21 @@ namespace Worms.Game.Render
                         new Vector3(x + width / 2f, bottom + height, z),
                         new Vector3(x + width / 2f, bottom, z),
                     },
-                    uv = new[] { new Vector2(u0, 0.07f), new Vector2(u0, 0.64f),
-                        new Vector2(u1, 0.64f), new Vector2(u1, 0.07f) },
+                    uv = new[] { new Vector2(u0, vBottom), new Vector2(u0, vTop),
+                        new Vector2(u1, vTop), new Vector2(u1, vBottom) },
                     triangles = new[] { 0, 1, 2, 0, 2, 3 },
                 };
                 mesh.RecalculateBounds();
-                var go = new GameObject("Grass and stones " + i);
+                var go = new GameObject((rocky ? "Rocky grass bank " : "Grass and stones ") + i);
                 go.transform.SetParent(parent, false);
                 var anchor = go.AddComponent<SurfacePropAnchor>();
                 anchor.CellX = cellX;
                 anchor.OriginalTop = top;
                 anchor.MaxDropCells = 30;
+                anchor.HalfWidthCells = halfCells;
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var renderer = go.AddComponent<MeshRenderer>();
-                renderer.sharedMaterial = material;
+                renderer.sharedMaterial = rocky ? bankMaterial : material;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
             }

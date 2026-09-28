@@ -176,6 +176,14 @@ The weapon-icon and team-portrait atlases now import without mipmaps, and HUD sa
 
 Procedural grass tufts now require an open column to the sky, so cave ceilings and enclosed hollows do not acquire bright foliage when their terrain chunks rebuild. Open crater rims can still grow tufts.
 
+Match terrain now picks one of three reusable painted surfaces from the shared map seed: natural soil, stratified soil with embedded rocks, or sculpted rubble. The menu retains natural soil. The chosen surface changes only the terrain material; all three use the same destructible collision mask and crater updates. A truly rock-free soil tile and independent rock sprites are still needed for the requested dirt-only and obstacle variants.
+
+Painted explosion rock debris now uses the sprite's alpha silhouette without the particle shader's circular fade. Smoke, fire and sparks retain the radial falloff; its coordinates stay tied to the particle quad even when a cutout texture uses cropped UVs.
+
+Terrain impacts and blasts now use a separate warm earth-dust particle layer, instead of sending small dirt puffs through the gray smoke system. Explosion debris count is reduced from 26 to 18 as ten earth puffs are added, keeping the overall particle count close to the previous effect.
+
+An earlier generated rocky grass bank has now been recovered and imported as a second reusable shelf cutout. Match shelves choose between the small grass/stone clump and this larger rock bank using the shared map seed; both stay attached to destructible terrain and disappear when their support falls away. This provides a distinct visible rock grouping, though it is still decorative rather than an independent collision obstacle.
+
 The new transparent cliff-rock inlay adds larger angular stone clusters to broad solid dirt faces, using the approved reference's warm earth and gray rock palette. Six candidate placements sample fully solid ground; each decal hides after its center or edge support is destroyed. The asset was generated from the approved battle reference with a prompt for a straight-on embedded-stone wall patch without grass, platform edge or background. Source and Unity PNG copies are byte identical. Placement and blending need player inspection.
 
 The rocket trail and explosion smoke now use a painted puff cutout matching the approved reference's cream and warm-gray smoke lobes. The particle shader samples the cutout for those two systems while fire, sparks, dirt and water keep the white default texture. The puff was generated from the approved reference and edited to remove edge speckles; Unity import caps it at 512 px. Smoke shape, density and tint need player inspection.
@@ -189,6 +197,8 @@ The desktop wind badge now shares the timer's navy treatment, with a white wind 
 The z=35 procedural hill strip is lowered from 16 to 6.5 world units so it no longer covers most of the new coastal-range and citadel cutouts. Those cutouts are shifted toward the left and right map edges to counter perspective convergence and frame the open bay in the approved composition. The resulting screen placement remains unverified without a Unity player capture.
 
 The preferred front-face soil texture is now `natural-soil.png`, generated from the approved battle reference as irregular large clay masses and embedded stones without masonry rows. The shader samples it at 0.05 world UV frequency instead of 0.07, using mirrored tile borders. `stratified-soil.png` and earlier textures remain fallbacks. This change targets the brick-like cliff pattern; final scale and color need a Unity match capture.
+
+The latest art pass adds two walking cutouts derived from the red worm. Idle, aim, hurt, and walk now share one red source set across teams; the sprite shader recolors red body pixels from `TeamColors` while retaining the face and outline. Walking alternates the two new poses at 7 frames per second. The new `clay-soil.png` is a dirt-only surface selected when map seed modulo four is three; procedural stones and decorative rock cutouts are omitted for that variant. Asset dimensions, source/runtime byte identity and `git diff --check` were verified. Unity visual output remains to be inspected; no compile check was run at the user's request.
 
 The crater-aware surface grass mesh now builds fewer but wider five-leaf tufts with taller, curved silhouettes and a brighter biome-tinted green. It remains anchored to exposed terrain cells, so rebuilding a damaged chunk redraws the matching foliage. This mesh change needs a player capture at normal and close zoom to judge whether the grass lip is lush without hiding worms or shimmering.
 

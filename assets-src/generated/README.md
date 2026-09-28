@@ -13,11 +13,14 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/backdrop/crate-rocks.png` | `exec-5bf4a268-c5ca-4e9f-8da9-1fd7e33cfef7.png` | `Resources/Backdrop/crate-rocks.png` |
 | `runtime/backdrop/distant-island.png` | `exec-fa6595f0-63c7-4c37-8037-b20fea711241.png` | `Resources/Backdrop/distant-island.png` |
 | `runtime/backdrop/grass-rock-clump.png` | `exec-583c704c-afe8-403f-83ad-59e6e9f55b68.png` | `Resources/Backdrop/grass-rock-clump.png`; ground foliage and stones |
+| `runtime/backdrop/rocky-grass-bank.png` | `exec-3713197f-6cfb-4eb0-baf0-1c4d563b78f6.png` | `Resources/Backdrop/rocky-grass-bank.png`; second reusable shelf cutout with larger rocks |
 | `runtime/backdrop/foreground-oak.png` | `exec-03d25051-1fe2-485f-887c-95012f65a954.png` | `Resources/Backdrop/foreground-oak.png` |
 | `runtime/backdrop/midground-island.png` | `exec-d6f75f22-7b74-478f-b2c4-49c412d57b69.png` | `Resources/Backdrop/midground-island.png` |
 | `runtime/characters/worm-red.png` | `exec-f9cc9a35-5cba-4d10-bee2-cab2843285b0.png` | `Resources/Characters/worm-red.png` |
 | `runtime/characters/worm-red-aim.png` | `exec-8c96e9bc-c83f-4506-9f4b-a3071e731a42.png` | `Resources/Characters/worm-red-aim.png`; aiming pose |
 | `runtime/characters/worm-red-hurt.png` | `exec-80c7f530-5597-443b-aa74-f71b67a4952a.png` | `Resources/Characters/worm-red-hurt.png`; hit reaction |
+| `runtime/characters/worm-red-walk-a.png` | `exec-7bb01a11-2663-4aba-8072-cd1fe13c39e4.png` | `Resources/Characters/worm-red-walk-a.png`; shared walking pose A |
+| `runtime/characters/worm-red-walk-b.png` | `exec-fcfe5153-c4be-4e21-9a05-378f32521a6e.png` | `Resources/Characters/worm-red-walk-b.png`; shared walking pose B |
 | `runtime/characters/worm-blue.png` | `exec-22c51f86-9c32-4e4f-860a-0cb6c902a896.png` | `Resources/Characters/worm-blue.png` |
 | `runtime/characters/worm-blue-aim.png` | `exec-a45c8ef4-5da9-4605-915e-1932c8d17ad9.png` | `Resources/Characters/worm-blue-aim.png`; aiming pose |
 | `runtime/characters/worm-blue-hurt.png` | `exec-6fc827a4-32e1-4fde-be80-990b8f3bf1a6.png` | `Resources/Characters/worm-blue-hurt.png`; hit reaction |
@@ -29,8 +32,9 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/characters/worm-green-hurt.png` | `exec-3ea6d2f2-cd2e-4c9e-8a7d-d518815ab407.png` | `Resources/Characters/worm-green-hurt.png`; hit reaction |
 | `runtime/terrain/painted-soil.png` | `exec-0976b58a-b4d1-49ad-b104-2a9443424539.png` | `Resources/Terrain/painted-soil.png` |
 | `runtime/terrain/sculpted-soil.png` | `exec-c9b0a2b6-2353-4252-8617-f8a5eef7151b.png` | `Resources/Terrain/sculpted-soil.png` |
-| `runtime/terrain/stratified-soil.png` | `exec-7ecfcade-7b8e-4b1b-853d-34787cb5d3c3.png` | `Resources/Terrain/stratified-soil.png`; layered earth face, preferred runtime texture |
-| `runtime/terrain/natural-soil.png` | `exec-17c0f946-c04c-4e11-aba7-6afb40d05c71.png` | `Resources/Terrain/natural-soil.png`; preferred organic cliff face |
+| `runtime/terrain/stratified-soil.png` | `exec-7ecfcade-7b8e-4b1b-853d-34787cb5d3c3.png` | `Resources/Terrain/stratified-soil.png`; seeded layered earth variant |
+| `runtime/terrain/natural-soil.png` | `exec-17c0f946-c04c-4e11-aba7-6afb40d05c71.png` | `Resources/Terrain/natural-soil.png`; seeded organic cliff variant and menu surface |
+| `runtime/terrain/clay-soil.png` | `exec-81fb0f1e-4e22-40ff-9dbe-b2a437a68948.png` | `Resources/Terrain/clay-soil.png`; reusable dirt-only map surface |
 | `runtime/ui/foreground-foliage.png` | `exec-08dbc81c-c4f1-4029-8fd2-9ac14ee71925.png` | `Resources/UI/foreground-foliage.png` |
 | `runtime/ui/team-portraits.png` | `exec-52898453-e9b1-4727-b571-68e31cb47067.png` | `Resources/UI/team-portraits.png` |
 | `runtime/ui/weapon-icons.png` | `exec-9410194d-e587-4026-86d4-66f705bd4fbe.png` | `Resources/UI/weapon-icons.png` |
@@ -46,3 +50,5 @@ This directory preserves the original PNG outputs used during the approved carto
 | `drafts/boulder.png` | `exec-c6020528-f171-4413-8608-796d1aaa15db.png` | Unused rock variant |
 
 All images were generated for this project with OpenAI image generation on 2026-09-26, 2026-09-27, or 2026-09-28. See [CREDITS.md](../CREDITS.md) for attribution. The generated cutouts may have soft or imperfect alpha at the edges; inspect before reusing them in a new scene.
+
+The clay-soil variant contains no painted stones; map seed modulo four selects it and omits decorative rock cutouts. Other seeds reuse natural, stratified, and sculpted soil. The red idle, aim, hurt and walking cutouts are shared across teams and recolored in the sprite shader. Existing per-team PNGs remain in the source library, but are not loaded for the main worm view. Independent collision rock obstacles are not yet implemented.

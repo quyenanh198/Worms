@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Worms.Game.Render
 {
-    /// <summary>Colors of one map theme (docs/PLAN.md §3.9). Everything is procedural, no textures.</summary>
+    /// <summary>Colors of one map theme (docs/PLAN.md §3.9), with optional painted surface textures.</summary>
     public sealed class Theme
     {
         public string Name;
@@ -62,24 +62,30 @@ namespace Worms.Game.Render
             return new Material(s) { name = name };
         }
 
-        public static Material Terrain(Theme t)
+        public static Material Terrain(Theme t, uint mapSeed = 0)
         {
             var m = Create("Worms/Terrain", "Terrain");
             m.SetColor("_GrassColor", t.Grass);
             m.SetColor("_DirtColor", t.Dirt);
             m.SetColor("_DeepColor", t.Deep);
             m.SetColor("_RockColor", t.Rock);
-            var paintedSoil = Resources.Load<Texture2D>("Terrain/natural-soil");
-            var paintTint = new Color(0.83f, 0.8f, 0.89f);
+            // Reuse the same destructible terrain geometry with a seeded surface
+            // treatment. The menu and seed zero keep the concept's natural soil.
+            string[] surfaces = { "natural-soil", "stratified-soil", "sculpted-soil", "clay-soil" };
+            Color[] tints =
+            {
+                new Color(0.83f, 0.8f, 0.89f),
+                new Color(0.85f, 0.82f, 0.9f),
+                new Color(0.94f, 0.92f, 1.02f),
+                new Color(0.87f, 0.85f, 0.92f),
+            };
+            int surface = (int)(mapSeed % (uint)surfaces.Length);
+            var paintedSoil = Resources.Load<Texture2D>("Terrain/" + surfaces[surface]);
+            var paintTint = tints[surface];
             if (paintedSoil == null)
             {
-                paintedSoil = Resources.Load<Texture2D>("Terrain/stratified-soil");
-                paintTint = new Color(0.85f, 0.82f, 0.9f);
-            }
-            if (paintedSoil == null)
-            {
-                paintedSoil = Resources.Load<Texture2D>("Terrain/sculpted-soil");
-                paintTint = new Color(0.94f, 0.92f, 1.02f);
+                paintedSoil = Resources.Load<Texture2D>("Terrain/natural-soil");
+                paintTint = tints[0];
             }
             if (paintedSoil == null)
             {
@@ -89,6 +95,7 @@ namespace Worms.Game.Render
             if (paintedSoil != null) m.SetTexture("_PaintedSoil", paintedSoil);
             m.SetColor("_PaintTint", paintTint);
             m.SetFloat("_PaintStrength", paintedSoil != null ? 0.75f : 0f);
+            m.SetFloat("_RockStrength", surface == 3 ? 0f : 1f);
             return m;
         }
 

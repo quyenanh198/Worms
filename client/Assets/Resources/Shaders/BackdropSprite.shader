@@ -8,6 +8,8 @@ Shader "Worms/BackdropSprite"
         _EdgeFade ("Horizontal edge fade", Range(0, 0.25)) = 0
         _AlphaThreshold ("Soft alpha threshold", Range(0, 1)) = 0
         _Flash ("Hit flash", Range(0, 1)) = 0
+        _TeamColor ("Worm body color", Color) = (1, 0, 0, 1)
+        _RecolorStrength ("Recolor red body", Range(0, 1)) = 0
     }
 
     SubShader
@@ -36,6 +38,8 @@ Shader "Worms/BackdropSprite"
                 half _EdgeFade;
                 half _AlphaThreshold;
                 half _Flash;
+                half4 _TeamColor;
+                half _RecolorStrength;
             CBUFFER_END
 
             struct Attributes
@@ -64,6 +68,13 @@ Shader "Worms/BackdropSprite"
                 half4 cloud = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
                 if (_AlphaThreshold > 0.001h)
                     cloud.a = smoothstep(_AlphaThreshold, _AlphaThreshold + 0.06h, cloud.a);
+                // Red body pixels are warm and saturated. Leave white eyes,
+                // dark outlines and mouth details in their painted colors.
+                half redMask = smoothstep(0.045h, 0.19h, cloud.r - max(cloud.g, cloud.b))
+                    * smoothstep(0.2h, 0.38h, cloud.r);
+                half brightness = max(cloud.r, 0.001h);
+                half3 recolored = _TeamColor.rgb * brightness;
+                cloud.rgb = lerp(cloud.rgb, recolored, redMask * _RecolorStrength);
                 cloud.rgb = lerp(cloud.rgb, half3(1.0h, 1.0h, 1.0h), _Flash * 0.7h);
                 cloud.rgb = MixFog(cloud.rgb, input.fogFactor);
                 half fadeWidth = max(_EdgeFade, 0.0001h);

@@ -4,7 +4,7 @@ Repo này public, nên chỉ chứa asset CC0 hoặc tự tạo (docs/PLAN.md §
 
 Game không dùng asset bên ngoài có giấy phép hạn chế. Các hình sau do dự án tự tạo:
 
-Bản gốc của 40 ảnh tạo trong đợt concept Worms được lưu tại [generated/README.md](generated/README.md): 2 ảnh tham chiếu, 33 ảnh trong thư mục Unity và 5 phương án chưa dùng. Các ảnh runtime trong thư mục đó trùng byte với PNG tương ứng dưới `client/Assets/Resources/`. Texture đất cũ vẫn có trong Unity làm phương án dự phòng.
+Bản gốc của 44 ảnh tạo trong đợt concept Worms được lưu tại [generated/README.md](generated/README.md): 2 ảnh tham chiếu, 37 ảnh trong thư mục Unity và 5 phương án chưa dùng. Các ảnh runtime trong thư mục đó trùng byte với PNG tương ứng dưới `client/Assets/Resources/`. Texture đất cũ vẫn có trong Unity làm phương án dự phòng.
 
 | Loại | Cách tạo | File |
 |---|---|---|
@@ -26,6 +26,7 @@ Khi thêm một file asset, ghi một dòng vào bảng dưới đây (nguồn, 
 | `client/Assets/Resources/Backdrop/midground-island.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27 | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Backdrop/foreground-oak.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; cây sồi và hàng rào, nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Backdrop/grass-rock-clump.png` | Tạo bằng OpenAI image generation theo ảnh concept đã chọn và asset cây hiện có, 2026-09-28; cụm cỏ, hoa và đá nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/Backdrop/rocky-grass-bank.png` | Tạo bằng OpenAI image generation theo ảnh concept đã chọn, 2026-09-28; cụm đá lớn và cỏ dùng lại trên các kệ địa hình, nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Backdrop/crate-rocks.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; thùng gỗ, đá và bụi cỏ, nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Terrain/painted-soil.png` | Tạo bằng OpenAI image generation từ ảnh concept do người dùng chọn, 2026-09-27; texture đất vẽ tay | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/Terrain/sculpted-soil.png` | Tạo bằng OpenAI image generation theo chất đất của ảnh concept do người dùng chọn, 2026-09-28; texture đất có khối đá lớn | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |

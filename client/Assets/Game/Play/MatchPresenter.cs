@@ -40,11 +40,13 @@ namespace Worms.Game.Play
         readonly Dictionary<int, int> _turnDamage = new Dictionary<int, int>();
         bool _kamikazeThisTurn;
         SimTerrain _sourceTerrain;
+        uint _surfaceSeed;
         bool _cratePropsCreated;
 
         public void Init(SimTerrain terrain, float waterLevel, uint seed, int teamCount)
         {
             _sourceTerrain = terrain;
+            _surfaceSeed = seed;
             WaterLevel = waterLevel;
             TeamCount = teamCount;
             var theme = Theme.ForSeed(seed);
@@ -56,12 +58,16 @@ namespace Worms.Game.Play
             SceneBuilder.CreateBackdrop(transform, theme, seed, mapWidth, waterY);
             SceneBuilder.CreateWater(transform, theme, mapWidth, waterY);
             SceneBuilder.CreateSurfaceProps(transform, terrain);
-            SceneBuilder.CreateGroundFoliage(transform, terrain);
-            SceneBuilder.CreateCliffRocks(transform, terrain);
+            bool clayOnly = seed % 4u == 3u;
+            if (!clayOnly)
+            {
+                SceneBuilder.CreateGroundFoliage(transform, terrain, seed);
+                SceneBuilder.CreateCliffRocks(transform, terrain);
+            }
 
             Terrain = new GameObject("Terrain").AddComponent<TerrainView>();
             Terrain.transform.SetParent(transform, false);
-            Terrain.Init(terrain, Materials.Terrain(theme));
+            Terrain.Init(terrain, Materials.Terrain(theme, seed));
 
             Vfx = new GameObject("Vfx").AddComponent<Vfx>();
             Vfx.transform.SetParent(transform, false);
@@ -88,7 +94,9 @@ namespace Worms.Game.Play
             Current = current;
             if (!_cratePropsCreated && current != null && current.Worms.Count > 0)
             {
-                SceneBuilder.CreateCrateProps(transform, _sourceTerrain, current.Worms);
+                // Crate cutouts include stones; leave the clay-only variant clear.
+                if (_surfaceSeed % 4u != 3u)
+                    SceneBuilder.CreateCrateProps(transform, _sourceTerrain, current.Worms);
                 _cratePropsCreated = true;
             }
         }

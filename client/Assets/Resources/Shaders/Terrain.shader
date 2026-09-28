@@ -12,6 +12,7 @@ Shader "Worms/Terrain"
         _Field ("Edge Field (R edge, G land above)", 2D) = "black" {}
         _PaintedSoil ("Painted soil", 2D) = "white" {}
         _PaintStrength ("Paint strength", Range(0, 1)) = 0
+        _RockStrength ("Procedural rock strength", Range(0, 1)) = 1
         _PaintTint ("Paint tint", Color) = (0.72, 0.78, 1.15, 1)
     }
 
@@ -27,6 +28,7 @@ Shader "Worms/Terrain"
         half4 _RockColor;
         float _NoiseScale;
         float _PaintStrength;
+        float _RockStrength;
         half4 _PaintTint;
         float4 _FieldSize; // cells wide, cells high, cells per world unit
     CBUFFER_END
@@ -115,7 +117,7 @@ Shader "Worms/Terrain"
                     float stoneMask = smoothstep(0.81, 0.86, stone);
                     half3 stoneColor = lerp(_RockColor.rgb * 0.76, _RockColor.rgb * 1.13,
                         saturate((stone - 0.81) * 14.0));
-                    soil = lerp(soil, stoneColor, stoneMask * 0.85 * (1.0 - _PaintStrength));
+                    soil = lerp(soil, stoneColor, stoneMask * 0.85 * (1.0 - _PaintStrength) * _RockStrength);
                     soil = lerp(soil, _DeepColor.rgb, 0.45 * smoothstep(10.0, 24.0, above));
                     if (_PaintStrength > 0.001)
                     {

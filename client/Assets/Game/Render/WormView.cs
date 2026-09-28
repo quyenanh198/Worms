@@ -17,6 +17,7 @@ namespace Worms.Game.Render
         static Material[] _paintedMaterials;
         static Material[] _aimMaterials;
         static Material[] _hurtMaterials;
+        static Material[,] _walkMaterials;
         static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
@@ -71,28 +72,23 @@ namespace Worms.Game.Render
                 _paintedMaterials = new Material[4];
                 _aimMaterials = new Material[4];
                 _hurtMaterials = new Material[4];
-                string[] names = { "red", "blue", "yellow", "green" };
+                _walkMaterials = new Material[4, 2];
                 // A single source-space crop keeps idle and aim poses at the same scale.
                 // Source dimensions are used because Unity can downsample on WebGL/mobile.
                 var crop = new Rect(100, 60, 1150, 1140);
-                int[] sourceWidths = { 1263, 1265, 1263, 1263 };
-                int[] sourceHeights = { 1246, 1243, 1246, 1246 };
-                int[] aimWidths = { 1263, 1263, 1266, 1266 };
-                int[] aimHeights = { 1246, 1246, 1243, 1243 };
-                for (int i = 0; i < names.Length; i++)
+                var idle = Resources.Load<Texture2D>("Characters/worm-red");
+                var aim = Resources.Load<Texture2D>("Characters/worm-red-aim");
+                var hurt = Resources.Load<Texture2D>("Characters/worm-red-hurt");
+                var walkA = Resources.Load<Texture2D>("Characters/worm-red-walk-a");
+                var walkB = Resources.Load<Texture2D>("Characters/worm-red-walk-b");
+                for (int i = 0; i < 4; i++)
                 {
-                    var texture = Resources.Load<Texture2D>("Characters/worm-" + names[i]);
-                    if (texture != null)
-                        _paintedMaterials[i] = PaintedMaterial(texture, "Painted worm " + names[i],
-                            crop, sourceWidths[i], sourceHeights[i]);
-                    var aimTexture = Resources.Load<Texture2D>("Characters/worm-" + names[i] + "-aim");
-                    if (aimTexture != null)
-                        _aimMaterials[i] = PaintedMaterial(aimTexture, "Aiming worm " + names[i],
-                            crop, aimWidths[i], aimHeights[i]);
-                    var hurtTexture = Resources.Load<Texture2D>("Characters/worm-" + names[i] + "-hurt");
-                    if (hurtTexture != null)
-                        _hurtMaterials[i] = PaintedMaterial(hurtTexture, "Hurt worm " + names[i],
-                            crop, 1263, 1246);
+                    var color = TeamColors.Of(i);
+                    if (idle != null) _paintedMaterials[i] = PaintedMaterial(idle, "Worm idle " + i, crop, 1263, 1246, color);
+                    if (aim != null) _aimMaterials[i] = PaintedMaterial(aim, "Worm aim " + i, crop, 1263, 1246, color);
+                    if (hurt != null) _hurtMaterials[i] = PaintedMaterial(hurt, "Worm hurt " + i, crop, 1263, 1246, color);
+                    if (walkA != null) _walkMaterials[i, 0] = PaintedMaterial(walkA, "Worm walk A " + i, crop, 1263, 1246, color);
+                    if (walkB != null) _walkMaterials[i, 1] = PaintedMaterial(walkB, "Worm walk B " + i, crop, 1263, 1246, color);
                 }
             }
             _palette = ((team % 4) + 4) % 4;
@@ -153,9 +149,11 @@ namespace Worms.Game.Render
             _blinkAt = Random.Range(1f, 4f);
         }
 
-        static Material PaintedMaterial(Texture2D texture, string name, Rect crop, int width, int height)
+        static Material PaintedMaterial(Texture2D texture, string name, Rect crop, int width, int height, Color teamColor)
         {
             var material = Materials.BackdropSprite(texture, name, 1f);
+            material.SetColor("_TeamColor", teamColor);
+            material.SetFloat("_RecolorStrength", 1f);
             material.SetTextureScale("_MainTex", new Vector2(crop.width / width, crop.height / height));
             material.SetTextureOffset("_MainTex", new Vector2(crop.x / width,
                 (height - crop.yMax) / height));
@@ -245,7 +243,10 @@ namespace Worms.Game.Render
             if (_paintedSprite != null)
             {
                 var hurt = (w.State == WormState.Tumbling || _hurtPoseTime > 0f) && _hurtMaterials[_palette] != null;
+                bool walking = w.State == WormState.Walking && _walkMaterials[_palette, 0] != null
+                    && _walkMaterials[_palette, 1] != null;
                 var pose = hurt ? _hurtMaterials[_palette]
+                    : walking ? _walkMaterials[_palette, Mathf.FloorToInt(Time.time * 7f) & 1]
                     : holding && w.State != WormState.Tumbling && _aimMaterials[_palette] != null
                         ? _aimMaterials[_palette] : _paintedMaterials[_palette];
                 if (_paintedRenderer.sharedMaterial != pose) _paintedRenderer.sharedMaterial = pose;

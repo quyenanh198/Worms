@@ -27,7 +27,7 @@ namespace Worms.Game.Render
         /// <summary>Particle count multiplier for the quality tier.</summary>
         public float Density = 1f;
 
-        ParticleSystem _fire, _smoke, _dirt, _sparks, _water, _trail;
+        ParticleSystem _fire, _smoke, _earth, _dirt, _sparks, _water, _trail;
         Material _alpha, _additive, _smokeMaterial, _debrisMaterial;
         Color _dirtColor = new Color(0.5f, 0.35f, 0.2f);
         readonly Vector4[] _scorch = new Vector4[MaxScorch];
@@ -71,6 +71,7 @@ namespace Worms.Game.Render
             {
                 _debrisMaterial = new Material(_alpha) { name = "Painted rock debris" };
                 _debrisMaterial.SetTexture("_MainTex", debrisTexture);
+                _debrisMaterial.SetFloat("_RadialFade", 0f);
                 _debrisMaterial.SetTextureScale("_MainTex", new Vector2(0.54f, 0.54f));
                 _debrisMaterial.SetTextureOffset("_MainTex", new Vector2(0.23f, 0.23f));
             }
@@ -80,6 +81,8 @@ namespace Worms.Game.Render
             _additive.renderQueue = 3100;
 
             _smoke = System("Smoke", _smokeMaterial != null ? _smokeMaterial : _alpha, 0f, new[] { new Color(0.35f, 0.33f, 0.32f, 0.55f), new Color(0.6f, 0.6f, 0.6f, 0f) }, 0.6f, 1.8f);
+            _earth = System("Earth dust", _smokeMaterial != null ? _smokeMaterial : _alpha, 0.55f,
+                new[] { Color.white, new Color(1f, 1f, 1f, 0f) }, 0.9f, 1.25f);
             _dirt = System("Dirt", _debrisMaterial != null ? _debrisMaterial : _alpha, 1.6f, new[] { Color.white, new Color(1, 1, 1, 0.9f) }, 1f, 0.8f);
             _fire = System("Fire", _additive, -0.05f, new[] { new Color(1f, 0.76f, 0.26f, 0.85f), new Color(1f, 0.31f, 0.07f, 0.68f), new Color(0.4f, 0.1f, 0.05f, 0f) }, 0.75f, 1.35f);
             _sparks = System("Sparks", _additive, 1.2f, new[] { new Color(1f, 0.9f, 0.5f, 1f), new Color(1f, 0.4f, 0.1f, 0f) }, 1f, 0.3f);
@@ -167,7 +170,15 @@ namespace Worms.Game.Render
                     Random.insideUnitSphere * visualRadius + Vector3.up * visualRadius,
                     visualRadius * Random.Range(0.35f, 0.65f), Random.Range(1.2f, 2.2f),
                     new Color(0.85f, 0.78f, 0.72f, 0.85f));
-            for (int i = 0; i < Count(26); i++)
+            for (int i = 0; i < Count(10); i++)
+            {
+                var c = _dirtColor * Random.Range(0.72f, 1.12f);
+                c.a = 0.75f;
+                Emit(_earth, pos + Random.insideUnitSphere * visualRadius * 0.35f,
+                    (Random.insideUnitSphere + Vector3.up * 0.5f) * radius * Random.Range(0.9f, 2.1f),
+                    radius * Random.Range(0.2f, 0.4f), Random.Range(0.45f, 0.9f), c);
+            }
+            for (int i = 0; i < Count(18); i++)
             {
                 var dir = Random.insideUnitSphere + Vector3.up * 0.8f;
                 var c = (_debrisMaterial != null ? Color.white : _dirtColor) * Random.Range(0.72f, 1.06f);
@@ -256,7 +267,7 @@ namespace Worms.Game.Render
             {
                 var c = _dirtColor;
                 c.a = 0.6f;
-                Emit(_smoke, pos, new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f), 0), Random.Range(0.2f, 0.4f), Random.Range(0.4f, 0.8f), c);
+                Emit(_earth, pos, new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f), 0), Random.Range(0.2f, 0.4f), Random.Range(0.4f, 0.8f), c);
             }
         }
 
