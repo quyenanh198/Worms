@@ -67,7 +67,7 @@ namespace Worms.Game.Render
             _fire = System("Fire", _additive, -0.05f, new[] { new Color(1f, 0.76f, 0.26f, 0.85f), new Color(1f, 0.31f, 0.07f, 0.68f), new Color(0.4f, 0.1f, 0.05f, 0f) }, 0.75f, 1.35f);
             _sparks = System("Sparks", _additive, 1.2f, new[] { new Color(1f, 0.9f, 0.5f, 1f), new Color(1f, 0.4f, 0.1f, 0f) }, 1f, 0.3f);
             _water = System("Water", _alpha, 1.4f, new[] { new Color(0.85f, 0.95f, 1f, 0.9f), new Color(0.7f, 0.85f, 0.95f, 0f) }, 1f, 0.7f);
-            _trail = System("Trail", _alpha, -0.02f, new[] { new Color(0.9f, 0.9f, 0.9f, 0.55f), new Color(0.8f, 0.8f, 0.8f, 0f) }, 0.4f, 2.6f);
+            _trail = System("Trail", _alpha, -0.02f, new[] { new Color(0.97f, 0.94f, 0.87f, 0.88f), new Color(0.8f, 0.82f, 0.84f, 0f) }, 0.65f, 2.1f);
             var burstTexture = Resources.Load<Texture2D>("VFX/explosion-burst");
             if (burstTexture != null)
                 _burstMaterial = Materials.BackdropSprite(burstTexture, "Painted explosion burst", 1f,
@@ -222,7 +222,9 @@ namespace Worms.Game.Render
 
         public void Trail(Vector3 pos)
         {
-            Emit(_trail, pos + Random.insideUnitSphere * 0.05f, Random.insideUnitSphere * 0.15f, Random.Range(0.18f, 0.3f), Random.Range(0.8f, 1.4f), Color.white);
+            for (int i = 0; i < Count(2); i++)
+                Emit(_trail, pos + Random.insideUnitSphere * 0.08f, Random.insideUnitSphere * 0.18f,
+                    Random.Range(0.38f, 0.56f), Random.Range(1.0f, 1.7f), Color.white);
         }
 
         public void Splash(Vector3 pos)

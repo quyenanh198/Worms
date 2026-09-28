@@ -12,6 +12,8 @@ namespace Worms.Game.Render
     public static class WeaponProps
     {
         static Mesh _cyl, _box, _sphere;
+        static Mesh _rocketQuad;
+        static Material _rocketPaint;
         static readonly Dictionary<string, Material> Mats = new Dictionary<string, Material>();
 
         static Material Mat(Color c)
@@ -147,6 +149,7 @@ namespace Worms.Game.Render
             {
                 case WeaponId.Bazooka:
                 case WeaponId.AirStrike:
+                    if (skin == 0 && PaintedRocket(root)) break;
                     Part(root, _cyl, id == WeaponId.Bazooka && skin == 13 ? CosmeticProps.Gold : new Color(0.4f, 0.45f, 0.3f), Vector3.zero, new Vector3(0.12f, 0.36f, 0.12f), along);
                     Part(root, _sphere, new Color(0.8f, 0.2f, 0.15f), new Vector3(0.18f, 0, 0), Vector3.one * 0.12f, Vector3.zero);
                     Part(root, _box, new Color(0.3f, 0.3f, 0.3f), new Vector3(-0.16f, 0, 0), new Vector3(0.08f, 0.2f, 0.02f), Vector3.zero);
@@ -174,6 +177,37 @@ namespace Worms.Game.Render
                     break;
             }
             return root;
+        }
+
+        static bool PaintedRocket(Transform parent)
+        {
+            if (_rocketPaint == null)
+            {
+                var texture = Resources.Load<Texture2D>("VFX/rocket");
+                if (texture == null) return false;
+                _rocketPaint = Materials.BackdropSprite(texture, "Painted rocket", 1f, alphaThreshold: 0.08f);
+            }
+            if (_rocketQuad == null)
+            {
+                _rocketQuad = new Mesh
+                {
+                    name = "Painted rocket quad",
+                    vertices = new[] { new Vector3(-0.95f, -0.5f, 0), new Vector3(-0.95f, 0.5f, 0),
+                        new Vector3(0.95f, 0.5f, 0), new Vector3(0.95f, -0.5f, 0) },
+                    uv = new[] { new Vector2(0, 0), new Vector2(0, 1),
+                        new Vector2(1, 1), new Vector2(1, 0) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                _rocketQuad.RecalculateBounds();
+            }
+            var go = new GameObject("Painted rocket");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = new Vector3(0, 0, -0.12f);
+            go.AddComponent<MeshFilter>().sharedMesh = _rocketQuad;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = _rocketPaint;
+            renderer.sortingOrder = 11;
+            return true;
         }
 
         public static Transform BuildGravestone(Transform parent)

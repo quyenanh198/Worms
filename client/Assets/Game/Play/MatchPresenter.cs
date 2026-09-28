@@ -304,7 +304,30 @@ namespace Worms.Game.Play
             if (Current.Projectiles.Count > 0)
             {
                 var p = Current.Projectiles[0];
-                return WorldSpace.ToWorld(p.X, p.Y, 0);
+                var projectile = WorldSpace.ToWorld(p.X, p.Y, 0);
+                if (Rig.Camera.aspect >= 0.75f)
+                {
+                    float minX = float.MaxValue, maxX = float.MinValue;
+                    float minY = float.MaxValue, maxY = float.MinValue;
+                    int living = 0;
+                    foreach (var actor in Current.Worms)
+                    {
+                        if (!actor.Alive) continue;
+                        var position = WorldSpace.ToWorld(actor.X, actor.Y, 0);
+                        minX = Mathf.Min(minX, position.x);
+                        maxX = Mathf.Max(maxX, position.x);
+                        minY = Mathf.Min(minY, position.y);
+                        maxY = Mathf.Max(maxY, position.y);
+                        living++;
+                    }
+                    // Keep the battle tableau visible while a shot crosses the
+                    // playable valley. Follow the rocket once it leaves that frame.
+                    if (living >= 2 && maxX - minX <= 50f && maxY - minY <= 20f &&
+                        projectile.x >= minX - 2f && projectile.x <= maxX + 2f &&
+                        projectile.y >= minY - 4f && projectile.y <= maxY + 8f)
+                        return new Vector3((minX + maxX) * 0.5f, (minY + maxY) * 0.5f + 1f, 0);
+                }
+                return projectile;
             }
             var worm = Current.FindWorm(Current.ActiveWorm);
             if (worm.HasValue)

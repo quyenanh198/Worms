@@ -150,6 +150,28 @@ namespace Worms.Game.Boot
         {
             // Wait through the menu squad drop so a menu capture shows the final layout.
             for (int i = 0; i < 240; i++) yield return new WaitForEndOfFrame();
+            var shotStage = CommandLineArg("-capture-shot");
+            if (!string.IsNullOrEmpty(shotStage) &&
+                FindAnyObjectByType<SandboxMatch>() is SandboxMatch shotMatch)
+            {
+                int oldCarves = shotMatch.World.TerrainOps.Count;
+                shotMatch.FireCaptureShot();
+                if (shotStage == "flight")
+                {
+                    for (int i = 0; i < 70; i++) yield return new WaitForEndOfFrame();
+                }
+                else
+                {
+                    // These are actual world ticks, projectile collisions and terrain
+                    // updates. Stop shortly after the first carve to catch the blast.
+                    for (int i = 0; i < 600 && shotMatch.World.TerrainOps.Count == oldCarves; i++)
+                        yield return new WaitForEndOfFrame();
+                    if (shotStage == "aftermath")
+                        for (int i = 0; i < 50; i++) yield return new WaitForEndOfFrame();
+                    else
+                        for (int i = 0; i < 5; i++) yield return new WaitForEndOfFrame();
+                }
+            }
             if (CommandLineArg("-capture-vfx") == "explosion" &&
                 FindAnyObjectByType<SandboxMatch>() is SandboxMatch match)
             {
