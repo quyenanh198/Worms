@@ -46,6 +46,7 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/vfx/explosion-burst.png` | `exec-b91c8b79-69cb-4f73-961d-7637495975ec.png` | `Resources/VFX/explosion-burst.png` |
 | `runtime/vfx/rocket.png` | `exec-deb5f223-5f80-4441-b064-697227f7caf9.png` | `Resources/VFX/rocket.png` |
 | `runtime/vfx/rock-debris.png` | `exec-0fdd24b4-1be1-4775-9ce5-7722da05ba81.png` | `Resources/VFX/rock-debris.png`; explosion stone particle |
+| `runtime/vfx/earth-dust.png` | `exec-0d24f78e-7391-4c98-8a4e-98494d0b5329.png` | `Resources/VFX/earth-dust.png`; brown dust particle for terrain destruction |
 | `runtime/vfx/smoke-puff.png` | `exec-b1262120-aa6d-448d-998c-6f943b6ae0d2.png` | `Resources/VFX/smoke-puff.png`; textured smoke and rocket trail particle |
 | `drafts/crate-rocks-alt.png` | `exec-7ef1294d-f597-4a94-8a05-17c539b0e83c.png` | Unused prop variant |
 | `drafts/worm-red-alt.png` | `exec-8fafd05d-16fd-4d90-a32b-1bda6e5fe5e7.png` | Unused character variant |

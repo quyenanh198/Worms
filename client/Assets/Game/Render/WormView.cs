@@ -75,7 +75,7 @@ namespace Worms.Game.Render
                 _walkMaterials = new Material[4, 2];
                 // A single source-space crop keeps idle and aim poses at the same scale.
                 // Source dimensions are used because Unity can downsample on WebGL/mobile.
-                var crop = new Rect(100, 60, 1150, 1140);
+                var crop = new Rect(50, 60, 1200, 1140);
                 var idle = Resources.Load<Texture2D>("Characters/worm-red");
                 var aim = Resources.Load<Texture2D>("Characters/worm-red-aim");
                 var hurt = Resources.Load<Texture2D>("Characters/worm-red-hurt");
@@ -245,13 +245,16 @@ namespace Worms.Game.Render
                 var hurt = (w.State == WormState.Tumbling || _hurtPoseTime > 0f) && _hurtMaterials[_palette] != null;
                 bool walking = w.State == WormState.Walking && _walkMaterials[_palette, 0] != null
                     && _walkMaterials[_palette, 1] != null;
+                int walkFrame = Mathf.FloorToInt(Time.time * 7f) & 1;
+                bool activeWalk = walking && !hurt;
                 var pose = hurt ? _hurtMaterials[_palette]
-                    : walking ? _walkMaterials[_palette, Mathf.FloorToInt(Time.time * 7f) & 1]
+                    : activeWalk ? _walkMaterials[_palette, walkFrame]
                     : holding && w.State != WormState.Tumbling && _aimMaterials[_palette] != null
                         ? _aimMaterials[_palette] : _paintedMaterials[_palette];
                 if (_paintedRenderer.sharedMaterial != pose) _paintedRenderer.sharedMaterial = pose;
-                float bob = w.State == WormState.Walking ? 0.025f * Mathf.Sin(Time.time * 12f) : 0f;
-                _paintedSprite.localPosition = Vector3.up * bob;
+                float footOffset = activeWalk ? (walkFrame == 0 ? -0.11f : -0.038f) : 0f;
+                float bob = activeWalk ? 0.012f * Mathf.Sin(Time.time * 14f) : 0f;
+                _paintedSprite.localPosition = Vector3.up * (footOffset + bob);
                 _paintedSprite.localScale = w.State == WormState.Airborne
                     ? new Vector3(0.96f, 1.06f, 1f) : Vector3.one;
             }

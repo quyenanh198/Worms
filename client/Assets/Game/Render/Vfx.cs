@@ -28,7 +28,7 @@ namespace Worms.Game.Render
         public float Density = 1f;
 
         ParticleSystem _fire, _smoke, _earth, _dirt, _sparks, _water, _trail;
-        Material _alpha, _additive, _smokeMaterial, _debrisMaterial;
+        Material _alpha, _additive, _smokeMaterial, _earthMaterial, _debrisMaterial;
         Color _dirtColor = new Color(0.5f, 0.35f, 0.2f);
         readonly Vector4[] _scorch = new Vector4[MaxScorch];
         int _scorchNext, _scorchCount;
@@ -66,6 +66,15 @@ namespace Worms.Game.Render
                 _smokeMaterial.SetTextureScale("_MainTex", new Vector2(0.72f, 0.72f));
                 _smokeMaterial.SetTextureOffset("_MainTex", new Vector2(0.14f, 0.14f));
             }
+            var earthTexture = Resources.Load<Texture2D>("VFX/earth-dust");
+            if (earthTexture != null)
+            {
+                _earthMaterial = new Material(_alpha) { name = "Painted earth dust" };
+                _earthMaterial.SetTexture("_MainTex", earthTexture);
+                _earthMaterial.SetFloat("_RadialFade", 0f);
+                _earthMaterial.SetTextureScale("_MainTex", new Vector2(0.84f, 0.84f));
+                _earthMaterial.SetTextureOffset("_MainTex", new Vector2(0.08f, 0.08f));
+            }
             var debrisTexture = Resources.Load<Texture2D>("VFX/rock-debris");
             if (debrisTexture != null)
             {
@@ -81,7 +90,7 @@ namespace Worms.Game.Render
             _additive.renderQueue = 3100;
 
             _smoke = System("Smoke", _smokeMaterial != null ? _smokeMaterial : _alpha, 0f, new[] { new Color(0.35f, 0.33f, 0.32f, 0.55f), new Color(0.6f, 0.6f, 0.6f, 0f) }, 0.6f, 1.8f);
-            _earth = System("Earth dust", _smokeMaterial != null ? _smokeMaterial : _alpha, 0.55f,
+            _earth = System("Earth dust", _earthMaterial != null ? _earthMaterial : _smokeMaterial != null ? _smokeMaterial : _alpha, 0.55f,
                 new[] { Color.white, new Color(1f, 1f, 1f, 0f) }, 0.9f, 1.25f);
             _dirt = System("Dirt", _debrisMaterial != null ? _debrisMaterial : _alpha, 1.6f, new[] { Color.white, new Color(1, 1, 1, 0.9f) }, 1f, 0.8f);
             _fire = System("Fire", _additive, -0.05f, new[] { new Color(1f, 0.76f, 0.26f, 0.85f), new Color(1f, 0.31f, 0.07f, 0.68f), new Color(0.4f, 0.1f, 0.05f, 0f) }, 0.75f, 1.35f);
@@ -172,7 +181,7 @@ namespace Worms.Game.Render
                     new Color(0.85f, 0.78f, 0.72f, 0.85f));
             for (int i = 0; i < Count(10); i++)
             {
-                var c = _dirtColor * Random.Range(0.72f, 1.12f);
+                var c = _earthMaterial != null ? Color.white : _dirtColor * Random.Range(0.72f, 1.12f);
                 c.a = 0.75f;
                 Emit(_earth, pos + Random.insideUnitSphere * visualRadius * 0.35f,
                     (Random.insideUnitSphere + Vector3.up * 0.5f) * radius * Random.Range(0.9f, 2.1f),
@@ -265,7 +274,7 @@ namespace Worms.Game.Render
         {
             for (int i = 0; i < Count(Mathf.RoundToInt(4 * amount)); i++)
             {
-                var c = _dirtColor;
+                var c = _earthMaterial != null ? Color.white : _dirtColor;
                 c.a = 0.6f;
                 Emit(_earth, pos, new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f), 0), Random.Range(0.2f, 0.4f), Random.Range(0.4f, 0.8f), c);
             }
@@ -361,6 +370,7 @@ namespace Worms.Game.Render
             if (_alpha != null) Destroy(_alpha);
             if (_additive != null) Destroy(_additive);
             if (_smokeMaterial != null) Destroy(_smokeMaterial);
+            if (_earthMaterial != null) Destroy(_earthMaterial);
             if (_debrisMaterial != null) Destroy(_debrisMaterial);
             if (_burstMaterial != null) Destroy(_burstMaterial);
         }
