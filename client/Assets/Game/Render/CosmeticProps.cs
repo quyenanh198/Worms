@@ -15,6 +15,8 @@ namespace Worms.Game.Render
     {
         static Mesh _sphere, _cyl, _cone, _box;
         static readonly Dictionary<string, Material> Mats = new Dictionary<string, Material>();
+        static readonly Dictionary<string, Mesh> PaintedMeshes = new Dictionary<string, Mesh>();
+        static readonly Dictionary<string, Material> PaintedMaterials = new Dictionary<string, Material>();
 
         public static readonly Color Gold = new Color(1f, 0.78f, 0.22f);
 
@@ -60,25 +62,34 @@ namespace Worms.Game.Render
         {
             var texture = Resources.Load<Texture2D>("Cosmetics/" + resource);
             if (texture == null) return false;
-            var mesh = new Mesh
+            if (!PaintedMeshes.TryGetValue(resource, out var mesh))
             {
-                name = name,
-                vertices = new[]
+                mesh = new Mesh
                 {
-                    new Vector3(center.x - size.x * 0.5f, center.y - size.y * 0.5f, -1.4f),
-                    new Vector3(center.x - size.x * 0.5f, center.y + size.y * 0.5f, -1.4f),
-                    new Vector3(center.x + size.x * 0.5f, center.y + size.y * 0.5f, -1.4f),
-                    new Vector3(center.x + size.x * 0.5f, center.y - size.y * 0.5f, -1.4f),
-                },
-                uv = new[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0) },
-                triangles = new[] { 0, 1, 2, 0, 2, 3 },
-            };
-            mesh.RecalculateBounds();
+                    name = name,
+                    vertices = new[]
+                    {
+                        new Vector3(center.x - size.x * 0.5f, center.y - size.y * 0.5f, -1.4f),
+                        new Vector3(center.x - size.x * 0.5f, center.y + size.y * 0.5f, -1.4f),
+                        new Vector3(center.x + size.x * 0.5f, center.y + size.y * 0.5f, -1.4f),
+                        new Vector3(center.x + size.x * 0.5f, center.y - size.y * 0.5f, -1.4f),
+                    },
+                    uv = new[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                mesh.RecalculateBounds();
+                PaintedMeshes.Add(resource, mesh);
+            }
+            if (!PaintedMaterials.TryGetValue(resource, out var material))
+            {
+                material = Materials.BackdropSprite(texture, name, 1f, alphaThreshold: 0.08f);
+                PaintedMaterials.Add(resource, material);
+            }
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = Materials.BackdropSprite(texture, name, 1f, alphaThreshold: 0.08f);
+            renderer.sharedMaterial = material;
             renderer.sortingOrder = 12;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
