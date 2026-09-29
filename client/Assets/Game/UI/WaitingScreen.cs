@@ -8,6 +8,8 @@ namespace Worms.Game.UI
         public bool Visible = true;
         bool _neon;
         Texture2D[] _art;
+        Texture2D[] _squad;
+        Texture2D[] _outfits;
         Texture2D _background;
 
         void Awake()
@@ -22,10 +24,24 @@ namespace Worms.Game.UI
                     "green-worm", "mountain", "tree" };
             var cleanLogo = Resources.Load<Texture2D>(root + "logo-clean");
             var solidPlatform = !_neon ? Resources.Load<Texture2D>(root + "platform-solid") : null;
+            _squad = new[]
+            {
+                Resources.Load<Texture2D>(root + "red-worm"),
+                Resources.Load<Texture2D>(root + "blue-worm"),
+                Resources.Load<Texture2D>(root + "yellow-worm"),
+                Resources.Load<Texture2D>(root + "green-worm"),
+            };
+            string[] outfits = _neon
+                ? new[] { "neon-purple-bandana", "neon-blue-helmet", "neon-blue-goggles", "neon-black-cap" }
+                : new[] { "coastal-red-bandana", "black-sunglasses", "coastal-brown-hat", "coastal-green-helmet" };
+            _outfits = new Texture2D[outfits.Length];
+            for (int i = 0; i < outfits.Length; i++)
+                _outfits[i] = Resources.Load<Texture2D>("Cosmetics/" + outfits[i]);
             _art = new Texture2D[names.Length];
             for (int i = 0; i < names.Length; i++)
             {
-                if (_background != null && !(_neon ? i >= 2 && i <= 5 : i >= 2 && i <= 6)) continue;
+                if (_neon ? i == 5 : (i == 5 || i == 6)) continue; // Drawn by the four-worm squad.
+                if (_background != null && (i < 2 || i > 4)) continue;
                 if (cleanLogo != null && i == (_neon ? 2 : 3)) _art[i] = cleanLogo;
                 else if (_neon && cleanLogo != null && i == 3) continue;
                 else if (!_neon && solidPlatform != null && i == 2) _art[i] = solidPlatform;
@@ -43,6 +59,25 @@ namespace Worms.Game.UI
             if (texture == null) return;
             GUI.DrawTexture(new Rect(x * Screen.width, y * Screen.height,
                 width * Screen.width, height * Screen.height), texture, ScaleMode.ScaleToFit, true);
+        }
+
+        void DrawSquad(bool portrait)
+        {
+            if (_squad == null) return;
+            for (int i = 0; i < _squad.Length; i++)
+            {
+                float x = portrait ? 0.03f + i * 0.24f : 0.32f + i * 0.13f;
+                float y = portrait ? 0.57f : (_neon ? 0.465f : 0.49f);
+                float w = portrait ? 0.22f : 0.125f;
+                float h = portrait ? 0.20f : 0.28f;
+                Art(_squad[i], x, y, w, h);
+                float head = _neon ? 0.38f : (i < 2 ? 0.69f : 0.40f);
+                float outfitWidth = w * 0.62f;
+                float outfitHeight = h * 0.34f;
+                float outfitY = y + h * ((_neon && i == 2) || (!_neon && i == 1) ? 0.11f : -0.09f);
+                Art(_outfits[i], x + w * head - outfitWidth * 0.5f,
+                    outfitY, outfitWidth, outfitHeight);
+            }
         }
 
         void OnGUI()
@@ -69,8 +104,7 @@ namespace Worms.Game.UI
                     Art(_art[9], 0f, 0.60f, portrait ? 0.43f : 0.22f, 0.24f);
                     Art(_art[1], 0f, portrait ? 0.70f : 0.68f, 1f, portrait ? 0.26f : 0.31f);
                 }
-                Art(_art[5], portrait ? 0.33f : 0.65f, portrait ? 0.43f : 0.43f,
-                    portrait ? 0.35f : 0.17f, portrait ? 0.31f : 0.32f);
+                DrawSquad(portrait);
                 if (_art[3] == null)
                     Art(_art[2], portrait ? 0.04f : 0.30f, 0.04f,
                         portrait ? 0.92f : 0.42f, portrait ? 0.33f : 0.37f);
@@ -93,10 +127,7 @@ namespace Worms.Game.UI
                     Art(_art[8], portrait ? -0.15f : 0.02f, 0.39f, portrait ? 0.40f : 0.20f, 0.39f);
                 }
                 Art(_art[2], 0f, portrait ? 0.55f : 0.62f, 1f, portrait ? 0.45f : 0.60f);
-                Art(_art[5], portrait ? 0.17f : 0.58f, portrait ? 0.49f : 0.43f,
-                    portrait ? 0.33f : 0.17f, portrait ? 0.26f : 0.32f);
-                Art(_art[6], portrait ? 0.56f : 0.79f, portrait ? 0.49f : 0.43f,
-                    portrait ? 0.31f : 0.15f, portrait ? 0.26f : 0.32f);
+                DrawSquad(portrait);
                 Art(_art[3], portrait ? 0.07f : 0.32f, 0.03f, portrait ? 0.86f : 0.36f,
                     portrait ? 0.28f : 0.31f);
                 Art(_art[4], portrait ? 0.16f : 0.37f, portrait ? 0.81f : 0.80f,

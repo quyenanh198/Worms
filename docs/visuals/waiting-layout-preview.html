@@ -23,9 +23,27 @@ function sprite(path, x, y, w, h, background = false) {
   scene.appendChild(element);
 }
 sprite('Waiting/' + theme + '/background', 0, 0, 1, 1, true);
+function squad() {
+  const colors = ['red', 'blue', 'yellow', 'green'];
+  const outfits = theme === 'Neon'
+    ? ['neon-purple-bandana', 'neon-blue-helmet', 'neon-blue-goggles', 'neon-black-cap']
+    : ['coastal-red-bandana', 'black-sunglasses', 'coastal-brown-hat', 'coastal-green-helmet'];
+  colors.forEach((color, i) => {
+    const x = portrait ? .03 + i * .24 : .32 + i * .13;
+    const y = portrait ? .57 : (theme === 'Neon' ? .465 : .49);
+    const w = portrait ? .22 : .125;
+    const h = portrait ? .20 : .28;
+    sprite('Waiting/' + theme + '/' + color + '-worm', x, y, w, h);
+    const head = theme === 'Neon' ? .38 : (i < 2 ? .69 : .40);
+    const outfitW = w * .62;
+    const outfitH = h * .34;
+    const outfitY = y + h * ((theme === 'Neon' && i === 2) || (theme === 'Coastal' && i === 1) ? .11 : -.09);
+    sprite('Cosmetics/' + outfits[i], x + w * head - outfitW * .5,
+      outfitY, outfitW, outfitH);
+  });
+}
 if (theme === 'Neon') {
-  sprite('Waiting/Neon/green-worm', portrait ? .33 : .65, .43,
-    portrait ? .35 : .17, portrait ? .31 : .32);
+  squad();
   sprite('Waiting/Neon/logo-clean', portrait ? .04 : .30, .04,
     portrait ? .92 : .42, portrait ? .33 : .37);
   sprite('Waiting/Neon/start', portrait ? .14 : .36, portrait ? .81 : .80,
@@ -33,10 +51,7 @@ if (theme === 'Neon') {
 } else {
   sprite('Waiting/Coastal/platform-solid', 0, portrait ? .55 : .62, 1,
     portrait ? .45 : .60);
-  sprite('Waiting/Coastal/red-worm', portrait ? .17 : .58, portrait ? .49 : .43,
-    portrait ? .33 : .17, portrait ? .26 : .32);
-  sprite('Waiting/Coastal/green-worm', portrait ? .56 : .79, portrait ? .49 : .43,
-    portrait ? .31 : .15, portrait ? .26 : .32);
+  squad();
   sprite('Waiting/Coastal/logo-clean', portrait ? .07 : .32, .03,
     portrait ? .86 : .36, portrait ? .28 : .31);
   sprite('Waiting/Coastal/start', portrait ? .16 : .37, portrait ? .81 : .80,

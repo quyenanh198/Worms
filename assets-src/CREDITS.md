@@ -61,3 +61,8 @@ Khi thêm một file asset, ghi một dòng vào bảng dưới đây (nguồn, 
 
 | `client/Assets/Resources/VFX/rock-debris.png` | Tạo bằng OpenAI image generation theo đá bay trong ảnh concept đã chọn, 2026-09-28; mảnh đá vụ nổ, nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
 | `client/Assets/Resources/VFX/smoke-puff.png` | Tạo và làm sạch bằng OpenAI image generation theo ảnh concept đã chọn, 2026-09-28; cụm khói tên lửa và vụ nổ, nền trong suốt | Worms project | Asset gốc do dự án tạo; không dùng hình bên thứ ba |
+| `client/Assets/Resources/Waiting/Coastal/blue-worm.png` | Biến thể màu xanh lam từ sâu đỏ ven biển do chủ dự án cung cấp, tạo bằng OpenAI image generation, 2026-09-29 | Worms project | Dẫn xuất từ asset do chủ dự án cung cấp |
+| `client/Assets/Resources/Waiting/Coastal/yellow-worm.png` | Biến thể màu vàng từ sâu xanh lục ven biển do chủ dự án cung cấp, tạo bằng OpenAI image generation, 2026-09-29 | Worms project | Dẫn xuất từ asset do chủ dự án cung cấp |
+| `client/Assets/Resources/Waiting/Neon/red-worm.png` | Biến thể màu đỏ từ sâu xanh lục neon do chủ dự án cung cấp, tạo bằng OpenAI image generation, 2026-09-29 | Worms project | Dẫn xuất từ asset do chủ dự án cung cấp |
+| `client/Assets/Resources/Waiting/Neon/blue-worm.png` | Biến thể màu xanh lam từ sâu xanh lục neon do chủ dự án cung cấp, tạo bằng OpenAI image generation, 2026-09-29 | Worms project | Dẫn xuất từ asset do chủ dự án cung cấp |
+| `client/Assets/Resources/Waiting/Neon/yellow-worm.png` | Biến thể màu vàng từ sâu xanh lục neon do chủ dự án cung cấp, tạo bằng OpenAI image generation, 2026-09-29 | Worms project | Dẫn xuất từ asset do chủ dự án cung cấp |

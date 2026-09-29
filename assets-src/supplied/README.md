@@ -7,3 +7,5 @@
 The two full background images in `assets-src/generated/runtime/waiting/` were generated from these source cutouts to fill transparent gaps in the segmented scenery. Their runtime copies sit in `Resources/Waiting/Coastal/` and `Resources/Waiting/Neon/`; the supplied logos, worms, accessories and buttons remain separate foreground sprites.
 
 Previewing the composition exposed a rectangular sky patch behind the coastal title, duplicate neon title fragments, and transparent holes in the wooden platform. Isolated title cutouts and a repaired platform were generated from the supplied pieces and are stored beside the backgrounds in `assets-src/generated/runtime/waiting/`. The original pieces remain untouched here.
+
+The opening screen now shows a four-worm red, blue, yellow and green squad in both themes. The original coastal red/green and neon green cutouts remain unchanged; five additional transparent color variants are in `assets-src/generated/runtime/waiting/` and their playable copies in `client/Assets/Resources/Waiting/`.

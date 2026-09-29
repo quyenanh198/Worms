@@ -10,16 +10,18 @@ Khi mở game, `WaitingScreen` chọn ngẫu nhiên **Coastal** hoặc **Neon**.
 
 | Coastal | Neon |
 |---|---|
-| ![Màn hình chờ Coastal](docs/visuals/waiting-coastal-landscape.png) | ![Màn hình chờ Neon](docs/visuals/waiting-neon-landscape.png) |
+| ![Màn hình chờ Coastal với squad bốn sâu](docs/visuals/waiting-squad-coastal-landscape.png) | ![Màn hình chờ Neon với squad bốn sâu](docs/visuals/waiting-squad-neon-landscape.png) |
 
-[Xem Coastal màn hình dọc](docs/visuals/waiting-coastal-portrait-500.png) · [Xem Neon màn hình dọc](docs/visuals/waiting-neon-portrait-500.png). Nhấn phím hoặc chạm nút bắt đầu để vào menu.
+[Xem Coastal màn hình dọc](docs/visuals/waiting-squad-coastal-portrait-500.png) · [Xem Neon màn hình dọc](docs/visuals/waiting-squad-neon-portrait-500.png). Nhấn phím hoặc chạm nút bắt đầu để vào menu.
 
-Mỗi bộ có 12 PNG trong [Waiting/Coastal](client/Assets/Resources/Waiting/Coastal/) và [Waiting/Neon](client/Assets/Resources/Waiting/Neon/). Khi các ảnh nền và tiêu đề đã làm sạch đều có mặt, màn hình dùng:
+Squad bốn màu cùng xuất hiện trên mỗi cảnh chờ, với phụ kiện cửa hàng: Coastal dùng băng đô đỏ, kính đen, mũ nâu và mũ lính xanh; Neon dùng băng đô neon, mũ bảo hiểm xanh, kính neon và mũ lưỡi trai đen. Phụ kiện ở đây là lớp đồ họa màn hình chờ; trang bị trong trận không thay đổi.
+
+Coastal có 14 PNG trong [Waiting/Coastal](client/Assets/Resources/Waiting/Coastal/); Neon có 15 PNG trong [Waiting/Neon](client/Assets/Resources/Waiting/Neon/). Khi các ảnh nền và tiêu đề đã làm sạch đều có mặt, màn hình dùng:
 
 | Cảnh | PNG đang hiển thị |
 |---|---|
-| Coastal | `background.png`, `platform-solid.png`, `logo-clean.png`, `start.png`, `red-worm.png`, `green-worm.png` |
-| Neon | `background.png`, `logo-clean.png`, `start.png`, `green-worm.png` |
+| Coastal | `background.png`, `platform-solid.png`, `logo-clean.png`, `start.png`, `red-worm.png`, `blue-worm.png`, `yellow-worm.png`, `green-worm.png` |
+| Neon | `background.png`, `logo-clean.png`, `start.png`, `red-worm.png`, `blue-worm.png`, `yellow-worm.png`, `green-worm.png` |
 
 Các lớp `sky`, `ocean`, `mountain`, `tree`, `skyscraper`, `vehicle`, `plants` và logo/sàn gốc được giữ làm phương án dự phòng khi thiếu nền hoặc ảnh đã làm sạch. Ảnh gốc do chủ dự án cung cấp nằm trong [assets-src/supplied](assets-src/supplied/README.md); nền, logo và sàn đã tạo/chỉnh lại nằm trong [assets-src/generated/runtime/waiting](assets-src/generated/runtime/waiting/).
 
@@ -73,4 +75,4 @@ Build Unity chạy trên GitHub Actions (GameCI) sau khi thêm secret `UNITY_LIC
 
 ## Nguồn asset đồ họa
 
-[Thư viện ảnh tạo cho dự án](assets-src/generated/README.md) lưu ảnh concept, **62 PNG nguồn trong `runtime/`** (57 ảnh gameplay và 5 ảnh màn chờ), cùng các bản nháp chưa dùng. [Bộ ảnh do chủ dự án cung cấp](assets-src/supplied/README.md) lưu nguyên bản các lớp của hai cảnh chờ; một số lớp được chép vào Unity Resources và bảy phụ kiện được dùng lại trong cửa hàng. Ảnh concept và bản nháp không được nạp làm sprite. [CREDITS.md](assets-src/CREDITS.md) ghi nguồn gốc và quyền sử dụng.
+[Thư viện ảnh tạo cho dự án](assets-src/generated/README.md) lưu ảnh concept, **67 PNG nguồn trong `runtime/`** (57 ảnh gameplay và 10 ảnh màn chờ), cùng các bản nháp chưa dùng. [Bộ ảnh do chủ dự án cung cấp](assets-src/supplied/README.md) lưu nguyên bản các lớp của hai cảnh chờ; một số lớp được chép vào Unity Resources và bảy phụ kiện được dùng lại trong cửa hàng. Ảnh concept và bản nháp không được nạp làm sprite. [CREDITS.md](assets-src/CREDITS.md) ghi nguồn gốc và quyền sử dụng.

@@ -1,6 +1,6 @@
 # Generated art sources
 
-This directory preserves the original PNG outputs used during the approved cartoon art pass. The files are committed as project art assets with descriptive names. `runtime/` contains 62 source PNGs: 57 gameplay images and 5 generated waiting-screen images. Their imported copies live under `client/Assets/Resources/`; Unity loads the copies there. `concept/` contains complete reference compositions, and `drafts/` contains alternative cutouts that are currently unused in play. A concept composition is not a sprite atlas or a game screenshot. The remaining runtime waiting-screen layers and seven store cosmetics originate from the owner's [supplied image packs](../supplied/README.md).
+This directory preserves the original PNG outputs used during the approved cartoon art pass. The files are committed as project art assets with descriptive names. `runtime/` contains 67 source PNGs: 57 gameplay images and 10 generated waiting-screen images. Their imported copies live under `client/Assets/Resources/`; Unity loads the copies there. `concept/` contains complete reference compositions, and `drafts/` contains alternative cutouts that are currently unused in play. A concept composition is not a sprite atlas or a game screenshot. The remaining runtime waiting-screen layers and seven store cosmetics originate from the owner's [supplied image packs](../supplied/README.md).
 
 | Source asset | Original generated file | Game use |
 |---|---|---|
@@ -67,6 +67,11 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/waiting/coastal-logo-clean.png` | `exec-91d3fcf0-6f80-4513-8b11-53a96063fed8.png` | `Resources/Waiting/Coastal/logo-clean.png`; isolated title without sky rectangle |
 | `runtime/waiting/neon-logo-clean.png` | `exec-b3718ca4-ea29-42f6-b15f-338ddc91207f.png` | `Resources/Waiting/Neon/logo-clean.png`; single title replacing duplicated fragments |
 | `runtime/waiting/coastal-platform-solid.png` | `exec-f5ee92aa-87f3-4fa6-a5db-198147247f08.png` | `Resources/Waiting/Coastal/platform-solid.png`; repaired continuous wooden platform |
+| `runtime/waiting/coastal-blue-worm.png` | `exec-588fa355-43f6-4fb1-8414-12655181d3f5.png` | `Resources/Waiting/Coastal/blue-worm.png`; blue squad member derived from supplied coastal red worm |
+| `runtime/waiting/coastal-yellow-worm.png` | `exec-83364a3c-0ecb-432c-9ed0-881fa78a42ae.png` | `Resources/Waiting/Coastal/yellow-worm.png`; yellow squad member derived from supplied coastal green worm |
+| `runtime/waiting/neon-red-worm.png` | `exec-71cfe6c3-450e-4794-a2c2-87593e8a33a6.png` | `Resources/Waiting/Neon/red-worm.png`; red squad member derived from supplied neon green worm |
+| `runtime/waiting/neon-blue-worm.png` | `exec-abb5fa33-8c7b-4d1f-94f2-0d4badcd49d7.png` | `Resources/Waiting/Neon/blue-worm.png`; blue squad member derived from supplied neon green worm |
+| `runtime/waiting/neon-yellow-worm.png` | `exec-0e7b2b58-15ec-4c4d-9bf1-cf3e3191dd19.png` | `Resources/Waiting/Neon/yellow-worm.png`; yellow squad member derived from supplied neon green worm |
 | `runtime/vfx/smoke-puff.png` | `exec-b1262120-aa6d-448d-998c-6f943b6ae0d2.png` | `Resources/VFX/smoke-puff.png`; textured smoke and rocket trail particle |
 | `drafts/crate-rocks-alt.png` | `exec-7ef1294d-f597-4a94-8a05-17c539b0e83c.png` | Unused prop variant |
 | `drafts/worm-red-alt.png` | `exec-8fafd05d-16fd-4d90-a32b-1bda6e5fe5e7.png` | Unused character variant |
