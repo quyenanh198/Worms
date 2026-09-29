@@ -299,3 +299,9 @@ These existing sprites need rework:
 ### Unused files: owner decision
 
 `worm-blue`, `worm-green` and `worm-yellow` (idle, `-aim` and `-hurt`, 9 files) are no longer loaded now that recoloring replaced per-team art. Their canvases also differ (1263×1246, 1265×1243, 1266×1243). Remove them from `Resources/` to cut build size, or keep them only in `assets-src/`. They were left in place in this pass.
+
+### Pose completion (2026-09-29)
+
+The four requested PNGs now live in both `assets-src/generated/runtime/characters/` and `client/Assets/Resources/Characters/`: `worm-red-fire`, `worm-red-place`, `worm-red-call`, and `worm-red-drown`. Each has unique Unity import metadata. `worm-red-walk-b` and `worm-red-airborne` were redrawn with a bunched walking phase and a stretched airborne silhouette. `WormView` passes their actual canvas sizes for UV cropping (`walk-b` 1290×1219, `drown` 1312×1199), shifts the accessory anchor for the place and walking poses, and aligns walking feet. Sources and game uses are recorded in `assets-src/generated/README.md`; licensing is recorded in `assets-src/CREDITS.md`.
+
+The small isolated alpha specks identified above remain in some old and new PNGs. An image-generation cleanup trial changed the whole sprite and still left a speck, so that trial was not imported. Pixel-accurate cleanup needs an image editing method that preserves the existing art exactly. Unity player rendering and accessory alignment remain unverified; no compile check was run per the owner's instruction.

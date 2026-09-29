@@ -21,14 +21,18 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/characters/worm-red-aim.png` | `exec-8c96e9bc-c83f-4506-9f4b-a3071e731a42.png` | `Resources/Characters/worm-red-aim.png`; aiming pose |
 | `runtime/characters/worm-red-hurt.png` | `exec-80c7f530-5597-443b-aa74-f71b67a4952a.png` | `Resources/Characters/worm-red-hurt.png`; hit reaction |
 | `runtime/characters/worm-red-walk-a.png` | `exec-7bb01a11-2663-4aba-8072-cd1fe13c39e4.png` | `Resources/Characters/worm-red-walk-a.png`; shared walking pose A |
-| `runtime/characters/worm-red-walk-b.png` | `exec-fcfe5153-c4be-4e21-9a05-378f32521a6e.png` | `Resources/Characters/worm-red-walk-b.png`; shared walking pose B |
-| `runtime/characters/worm-red-airborne.png` | `exec-deef6cd2-e5e3-47d4-b122-10a465f00ed0.png` | `Resources/Characters/worm-red-airborne.png`; shared jump pose |
+| `runtime/characters/worm-red-walk-b.png` | `exec-b144a94f-adf1-4bb0-8bf8-fa1d1ec9a928.png` | `Resources/Characters/worm-red-walk-b.png`; revised bunched walking pose B |
+| `runtime/characters/worm-red-airborne.png` | `exec-27610026-791f-4a78-9141-c4ba3e356cd3.png` | `Resources/Characters/worm-red-airborne.png`; revised stretched jump pose |
 | `runtime/characters/worm-red-bat.png` | `exec-6f6cda46-9d0a-47e0-bc38-53f62ad5a888.png` | `Resources/Characters/worm-red-bat.png`; baseball bat strike body pose |
 | `runtime/characters/worm-red-throw-windup.png` | `exec-4af63faf-62d3-4369-8765-83734d2707c3.png` | `Resources/Characters/worm-red-throw-windup.png`; throwing wind-up |
 | `runtime/characters/worm-red-throw-release.png` | `exec-25e8fb99-74c2-4e12-8c70-2c28e80f106d.png` | `Resources/Characters/worm-red-throw-release.png`; throwing follow-through |
 | `runtime/characters/worm-red-burn.png` | `exec-3aa82a18-15a0-40b7-8521-724d663f2092.png` | `Resources/Characters/worm-red-burn.png`; burning reaction without baked-in flames |
 | `runtime/characters/worm-red-hurt-recoil.png` | `exec-6d904603-315c-4780-9ccb-a897c00ea1af.png` | `Resources/Characters/worm-red-hurt-recoil.png`; second hurt frame |
 | `runtime/characters/worm-red-kamikaze.png` | `exec-b94d0b9c-e267-4664-acaa-8be0b2294f90.png` | `Resources/Characters/worm-red-kamikaze.png`; suicide blast reaction |
+| `runtime/characters/worm-red-fire.png` | `exec-e0a739c1-f4e6-4f8d-9e74-a941fefaf885.png` | `Resources/Characters/worm-red-fire.png`; gun recoil for Bazooka, Shotgun, Uzi |
+| `runtime/characters/worm-red-place.png` | `exec-70f6c064-3340-4b67-936a-3a2e9b0b390b.png` | `Resources/Characters/worm-red-place.png`; dynamite placement |
+| `runtime/characters/worm-red-call.png` | `exec-35569062-453d-4f06-af1c-f889652c2602.png` | `Resources/Characters/worm-red-call.png`; air strike and napalm call |
+| `runtime/characters/worm-red-drown.png` | `exec-a23c5150-acd2-422d-beb7-923991959742.png` | `Resources/Characters/worm-red-drown.png`; drowning reaction |
 | `runtime/characters/worm-blue.png` | `exec-22c51f86-9c32-4e4f-860a-0cb6c902a896.png` | `Resources/Characters/worm-blue.png` |
 | `runtime/characters/worm-blue-aim.png` | `exec-a45c8ef4-5da9-4605-915e-1932c8d17ad9.png` | `Resources/Characters/worm-blue-aim.png`; aiming pose |
 | `runtime/characters/worm-blue-hurt.png` | `exec-6fc827a4-32e1-4fde-be80-990b8f3bf1a6.png` | `Resources/Characters/worm-blue-hurt.png`; hit reaction |

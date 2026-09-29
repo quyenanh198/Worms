@@ -22,8 +22,7 @@ namespace Worms.Game.Render
         static Material _airborneMaterial;
         static Material _batMaterial, _throwWindupMaterial, _throwReleaseMaterial;
         static Material _burnMaterial, _kamikazeMaterial;
-        // Optional poses: until their PNGs exist these stay null and the worm
-        // keeps the aim/idle art (docs/GRAPHICS_HANDOFF.md, sprite hand-off).
+        // Action poses share the red source set; absent resources retain the aim/idle fallback.
         static Material _fireMaterial, _placeMaterial, _callMaterial, _drownMaterial;
         static Material[] _walkMaterials;
         static Material _white, _black, _mouthMat, _cheekMat;
@@ -99,11 +98,11 @@ namespace Worms.Game.Render
                 _burnMaterial = LoadPose("worm-red-burn", "Worm burning", crop, 1265, 1243);
                 _kamikazeMaterial = LoadPose("worm-red-kamikaze", "Worm kamikaze", crop);
                 _walkMaterials[0] = LoadPose("worm-red-walk-a", "Worm walk A", crop);
-                _walkMaterials[1] = LoadPose("worm-red-walk-b", "Worm walk B", crop);
+                _walkMaterials[1] = LoadPose("worm-red-walk-b", "Worm walk B", crop, 1290, 1219);
                 _fireMaterial = LoadPose("worm-red-fire", "Worm gun recoil", crop);
                 _placeMaterial = LoadPose("worm-red-place", "Worm place dynamite", crop);
                 _callMaterial = LoadPose("worm-red-call", "Worm call strike", crop);
-                _drownMaterial = LoadPose("worm-red-drown", "Worm drowning", crop);
+                _drownMaterial = LoadPose("worm-red-drown", "Worm drowning", crop, 1312, 1199);
             }
             if (_paintedMaterial != null)
             {
@@ -296,6 +295,8 @@ namespace Worms.Game.Render
             _body.localPosition = Vector3.up * ((visualScale - 1f) * 0.45f);
             _body.localRotation = Quaternion.Euler(0, 0, _spin);
             float paintedHeadShift = 0f;
+            float paintedHeadLift = 0f;
+            bool actionPoseVisible = _paintedSprite == null;
             if (_paintedSprite != null)
             {
                 var hurt = (w.State == WormState.Tumbling || _hurtPoseTime > 0f) && _hurtMaterial != null;
@@ -318,11 +319,18 @@ namespace Worms.Game.Render
                 else if (throwWindup) pose = _throwWindupMaterial;
                 else if (holding && w.State != WormState.Tumbling && _aimMaterial != null) pose = _aimMaterial;
                 else pose = _blinkAt < 0.12f && _blinkMaterial != null ? _blinkMaterial : _paintedMaterial;
-                // The wind-up moves the face left within the fixed sprite quad.
+                actionPoseVisible = pose == _actionMaterial && _actionMaterial != null;
+                // These poses move the face within the fixed sprite quad.
                 if (pose == _throwWindupMaterial) paintedHeadShift = -0.27f;
                 else if (pose == _throwReleaseMaterial) paintedHeadShift = 0.05f;
+                else if (pose == _placeMaterial) paintedHeadShift = 0.10f;
+                else if (pose == _walkMaterials[1])
+                {
+                    paintedHeadShift = 0.05f;
+                    paintedHeadLift = -0.15f;
+                }
                 if (_paintedRenderer.sharedMaterial != pose) _paintedRenderer.sharedMaterial = pose;
-                float footOffset = activeWalk ? (walkFrame == 0 ? -0.11f : -0.038f) : 0f;
+                float footOffset = activeWalk ? (walkFrame == 0 ? -0.11f : -0.10f) : 0f;
                 float bob = activeWalk ? 0.012f * Mathf.Sin(Time.time * 14f) : 0f;
                 _paintedSprite.localPosition = Vector3.up * (footOffset + bob);
                 _paintedSprite.localScale = Vector3.one;
@@ -339,7 +347,7 @@ namespace Worms.Game.Render
             if (_paintedSprite != null)
             {
                 // The cutout's oversized face sits right of the old spine head.
-                head += new Vector3(0.24f + paintedHeadShift, 0.04f, 0);
+                head += new Vector3(0.24f + paintedHeadShift, 0.04f + paintedHeadLift, 0);
                 r = 0.46f;
             }
             _blinkAt -= dt;
@@ -385,10 +393,14 @@ namespace Worms.Game.Render
                 }
             }
 
-            // Weapon in hand (grenade or dynamite: only the item, no gun).
+            // Keep the held prop visible while its post-fire body pose plays.
             bool batSwing = _actionPoseTime > 0f && _actionWeapon == WeaponId.BaseballBat && w.State != WormState.Tumbling;
-            bool show = (holding || batSwing) && w.State != WormState.Tumbling;
-            var shownWeapon = batSwing ? WeaponId.BaseballBat : weapon;
+            bool heldAction = actionPoseVisible && _actionPoseTime > 0f && _actionMaterial != null &&
+                (_actionWeapon == WeaponId.Bazooka || _actionWeapon == WeaponId.Shotgun ||
+                 _actionWeapon == WeaponId.Uzi || _actionWeapon == WeaponId.Dynamite ||
+                 _actionWeapon == WeaponId.AirStrike || _actionWeapon == WeaponId.Napalm);
+            bool show = (holding || batSwing || heldAction) && w.State != WormState.Tumbling;
+            var shownWeapon = batSwing || heldAction ? _actionWeapon : weapon;
             byte skin = SkinFor(_loadout, shownWeapon);
             if (show && (_prop == null || _propId != shownWeapon || _propSkin != skin))
             {
