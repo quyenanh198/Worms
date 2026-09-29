@@ -22,6 +22,9 @@ namespace Worms.Game.Render
         static Material _airborneMaterial;
         static Material _batMaterial, _throwWindupMaterial, _throwReleaseMaterial;
         static Material _burnMaterial, _kamikazeMaterial;
+        // Optional poses: until their PNGs exist these stay null and the worm
+        // keeps the aim/idle art (docs/GRAPHICS_HANDOFF.md, sprite hand-off).
+        static Material _fireMaterial, _placeMaterial, _callMaterial, _drownMaterial;
         static Material[] _walkMaterials;
         static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
@@ -47,6 +50,7 @@ namespace Worms.Game.Render
         float _spin, _flash, _hurtPoseTime, _blinkAt, _sinkT = -1;
         float _actionPoseTime, _actionPoseDuration, _burnPoseTime, _kamikazePoseTime;
         WeaponId _actionWeapon;
+        Material _actionMaterial;
         Vector3 _sinkFrom;
         readonly float _paintedScale;
 
@@ -83,32 +87,23 @@ namespace Worms.Game.Render
                 // A single source-space crop keeps idle and aim poses at the same scale.
                 // Source dimensions are used because Unity can downsample on WebGL/mobile.
                 var crop = new Rect(50, 60, 1200, 1140);
-                var idle = Resources.Load<Texture2D>("Characters/worm-red");
-                var blink = Resources.Load<Texture2D>("Characters/worm-red-blink");
-                var aim = Resources.Load<Texture2D>("Characters/worm-red-aim");
-                var hurt = Resources.Load<Texture2D>("Characters/worm-red-hurt");
-                var hurtRecoil = Resources.Load<Texture2D>("Characters/worm-red-hurt-recoil");
-                var airborne = Resources.Load<Texture2D>("Characters/worm-red-airborne");
-                var bat = Resources.Load<Texture2D>("Characters/worm-red-bat");
-                var throwWindup = Resources.Load<Texture2D>("Characters/worm-red-throw-windup");
-                var throwRelease = Resources.Load<Texture2D>("Characters/worm-red-throw-release");
-                var burn = Resources.Load<Texture2D>("Characters/worm-red-burn");
-                var kamikaze = Resources.Load<Texture2D>("Characters/worm-red-kamikaze");
-                var walkA = Resources.Load<Texture2D>("Characters/worm-red-walk-a");
-                var walkB = Resources.Load<Texture2D>("Characters/worm-red-walk-b");
-                if (idle != null) _paintedMaterial = PaintedMaterial(idle, "Worm idle", crop, 1263, 1246);
-                if (blink != null) _blinkMaterial = PaintedMaterial(blink, "Worm blink", crop, 1263, 1246);
-                if (aim != null) _aimMaterial = PaintedMaterial(aim, "Worm aim", crop, 1263, 1246);
-                if (hurt != null) _hurtMaterial = PaintedMaterial(hurt, "Worm hurt", crop, 1263, 1246);
-                if (hurtRecoil != null) _hurtRecoilMaterial = PaintedMaterial(hurtRecoil, "Worm hurt recoil", crop, 1263, 1246);
-                if (airborne != null) _airborneMaterial = PaintedMaterial(airborne, "Worm airborne", crop, 1263, 1246);
-                if (bat != null) _batMaterial = PaintedMaterial(bat, "Worm bat strike", crop, 1263, 1246);
-                if (throwWindup != null) _throwWindupMaterial = PaintedMaterial(throwWindup, "Worm throw wind-up", crop, 1265, 1244);
-                if (throwRelease != null) _throwReleaseMaterial = PaintedMaterial(throwRelease, "Worm throw release", crop, 1263, 1246);
-                if (burn != null) _burnMaterial = PaintedMaterial(burn, "Worm burning", crop, 1265, 1243);
-                if (kamikaze != null) _kamikazeMaterial = PaintedMaterial(kamikaze, "Worm kamikaze", crop, 1263, 1246);
-                if (walkA != null) _walkMaterials[0] = PaintedMaterial(walkA, "Worm walk A", crop, 1263, 1246);
-                if (walkB != null) _walkMaterials[1] = PaintedMaterial(walkB, "Worm walk B", crop, 1263, 1246);
+                _paintedMaterial = LoadPose("worm-red", "Worm idle", crop);
+                _blinkMaterial = LoadPose("worm-red-blink", "Worm blink", crop);
+                _aimMaterial = LoadPose("worm-red-aim", "Worm aim", crop);
+                _hurtMaterial = LoadPose("worm-red-hurt", "Worm hurt", crop);
+                _hurtRecoilMaterial = LoadPose("worm-red-hurt-recoil", "Worm hurt recoil", crop);
+                _airborneMaterial = LoadPose("worm-red-airborne", "Worm airborne", crop);
+                _batMaterial = LoadPose("worm-red-bat", "Worm bat strike", crop);
+                _throwWindupMaterial = LoadPose("worm-red-throw-windup", "Worm throw wind-up", crop, 1265, 1244);
+                _throwReleaseMaterial = LoadPose("worm-red-throw-release", "Worm throw release", crop);
+                _burnMaterial = LoadPose("worm-red-burn", "Worm burning", crop, 1265, 1243);
+                _kamikazeMaterial = LoadPose("worm-red-kamikaze", "Worm kamikaze", crop);
+                _walkMaterials[0] = LoadPose("worm-red-walk-a", "Worm walk A", crop);
+                _walkMaterials[1] = LoadPose("worm-red-walk-b", "Worm walk B", crop);
+                _fireMaterial = LoadPose("worm-red-fire", "Worm gun recoil", crop);
+                _placeMaterial = LoadPose("worm-red-place", "Worm place dynamite", crop);
+                _callMaterial = LoadPose("worm-red-call", "Worm call strike", crop);
+                _drownMaterial = LoadPose("worm-red-drown", "Worm drowning", crop);
             }
             if (_paintedMaterial != null)
             {
@@ -169,6 +164,14 @@ namespace Worms.Game.Render
             _blinkAt = Random.Range(1f, 4f);
         }
 
+        /// <summary>Loads Characters/<paramref name="file"/>; null when the PNG is absent.</summary>
+        /// <param name="width">Source PNG width in pixels (not Unity's imported size).</param>
+        static Material LoadPose(string file, string label, Rect crop, int width = 1263, int height = 1246)
+        {
+            var texture = Resources.Load<Texture2D>("Characters/" + file);
+            return texture != null ? PaintedMaterial(texture, label, crop, width, height) : null;
+        }
+
         static Material PaintedMaterial(Texture2D texture, string name, Rect crop, int width, int height)
         {
             var material = Materials.BackdropSprite(texture, name, 1f);
@@ -191,9 +194,29 @@ namespace Worms.Game.Render
 
         public void Flash() { _flash = 1f; _hurtPoseTime = 0.45f; }
 
+        static Material ActionPose(WeaponId weapon)
+        {
+            switch (weapon)
+            {
+                case WeaponId.BaseballBat: return _batMaterial;
+                case WeaponId.Grenade:
+                case WeaponId.ClusterBomb: return _throwReleaseMaterial;
+                case WeaponId.Bazooka:
+                case WeaponId.Shotgun:
+                case WeaponId.Uzi: return _fireMaterial;
+                case WeaponId.Dynamite: return _placeMaterial;
+                case WeaponId.AirStrike:
+                case WeaponId.Napalm: return _callMaterial;
+                default: return null;
+            }
+        }
+
         public void TriggerFire(WeaponId weapon)
         {
-            if (weapon != WeaponId.BaseballBat && weapon != WeaponId.Grenade && weapon != WeaponId.ClusterBomb) return;
+            var pose = ActionPose(weapon);
+            // The bat still swings its 3D prop when the painted strike pose is missing.
+            if (pose == null && weapon != WeaponId.BaseballBat) return;
+            _actionMaterial = pose;
             _actionWeapon = weapon;
             _actionPoseDuration = weapon == WeaponId.BaseballBat ? 0.32f : 0.30f;
             _actionPoseTime = _actionPoseDuration;
@@ -238,6 +261,8 @@ namespace Worms.Game.Render
         {
             _sinkT = 0;
             _sinkFrom = at;
+            // Update() returns early while sinking, so the pose is set once here.
+            if (_paintedRenderer != null && _drownMaterial != null) _paintedRenderer.sharedMaterial = _drownMaterial;
         }
 
         /// <param name="holding">This worm has the turn and aims: show the weapon.</param>
@@ -274,23 +299,20 @@ namespace Worms.Game.Render
             if (_paintedSprite != null)
             {
                 var hurt = (w.State == WormState.Tumbling || _hurtPoseTime > 0f) && _hurtMaterial != null;
-                bool batStrike = _actionPoseTime > 0f && _actionWeapon == WeaponId.BaseballBat && _batMaterial != null;
-                bool throwRelease = _actionPoseTime > 0f &&
-                    (_actionWeapon == WeaponId.Grenade || _actionWeapon == WeaponId.ClusterBomb) && _throwReleaseMaterial != null;
+                bool action = _actionPoseTime > 0f && _actionMaterial != null;
                 bool throwWindup = holding && (weapon == WeaponId.Grenade || weapon == WeaponId.ClusterBomb) &&
                     _throwWindupMaterial != null;
                 bool walking = w.State == WormState.Walking && _walkMaterials[0] != null
                     && _walkMaterials[1] != null;
                 int walkFrame = Mathf.FloorToInt(Time.time * 7f) & 1;
-                bool activeWalk = walking && !hurt && !batStrike && !throwRelease &&
+                bool activeWalk = walking && !hurt && !action &&
                     _burnPoseTime <= 0f && _kamikazePoseTime <= 0f;
                 Material pose;
                 if (_kamikazePoseTime > 0f && _kamikazeMaterial != null) pose = _kamikazeMaterial;
                 else if (hurt) pose = _hurtPoseTime > 0.28f && _hurtRecoilMaterial != null
                     ? _hurtRecoilMaterial : _hurtMaterial;
                 else if (_burnPoseTime > 0f && _burnMaterial != null) pose = _burnMaterial;
-                else if (batStrike) pose = _batMaterial;
-                else if (throwRelease) pose = _throwReleaseMaterial;
+                else if (action) pose = _actionMaterial;
                 else if (activeWalk) pose = _walkMaterials[walkFrame];
                 else if (w.State == WormState.Airborne && _airborneMaterial != null) pose = _airborneMaterial;
                 else if (throwWindup) pose = _throwWindupMaterial;

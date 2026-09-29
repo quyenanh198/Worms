@@ -233,3 +233,69 @@ The VFX component now destroys its dynamically created alpha, additive, smoke, d
 The cliff-rock support test now follows the cutout's measured visible alpha bounds (about 74% of canvas width and 58% of height) instead of its transparent padding. This allows otherwise valid cliff locations while still hiding an inlay when its visible rock support is removed. The actual number and appearance of placed inlays need a player capture.
 
 The menu column's translucent backing now uses the same dark navy family as the battle HUD and compact settings panel instead of near-black gray. It remains opaque enough for white text over the moving coastal scene; visual contrast still needs player review.
+
+## Worm sprite hand-off (2026-09-29)
+
+An audit on 2026-09-29 compared every PNG in `client/Assets/Resources/Characters/` with the pose selection in `Render/WormView.cs`, and inspected each image. It did not include a Unity player capture.
+
+### Current pose map
+
+All teams share the red source set. The shader recolors the body toward each team's color, so **only `worm-red-*` files are loaded**.
+
+| File | Shown when | Trigger | Source size |
+|---|---|---|---|
+| `worm-red` | Idle | Default | 1263×1246 |
+| `worm-red-blink` | Random blink every 2–5 s, for 0.12 s | Timer | 1263×1246 |
+| `worm-red-aim` | Holding a weapon that has no dedicated hold pose | `holding` | 1263×1246 |
+| `worm-red-hurt` | Hit (0.45 s) and throughout tumbling | `SimEventType.Hit` → `Flash()` | 1263×1246 |
+| `worm-red-hurt-recoil` | First ~0.17 s of the hurt window | Same | 1263×1246 |
+| `worm-red-airborne` | `WormState.Airborne` | State | 1263×1246 |
+| `worm-red-walk-a` / `-walk-b` | `WormState.Walking`, 7 fps | State | 1263×1246 |
+| `worm-red-bat` | Bat swing, 0.32 s | `Fire` → `TriggerFire` | 1263×1246 |
+| `worm-red-throw-windup` | Holding Grenade or Cluster Bomb | `holding` | **1265×1244** |
+| `worm-red-throw-release` | Grenade/Cluster fired, 0.30 s | `Fire` → `TriggerFire` | 1263×1246 |
+| `worm-red-burn` | Napalm burn, 0.85 s | `SimEventType.Burn` → `TriggerBurn` | **1265×1243** |
+| `worm-red-kamikaze` | The shooter's own blast dooms it and at least one enemy, 0.65 s | `MatchPresenter.CheckKamikaze` | 1263×1246 |
+
+Priority when several apply: kamikaze → hurt/recoil → burn → weapon action → walk → airborne → throw wind-up → aim → idle/blink.
+
+### Code changes made in this pass
+
+`WormView` now has four **optional** pose slots. Each loads if its PNG exists and otherwise keeps the current behavior (aim or idle art), so the game runs unchanged until the art arrives:
+
+- `TriggerFire` maps every selectable weapon to an action pose instead of only Bat/Grenade/Cluster Bomb. Bazooka, Shotgun and Uzi use `worm-red-fire`; Dynamite uses `worm-red-place`; Air Strike and Napalm use `worm-red-call`. Each shows for 0.30 s at the same priority as the bat and throw poses.
+- `StartSinking` switches to `worm-red-drown` when present. Previously a drowning worm kept whatever pose it had last.
+- A single `LoadPose(file, label, crop, width = 1263, height = 1246)` helper replaces the repeated load/`PaintedMaterial` pairs. Adding a pose is now one line.
+
+The Unity compile check (`tools/unity-check`) was **not** run: no Unity editor data was available on this machine. Run it before merging.
+
+### Sprites to add (Codex)
+
+Match the existing red set: same character, camera, lighting and facing (right), transparent background, and opaque pixels inside the shared crop `x 50–1250, y 60–1200` (top-left origin). Keep the foot line where `worm-red.png` has it. Keep the body in the recolorable red range so team tint still works. Draw no weapon: weapons and hands are 3D props added by code.
+
+| New file | Pose | Used by | Notes |
+|---|---|---|---|
+| `worm-red-fire.png` | Recoil: head pushed back, squint, mouth tight | Bazooka, Shotgun, Uzi | Face must stay near the idle head position so the 3D gun stays at the grip |
+| `worm-red-place.png` | Leaning forward/down, dropping something | Dynamite | Replaces the aim pose for 0.30 s after placing |
+| `worm-red-call.png` | Looking up, mouth open as if shouting into a radio | Air Strike, Napalm | Head up; no radio drawn |
+| `worm-red-drown.png` | Panicked, eyes wide, head tilted up | Drowning (`DeathCause.Water`) | Shown for the whole 1.6 s sink |
+
+These existing sprites need rework:
+
+| File | Problem | Fix |
+|---|---|---|
+| `worm-red-walk-b.png` | Almost identical to `worm-red.png`, so the walk cycle reads mostly from the code's vertical offset | Redraw with the tail and body clearly bunched (opposite phase to `walk-a`) |
+| `worm-red-airborne.png` | Almost identical to `worm-red-throw-release.png` | Stretch the body vertically, lift the tail, and make the expression surprised or excited |
+| `worm-red.png`, `-hurt`, `-burn`, `-aim`, `-hurt-recoil`, `-walk-b` | Stray red alpha specks between the head and tail, around pixel (590, 740), inside the crop | Clear the stray alpha in `assets-src/generated/runtime/characters/`, then re-copy to Resources |
+
+### Delivery checklist
+
+1. Put the source PNG in `assets-src/generated/runtime/characters/` and a byte-identical copy in `client/Assets/Resources/Characters/`.
+2. Copy an existing character `.meta` (e.g. `worm-red-kamikaze.png.meta`) and give it a new `guid`. It must keep `nPOTScale: 0`, `maxTextureSize: 1024`, `alphaIsTransparency: 1` and clamp wrap. The UV crop depends on source pixels, not on the imported size.
+3. If a canvas is not 1263×1246, pass its real width/height to `LoadPose` in `WormView.cs`. `throw-windup` and `burn` are examples.
+4. If the face moves inside the canvas (as in `throw-windup`), add a `paintedHeadShift` for that pose in `WormView.Update` so hats and armor follow the head.
+5. Add provenance to `assets-src/CREDITS.md`.
+
+### Unused files: owner decision
+
+`worm-blue`, `worm-green` and `worm-yellow` (idle, `-aim` and `-hurt`, 9 files) are no longer loaded now that recoloring replaced per-team art. Their canvases also differ (1263×1246, 1265×1243, 1266×1243). Remove them from `Resources/` to cut build size, or keep them only in `assets-src/`. They were left in place in this pass.
