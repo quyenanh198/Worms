@@ -18,7 +18,10 @@ namespace Worms.Game.Render
         static Material _blinkMaterial;
         static Material _aimMaterial;
         static Material _hurtMaterial;
+        static Material _hurtRecoilMaterial;
         static Material _airborneMaterial;
+        static Material _batMaterial, _throwWindupMaterial, _throwReleaseMaterial;
+        static Material _burnMaterial, _kamikazeMaterial;
         static Material[] _walkMaterials;
         static Material _white, _black, _mouthMat, _cheekMat;
         static readonly int FlashId = Shader.PropertyToID("_Flash");
@@ -42,10 +45,13 @@ namespace Worms.Game.Render
         Transform _hat, _armor, _cloth;
         int _armorPoint;
         float _spin, _flash, _hurtPoseTime, _blinkAt, _sinkT = -1;
+        float _actionPoseTime, _actionPoseDuration, _burnPoseTime, _kamikazePoseTime;
+        WeaponId _actionWeapon;
         Vector3 _sinkFrom;
         readonly float _paintedScale;
 
         public bool Sinking => _sinkT >= 0;
+        public bool ShowingKamikaze => _kamikazePoseTime > 0f;
         public bool UsesPaintedArt => _paintedSprite != null;
 
         public WormView(Transform parent, int id, int team, Color teamColor, float paintedScale = 1f)
@@ -81,14 +87,26 @@ namespace Worms.Game.Render
                 var blink = Resources.Load<Texture2D>("Characters/worm-red-blink");
                 var aim = Resources.Load<Texture2D>("Characters/worm-red-aim");
                 var hurt = Resources.Load<Texture2D>("Characters/worm-red-hurt");
+                var hurtRecoil = Resources.Load<Texture2D>("Characters/worm-red-hurt-recoil");
                 var airborne = Resources.Load<Texture2D>("Characters/worm-red-airborne");
+                var bat = Resources.Load<Texture2D>("Characters/worm-red-bat");
+                var throwWindup = Resources.Load<Texture2D>("Characters/worm-red-throw-windup");
+                var throwRelease = Resources.Load<Texture2D>("Characters/worm-red-throw-release");
+                var burn = Resources.Load<Texture2D>("Characters/worm-red-burn");
+                var kamikaze = Resources.Load<Texture2D>("Characters/worm-red-kamikaze");
                 var walkA = Resources.Load<Texture2D>("Characters/worm-red-walk-a");
                 var walkB = Resources.Load<Texture2D>("Characters/worm-red-walk-b");
                 if (idle != null) _paintedMaterial = PaintedMaterial(idle, "Worm idle", crop, 1263, 1246);
                 if (blink != null) _blinkMaterial = PaintedMaterial(blink, "Worm blink", crop, 1263, 1246);
                 if (aim != null) _aimMaterial = PaintedMaterial(aim, "Worm aim", crop, 1263, 1246);
                 if (hurt != null) _hurtMaterial = PaintedMaterial(hurt, "Worm hurt", crop, 1263, 1246);
+                if (hurtRecoil != null) _hurtRecoilMaterial = PaintedMaterial(hurtRecoil, "Worm hurt recoil", crop, 1263, 1246);
                 if (airborne != null) _airborneMaterial = PaintedMaterial(airborne, "Worm airborne", crop, 1263, 1246);
+                if (bat != null) _batMaterial = PaintedMaterial(bat, "Worm bat strike", crop, 1263, 1246);
+                if (throwWindup != null) _throwWindupMaterial = PaintedMaterial(throwWindup, "Worm throw wind-up", crop, 1265, 1244);
+                if (throwRelease != null) _throwReleaseMaterial = PaintedMaterial(throwRelease, "Worm throw release", crop, 1263, 1246);
+                if (burn != null) _burnMaterial = PaintedMaterial(burn, "Worm burning", crop, 1265, 1243);
+                if (kamikaze != null) _kamikazeMaterial = PaintedMaterial(kamikaze, "Worm kamikaze", crop, 1263, 1246);
                 if (walkA != null) _walkMaterials[0] = PaintedMaterial(walkA, "Worm walk A", crop, 1263, 1246);
                 if (walkB != null) _walkMaterials[1] = PaintedMaterial(walkB, "Worm walk B", crop, 1263, 1246);
             }
@@ -173,6 +191,17 @@ namespace Worms.Game.Render
 
         public void Flash() { _flash = 1f; _hurtPoseTime = 0.45f; }
 
+        public void TriggerFire(WeaponId weapon)
+        {
+            if (weapon != WeaponId.BaseballBat && weapon != WeaponId.Grenade && weapon != WeaponId.ClusterBomb) return;
+            _actionWeapon = weapon;
+            _actionPoseDuration = weapon == WeaponId.BaseballBat ? 0.32f : 0.30f;
+            _actionPoseTime = _actionPoseDuration;
+        }
+
+        public void TriggerBurn() { _burnPoseTime = 0.85f; }
+        public void TriggerKamikaze() { _kamikazePoseTime = 0.65f; }
+
         /// <summary>Puts on a set of store cosmetics (replacing what the worm wore).</summary>
         public void SetLoadout(Loadout loadout)
         {
@@ -241,21 +270,35 @@ namespace Worms.Game.Render
             // The sprite grows upward from its original foot line; simulation stays put.
             _body.localPosition = Vector3.up * ((visualScale - 1f) * 0.45f);
             _body.localRotation = Quaternion.Euler(0, 0, _spin);
+            float paintedHeadShift = 0f;
             if (_paintedSprite != null)
             {
                 var hurt = (w.State == WormState.Tumbling || _hurtPoseTime > 0f) && _hurtMaterial != null;
+                bool batStrike = _actionPoseTime > 0f && _actionWeapon == WeaponId.BaseballBat && _batMaterial != null;
+                bool throwRelease = _actionPoseTime > 0f &&
+                    (_actionWeapon == WeaponId.Grenade || _actionWeapon == WeaponId.ClusterBomb) && _throwReleaseMaterial != null;
+                bool throwWindup = holding && (weapon == WeaponId.Grenade || weapon == WeaponId.ClusterBomb) &&
+                    _throwWindupMaterial != null;
                 bool walking = w.State == WormState.Walking && _walkMaterials[0] != null
                     && _walkMaterials[1] != null;
                 int walkFrame = Mathf.FloorToInt(Time.time * 7f) & 1;
-                bool activeWalk = walking && !hurt;
-                var pose = hurt ? _hurtMaterial
-                    : activeWalk ? _walkMaterials[walkFrame]
-                    : w.State == WormState.Airborne && _airborneMaterial != null
-                        ? _airborneMaterial
-                    : holding && w.State != WormState.Tumbling && _aimMaterial != null
-                        ? _aimMaterial
-                    : _blinkAt < 0.12f && _blinkMaterial != null
-                        ? _blinkMaterial : _paintedMaterial;
+                bool activeWalk = walking && !hurt && !batStrike && !throwRelease &&
+                    _burnPoseTime <= 0f && _kamikazePoseTime <= 0f;
+                Material pose;
+                if (_kamikazePoseTime > 0f && _kamikazeMaterial != null) pose = _kamikazeMaterial;
+                else if (hurt) pose = _hurtPoseTime > 0.28f && _hurtRecoilMaterial != null
+                    ? _hurtRecoilMaterial : _hurtMaterial;
+                else if (_burnPoseTime > 0f && _burnMaterial != null) pose = _burnMaterial;
+                else if (batStrike) pose = _batMaterial;
+                else if (throwRelease) pose = _throwReleaseMaterial;
+                else if (activeWalk) pose = _walkMaterials[walkFrame];
+                else if (w.State == WormState.Airborne && _airborneMaterial != null) pose = _airborneMaterial;
+                else if (throwWindup) pose = _throwWindupMaterial;
+                else if (holding && w.State != WormState.Tumbling && _aimMaterial != null) pose = _aimMaterial;
+                else pose = _blinkAt < 0.12f && _blinkMaterial != null ? _blinkMaterial : _paintedMaterial;
+                // The wind-up moves the face left within the fixed sprite quad.
+                if (pose == _throwWindupMaterial) paintedHeadShift = -0.27f;
+                else if (pose == _throwReleaseMaterial) paintedHeadShift = 0.05f;
                 if (_paintedRenderer.sharedMaterial != pose) _paintedRenderer.sharedMaterial = pose;
                 float footOffset = activeWalk ? (walkFrame == 0 ? -0.11f : -0.038f) : 0f;
                 float bob = activeWalk ? 0.012f * Mathf.Sin(Time.time * 14f) : 0f;
@@ -274,7 +317,7 @@ namespace Worms.Game.Render
             if (_paintedSprite != null)
             {
                 // The cutout's oversized face sits right of the old spine head.
-                head += new Vector3(0.24f, 0.04f, 0);
+                head += new Vector3(0.24f + paintedHeadShift, 0.04f, 0);
                 r = 0.46f;
             }
             _blinkAt -= dt;
@@ -321,13 +364,15 @@ namespace Worms.Game.Render
             }
 
             // Weapon in hand (grenade or dynamite: only the item, no gun).
-            bool show = holding && w.State != WormState.Tumbling;
-            byte skin = SkinFor(_loadout, weapon);
-            if (show && (_prop == null || _propId != weapon || _propSkin != skin))
+            bool batSwing = _actionPoseTime > 0f && _actionWeapon == WeaponId.BaseballBat && w.State != WormState.Tumbling;
+            bool show = (holding || batSwing) && w.State != WormState.Tumbling;
+            var shownWeapon = batSwing ? WeaponId.BaseballBat : weapon;
+            byte skin = SkinFor(_loadout, shownWeapon);
+            if (show && (_prop == null || _propId != shownWeapon || _propSkin != skin))
             {
                 if (_prop != null) Object.Destroy(_prop.gameObject);
-                _prop = WeaponProps.Build(weapon, _weaponPivot, skin);
-                _propId = weapon;
+                _prop = WeaponProps.Build(shownWeapon, _weaponPivot, skin);
+                _propId = shownWeapon;
                 _propSkin = skin;
             }
             _weaponPivot.gameObject.SetActive(show);
@@ -337,13 +382,19 @@ namespace Worms.Game.Render
             {
                 var grip = head + side * r * 1.15f + up * (-r * 0.9f) + Vector3.back * r * 0.9f;
                 _weaponPivot.localPosition = grip;
-                _weaponPivot.localRotation = Quaternion.Euler(0, 0, aim * Mathf.Rad2Deg);
+                float weaponAngle = batSwing
+                    ? Mathf.Lerp(75f, -35f, 1f - _actionPoseTime / _actionPoseDuration)
+                    : aim * Mathf.Rad2Deg;
+                _weaponPivot.localRotation = Quaternion.Euler(0, 0, weaponAngle);
                 _handL.localPosition = grip + _weaponPivot.localRotation * new Vector3(0.02f, -0.06f, -0.04f);
                 _handR.localPosition = grip + _weaponPivot.localRotation * new Vector3(0.22f, -0.05f, -0.04f);
             }
 
             if (_flash > 0) _flash = Mathf.Max(0, _flash - dt * 4f);
             if (_hurtPoseTime > 0) _hurtPoseTime = Mathf.Max(0, _hurtPoseTime - dt);
+            if (_actionPoseTime > 0) _actionPoseTime = Mathf.Max(0, _actionPoseTime - dt);
+            if (_burnPoseTime > 0) _burnPoseTime = Mathf.Max(0, _burnPoseTime - dt);
+            if (_kamikazePoseTime > 0) _kamikazePoseTime = Mathf.Max(0, _kamikazePoseTime - dt);
             _renderer.GetPropertyBlock(_block);
             _block.SetFloat(FlashId, _flash);
             _block.SetColor(TeamColorId, _teamColor);

@@ -273,6 +273,19 @@ namespace Worms.Game.Render
                 Emit(_smoke, pos + Vector3.up * 0.25f, new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(0.4f, 0.8f), 0), Random.Range(0.18f, 0.3f), Random.Range(0.8f, 1.3f), new Color(0.25f, 0.22f, 0.2f, 1f));
         }
 
+        /// <summary>A short flame burst on the worm that actually took napalm damage.</summary>
+        public void BurnHit(Vector3 pos)
+        {
+            for (int i = 0; i < Count(8); i++)
+                Emit(_fire, pos + new Vector3(Random.Range(-0.25f, 0.25f), Random.Range(-0.2f, 0.4f), 0),
+                    new Vector3(Random.Range(-0.5f, 0.5f), Random.Range(0.8f, 2f), 0),
+                    Random.Range(0.22f, 0.45f), Random.Range(0.25f, 0.55f), Color.white);
+            for (int i = 0; i < Count(3); i++)
+                Emit(_smoke, pos + Vector3.up * 0.35f,
+                    new Vector3(Random.Range(-0.25f, 0.25f), Random.Range(0.4f, 0.9f), 0),
+                    Random.Range(0.2f, 0.35f), Random.Range(0.7f, 1.2f), new Color(0.3f, 0.27f, 0.25f, 1f));
+        }
+
         public void Trail(Vector3 pos)
         {
             for (int i = 0; i < Count(2); i++)

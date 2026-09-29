@@ -122,10 +122,12 @@ namespace Worms.Game.Play
                     }
                     case SimEventType.Burn:
                     {
+                        Actors.OnBurn(e.Worm);
                         var pos = Actors.WormPosition(e.Worm);
                         if (pos.HasValue)
                         {
                             Sound(Sfx.Burn, pos.Value.x, 0.7f, 0.1f);
+                            Vfx.BurnHit(pos.Value);
                             Vfx.AddPopup(pos.Value + Vector3.up * 0.8f, "-" + e.Amount, new Color(1f, 0.6f, 0.2f));
                             _turnDamage.TryGetValue(e.Worm, out int burnt);
                             _turnDamage[e.Worm] = burnt + e.Amount;
@@ -146,6 +148,7 @@ namespace Worms.Game.Play
                     }
                     case SimEventType.Fire:
                     {
+                        Actors.OnFire(e.Worm, e.Weapon);
                         var shooter = Actors.WormPosition(e.Worm);
                         var worm = Current?.FindWorm(e.Worm);
                         if (shooter.HasValue) FireSound(e.Weapon, shooter.Value.x);
@@ -227,6 +230,7 @@ namespace Worms.Game.Play
 
             _kamikazeThisTurn = true;
             KamikazeAt = Time.time;
+            Actors.OnKamikaze(shooter.Value.Id);
             var at = Actors.WormPosition(shooter.Value.Id) ?? WorldSpace.ToWorld(shooter.Value.X, shooter.Value.Y);
             Sound(Sfx.Kamikaze, at.x, 1f, 0f);
             Vfx.Explosion(at + Vector3.up * 0.3f, 3.2f);

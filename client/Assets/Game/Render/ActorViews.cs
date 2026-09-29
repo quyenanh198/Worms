@@ -99,8 +99,13 @@ namespace Worms.Game.Render
                 _seen.Add(w.Id);
                 if (!w.Alive)
                 {
-                    if (!view.Sinking) view.Root.gameObject.SetActive(false);
-                    else view.Update(w, Vector3.zero, false, cur.ActiveWeapon, 0, dt);
+                    if (view.Sinking) view.Update(w, Vector3.zero, false, cur.ActiveWeapon, 0, dt);
+                    else if (view.ShowingKamikaze)
+                    {
+                        view.Root.gameObject.SetActive(true);
+                        view.Update(w, WorldSpace.ToWorld(w.X, w.Y), false, cur.ActiveWeapon, 0, dt);
+                    }
+                    else view.Root.gameObject.SetActive(false);
                     _wormPos.Remove(w.Id);
                     continue;
                 }
@@ -189,6 +194,21 @@ namespace Worms.Game.Render
         public void OnHit(int wormId)
         {
             if (_worms.TryGetValue(wormId, out var v)) v.Flash();
+        }
+
+        public void OnFire(int wormId, WeaponId weapon)
+        {
+            if (_worms.TryGetValue(wormId, out var v)) v.TriggerFire(weapon);
+        }
+
+        public void OnBurn(int wormId)
+        {
+            if (_worms.TryGetValue(wormId, out var v)) v.TriggerBurn();
+        }
+
+        public void OnKamikaze(int wormId)
+        {
+            if (_worms.TryGetValue(wormId, out var v)) v.TriggerKamikaze();
         }
 
         public void OnDeath(int wormId, DeathCause cause, Vector3 at)
