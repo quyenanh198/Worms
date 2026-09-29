@@ -6,9 +6,9 @@ Kế hoạch đầy đủ: [docs/PLAN.md](docs/PLAN.md). Deploy: [docs/DEPLOY.md
 
 ## Đồ họa
 
-Game đang hướng tới phong cách hoạt hình sắc nét của [ảnh tham chiếu được chọn](docs/visuals/approved-cartoon-reference.png): địa hình có lớp đất và mép cỏ, biển và đảo nhiều lớp, sâu có biểu cảm, hiệu ứng đạn/nổ, HUD và menu cùng bảng màu. Bản chạy hiện tại chưa đạt mức chi tiết và bố cục của ảnh mẫu. Có hai cảnh Beach và Meadow, ba mức chất lượng Low/Medium/High và tùy chọn giảm chuyển động. Nguồn gốc các asset được ghi trong [assets-src/CREDITS.md](assets-src/CREDITS.md).
+Game đang hướng tới phong cách hoạt hình sắc nét của [ảnh tham chiếu được chọn](docs/visuals/approved-cartoon-reference.png): địa hình có lớp đất và mép cỏ, biển và đảo nhiều lớp, sâu có biểu cảm, hiệu ứng đạn/nổ, HUD và menu cùng bảng màu. Bản chạy hiện tại chưa đạt mức chi tiết và bố cục của ảnh mẫu. Có hai biome Beach và Meadow, ba mức chất lượng Low/Medium/High và tùy chọn giảm chuyển động. Nguồn gốc các asset được ghi trong [assets-src/CREDITS.md](assets-src/CREDITS.md).
 
-Bản đồ họa hiện tại đã thêm hình sâu cho bốn đội, thung lũng ở giữa bản đồ, đạo cụ tránh điểm xuất hiện, lá tiền cảnh, hiệu ứng nổ vẽ tay và HUD desktop. Ảnh dưới chụp từ **development preview build Windows thật**, seed `123456`, chế độ bốn đội mỗi đội một sâu, bằng Unity 6000.3.25f1 trên desktop tách biệt để không lấy focus. Vách địa hình đã được làm thoải hơn trong dữ liệu va chạm thật; đất dùng texture đá khối mới với tông nâu trầm hơn, HUD hiển thị sát thương đang chờ xử lý; tên lửa, khói, va chạm và hố nổ đã được chụp trong lượt bắn thực. Đây là tiến độ đang kiểm tra, chưa phải bản đồ họa được nghiệm thu: bậc đất còn đều, sâu nhỏ trong khung hình, trời chiếm nhiều diện tích và chất liệu cảnh vẫn khác concept; các trạng thái khác và hiệu năng trên thiết bị cần đối chiếu thêm.
+Bản đồ họa hiện tại dùng chung bộ sprite sâu đỏ cho mọi đội và đổi màu thân qua shader; thêm thung lũng ở giữa bản đồ, đạo cụ tránh điểm xuất hiện, lá tiền cảnh, hiệu ứng nổ vẽ tay và HUD desktop. Ảnh dưới chụp từ **development preview build Windows thật** ở seed `123456`, chế độ bốn đội mỗi đội một sâu, bằng Unity 6000.3.25f1. Ảnh này được chụp trước các pose và màn hình chờ mới, nên không đại diện cho toàn bộ asset hiện tại. Tiến độ đồ họa vẫn cần kiểm tra trong Unity trên các thiết bị mục tiêu.
 
 ![Cảnh chiến đấu preview bốn đội với HUD](docs/visuals/concept-rebuild-battle-preview.png)
 
@@ -18,7 +18,39 @@ Bản đồ họa hiện tại đã thêm hình sâu cho bốn đội, thung lũ
 
 ![Menu preview thực tế với bốn nhân vật](docs/visuals/concept-rebuild-menu-preview.png)
 
-Ảnh tham chiếu đã chọn là **concept**, còn các ảnh preview là hình từ build thật. Bản đồ mới có hai bờ và thung lũng ở giữa; vách cao thay đổi cách đi bộ/nhảy. Khi các đội còn gần nhau, camera bao quát toàn trận; trên màn hình dọc, camera theo sâu đang chơi. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
+Ảnh tham chiếu đã chọn là **concept**; ảnh trận và menu phía trên là hình từ build thật. Bản đồ mới có hai bờ và thung lũng ở giữa; vách cao thay đổi cách đi bộ/nhảy. Khi các đội còn gần nhau, camera bao quát toàn trận; trên màn hình dọc, camera theo sâu đang chơi. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
+
+### File ảnh gameplay
+
+`client/Assets/Resources/` chứa **64 PNG thuộc nhóm gameplay** trong các thư mục sau; mỗi PNG có file `.meta` tương ứng. Một số ảnh cũ được giữ lại nhưng không còn được nạp.
+
+| Thư mục | Số PNG | Nội dung |
+|---|---:|---|
+| [Backdrop](client/Assets/Resources/Backdrop/) | 10 | Mây, đảo, vách biển, cây, đá và đạo cụ nền. |
+| [Characters](client/Assets/Resources/Characters/) | 26 | 17 sprite đỏ gồm idle, blink, aim, hai khung đi bộ, trên không, trúng đòn, cháy, chìm nước, đánh gậy, ném, bắn súng, đặt thuốc nổ, gọi không kích và tự sát; 9 ảnh xanh lam/lục/vàng cũ còn lưu nhưng `WormView` không nạp. |
+| [Cosmetics](client/Assets/Resources/Cosmetics/) | 9 | Mũ, băng đô và kính; bảy món từ bộ ảnh màn chờ là vật phẩm mua được trong cửa hàng. |
+| [Terrain](client/Assets/Resources/Terrain/) | 8 | Năm texture đất và ba ảnh tảng đá dùng cho các biến thể địa hình. |
+| [UI](client/Assets/Resources/UI/) | 4 | Icon vũ khí, chân dung đội và lá tiền cảnh. |
+| [VFX](client/Assets/Resources/VFX/) | 7 | Tên lửa, vụ nổ, khói, bụi và mảnh đất/đá. |
+
+Các pose mới nhất là `worm-red-fire.png`, `worm-red-place.png`, `worm-red-call.png`, `worm-red-drown.png`; `worm-red-walk-b.png` và `worm-red-airborne.png` đã được vẽ lại. [Xem bản xem trước pose và mũ](docs/visuals/worm-new-pose-preview.png) (dựng trong trình duyệt để kiểm tra bố cục, chưa phải ảnh chạy trong Unity). Bản nguồn, tên ảnh gốc và công dụng của từng PNG được liệt kê trong [thư viện asset tạo cho dự án](assets-src/generated/README.md).
+
+### File ảnh màn hình chờ
+
+Khi mở game, `WaitingScreen` chọn ngẫu nhiên **Coastal** hoặc **Neon**. Mỗi bộ có 12 PNG trong [Waiting/Coastal](client/Assets/Resources/Waiting/Coastal/) và [Waiting/Neon](client/Assets/Resources/Waiting/Neon/). Khi các ảnh nền và tiêu đề đã làm sạch đều có mặt, màn hình dùng:
+
+| Cảnh | PNG đang hiển thị |
+|---|---|
+| Coastal | `background.png`, `platform-solid.png`, `logo-clean.png`, `start.png`, `red-worm.png`, `green-worm.png` |
+| Neon | `background.png`, `logo-clean.png`, `start.png`, `green-worm.png` |
+
+Các lớp `sky`, `ocean`, `mountain`, `tree`, `skyscraper`, `vehicle`, `plants` và logo/sàn gốc được giữ làm phương án dự phòng khi thiếu nền hoặc ảnh đã làm sạch. Nhấn phím hoặc chạm nút bắt đầu để vào menu.
+
+| Coastal | Neon |
+|---|---|
+| ![Bản xem trước màn chờ Coastal](docs/visuals/waiting-coastal-landscape.png) | ![Bản xem trước màn chờ Neon](docs/visuals/waiting-neon-landscape.png) |
+
+Các ảnh trên là bản xem trước bố cục trong trình duyệt; có thêm bản [Coastal dọc](docs/visuals/waiting-coastal-portrait-500.png) và [Neon dọc](docs/visuals/waiting-neon-portrait-500.png). Ảnh gốc do chủ dự án cung cấp nằm trong [assets-src/supplied](assets-src/supplied/README.md); nền, logo và sàn đã tạo/chỉnh lại nằm trong [assets-src/generated/runtime/waiting](assets-src/generated/runtime/waiting/).
 
 ## Cấu trúc
 
@@ -45,8 +77,6 @@ Build Unity chạy trên GitHub Actions (GameCI) sau khi thêm secret `UNITY_LIC
 
 Đợt đồ họa ngày 2026-09-27 đã qua 158 bài test .NET và build Windows/WebGL bằng Unity 6000.3.25f1 trong batch mode, không có lỗi. Giao diện WebGL khi chạy trong trình duyệt, thao tác chạm và FPS/bộ nhớ trên thiết bị thật vẫn cần kiểm tra; xem [ma trận xác minh](docs/GRAPHICS_HANDOFF.md#verification-matrix).
 
-## Asset đồ họa từ concept
+## Nguồn asset đồ họa
 
-[Bộ 55 ảnh PNG gốc đã tạo](assets-src/generated/README.md) được lưu trong repo: `concept/` chứa ảnh chuẩn và bảng định hướng, `runtime/` chứa bản gốc của 48 ảnh trong `client/Assets/Resources/`, `drafts/` chứa các phương án chưa dùng. Ảnh chuẩn trong `assets-src/generated/concept/approved-battle.png` trùng byte với ảnh đối chiếu ở tài liệu. Các bản runtime cũng trùng byte với asset Unity tương ứng; ảnh concept nguyên cảnh và bản nháp không được nạp làm sprite trong game. Texture đất cũ vẫn được giữ làm phương án dự phòng.
-
-Hai bộ hình màn chờ do chủ dự án cung cấp được lưu tại [assets-src/supplied](assets-src/supplied/README.md). Game chọn ngẫu nhiên cảnh ven biển hoặc neon khi mở; phụ kiện sâu trong hai bộ có thể mua và trang bị trong cửa hàng.
+[Thư viện ảnh tạo cho dự án](assets-src/generated/README.md) lưu ảnh concept, **62 PNG nguồn trong `runtime/`** (57 ảnh gameplay và 5 ảnh màn chờ), cùng các bản nháp chưa dùng. [Bộ ảnh do chủ dự án cung cấp](assets-src/supplied/README.md) lưu nguyên bản các lớp của hai cảnh chờ; một số lớp được chép vào Unity Resources và bảy phụ kiện được dùng lại trong cửa hàng. Ảnh concept và bản nháp không được nạp làm sprite. [CREDITS.md](assets-src/CREDITS.md) ghi nguồn gốc và quyền sử dụng.

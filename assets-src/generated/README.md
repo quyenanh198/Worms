@@ -1,6 +1,6 @@
 # Generated art sources
 
-This directory preserves the original PNG outputs used during the approved cartoon art pass. The files are committed as project art assets with descriptive names. `runtime/` is a byte-for-byte source copy of the images imported under `client/Assets/Resources/`; Unity loads the copies there. `concept/` contains complete reference compositions, and `drafts/` contains alternative cutouts that are currently unused in play. A concept composition is not a sprite atlas or a game screenshot.
+This directory preserves the original PNG outputs used during the approved cartoon art pass. The files are committed as project art assets with descriptive names. `runtime/` contains 62 source PNGs: 57 gameplay images and 5 generated waiting-screen images. Their imported copies live under `client/Assets/Resources/`; Unity loads the copies there. `concept/` contains complete reference compositions, and `drafts/` contains alternative cutouts that are currently unused in play. A concept composition is not a sprite atlas or a game screenshot. The remaining runtime waiting-screen layers and seven store cosmetics originate from the owner's [supplied image packs](../supplied/README.md).
 
 | Source asset | Original generated file | Game use |
 |---|---|---|
@@ -74,6 +74,6 @@ This directory preserves the original PNG outputs used during the approved carto
 | `drafts/mountain-cutout.png` | `exec-afd4c272-7121-43d9-91e5-e0cd63a946fb.png` | Unused background variant |
 | `drafts/boulder.png` | `exec-c6020528-f171-4413-8608-796d1aaa15db.png` | Unused rock variant |
 
-All images were generated for this project with OpenAI image generation on 2026-09-26, 2026-09-27, or 2026-09-28. See [CREDITS.md](../CREDITS.md) for attribution. The generated cutouts may have soft or imperfect alpha at the edges; inspect before reusing them in a new scene.
+These images were generated for this project with OpenAI image generation between 2026-09-26 and 2026-09-29. See [CREDITS.md](../CREDITS.md) for attribution. The generated cutouts may have soft or imperfect alpha at the edges; inspect before reusing them in a new scene.
 
 The clay-soil variant contains no painted stones; map seed modulo four selects it and omits decorative rock cutouts. Other seeds reuse natural, stratified, and sculpted soil and mix four reusable rock cutouts. The red idle, blink, aim, hurt, walk and airborne cutouts are shared across teams and recolored in the sprite shader. Existing per-team PNGs remain in the source library, but are not loaded for the main worm view. Explosion debris uses red earth for Meadow and tan soil for Beach; clay-only maps emit no rock shards. Independent collision rock obstacles are not yet implemented.
