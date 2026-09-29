@@ -102,7 +102,8 @@ namespace Worms.Game.Render
                 _fireMaterial = LoadPose("worm-red-fire", "Worm gun recoil", crop);
                 _placeMaterial = LoadPose("worm-red-place", "Worm place dynamite", crop);
                 _callMaterial = LoadPose("worm-red-call", "Worm call strike", crop);
-                _drownMaterial = LoadPose("worm-red-drown", "Worm drowning", crop, 1312, 1199);
+                _drownMaterial = LoadPose("worm-red-drown", "Worm drowning",
+                    new Rect(50, 59, 1200, 1140), 1312, 1199);
             }
             if (_paintedMaterial != null)
             {
@@ -173,7 +174,9 @@ namespace Worms.Game.Render
 
         static Material PaintedMaterial(Texture2D texture, string name, Rect crop, int width, int height)
         {
-            var material = Materials.BackdropSprite(texture, name, 1f);
+            // Generated PNGs contain detached alpha=1/255 red pixels. Fade those out
+            // during rendering without changing the source art.
+            var material = Materials.BackdropSprite(texture, name, 1f, alphaThreshold: 0.005f);
             material.SetFloat("_RecolorStrength", 1f);
             material.SetTextureScale("_MainTex", new Vector2(crop.width / width, crop.height / height));
             material.SetTextureOffset("_MainTex", new Vector2(crop.x / width,
