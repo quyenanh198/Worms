@@ -4,21 +4,32 @@ Game bắn pháo theo lượt kiểu *Worms*, chơi online. Đồ họa 3D, game
 
 Kế hoạch đầy đủ: [docs/PLAN.md](docs/PLAN.md). Deploy: [docs/DEPLOY.md](docs/DEPLOY.md). Bàn giao đồ họa: [docs/GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md).
 
-## Đồ họa
+## Màn hình chờ
+
+Khi mở game, `WaitingScreen` chọn ngẫu nhiên **Coastal** hoặc **Neon**. Đây là hai bản xem trước bố cục của màn hình chờ hiện tại, dựng trong trình duyệt từ các PNG mà game sử dụng; chúng chưa phải ảnh chụp từ Unity Player.
+
+| Coastal | Neon |
+|---|---|
+| ![Màn hình chờ Coastal](docs/visuals/waiting-coastal-landscape.png) | ![Màn hình chờ Neon](docs/visuals/waiting-neon-landscape.png) |
+
+[Xem Coastal màn hình dọc](docs/visuals/waiting-coastal-portrait-500.png) · [Xem Neon màn hình dọc](docs/visuals/waiting-neon-portrait-500.png). Nhấn phím hoặc chạm nút bắt đầu để vào menu.
+
+Mỗi bộ có 12 PNG trong [Waiting/Coastal](client/Assets/Resources/Waiting/Coastal/) và [Waiting/Neon](client/Assets/Resources/Waiting/Neon/). Khi các ảnh nền và tiêu đề đã làm sạch đều có mặt, màn hình dùng:
+
+| Cảnh | PNG đang hiển thị |
+|---|---|
+| Coastal | `background.png`, `platform-solid.png`, `logo-clean.png`, `start.png`, `red-worm.png`, `green-worm.png` |
+| Neon | `background.png`, `logo-clean.png`, `start.png`, `green-worm.png` |
+
+Các lớp `sky`, `ocean`, `mountain`, `tree`, `skyscraper`, `vehicle`, `plants` và logo/sàn gốc được giữ làm phương án dự phòng khi thiếu nền hoặc ảnh đã làm sạch. Ảnh gốc do chủ dự án cung cấp nằm trong [assets-src/supplied](assets-src/supplied/README.md); nền, logo và sàn đã tạo/chỉnh lại nằm trong [assets-src/generated/runtime/waiting](assets-src/generated/runtime/waiting/).
+
+## Đồ họa gameplay
 
 Game đang hướng tới phong cách hoạt hình sắc nét của [ảnh tham chiếu được chọn](docs/visuals/approved-cartoon-reference.png): địa hình có lớp đất và mép cỏ, biển và đảo nhiều lớp, sâu có biểu cảm, hiệu ứng đạn/nổ, HUD và menu cùng bảng màu. Bản chạy hiện tại chưa đạt mức chi tiết và bố cục của ảnh mẫu. Có hai biome Beach và Meadow, ba mức chất lượng Low/Medium/High và tùy chọn giảm chuyển động. Nguồn gốc các asset được ghi trong [assets-src/CREDITS.md](assets-src/CREDITS.md).
 
-Bản đồ họa hiện tại dùng chung bộ sprite sâu đỏ cho mọi đội và đổi màu thân qua shader; thêm thung lũng ở giữa bản đồ, đạo cụ tránh điểm xuất hiện, lá tiền cảnh, hiệu ứng nổ vẽ tay và HUD desktop. Ảnh dưới chụp từ **development preview build Windows thật** ở seed `123456`, chế độ bốn đội mỗi đội một sâu, bằng Unity 6000.3.25f1. Ảnh này được chụp trước các pose và màn hình chờ mới, nên không đại diện cho toàn bộ asset hiện tại. Tiến độ đồ họa vẫn cần kiểm tra trong Unity trên các thiết bị mục tiêu.
+Bản đồ họa hiện tại dùng chung bộ sprite sâu đỏ cho mọi đội và đổi màu thân qua shader; thêm thung lũng ở giữa bản đồ, đạo cụ tránh điểm xuất hiện, lá tiền cảnh, hiệu ứng nổ vẽ tay và HUD desktop. Bản đồ có hai bờ và thung lũng ở giữa; vách cao thay đổi cách đi bộ/nhảy. Khi các đội còn gần nhau, camera bao quát toàn trận; trên màn hình dọc, camera theo sâu đang chơi. Tiến độ đồ họa vẫn cần kiểm tra trong Unity trên các thiết bị mục tiêu.
 
-![Cảnh chiến đấu preview bốn đội với HUD](docs/visuals/concept-rebuild-battle-preview.png)
-
-[Xem chế độ mặc định hai đội, bốn sâu mỗi đội](docs/visuals/concept-rebuild-two-team-preview.png) · [màn hình dọc 390×844](docs/visuals/concept-rebuild-portrait-preview.png) · [tên lửa bay](docs/visuals/concept-rebuild-shot-flight.png) · [va chạm](docs/visuals/concept-rebuild-shot-impact.png) · [hố nổ sau khi khói tan](docs/visuals/concept-rebuild-shot-aftermath.png). Ba ảnh cuối lấy từ cùng một lượt bắn trong mô phỏng trận thật. [Ảnh hiệu ứng kích hoạt riêng](docs/visuals/concept-rebuild-vfx-preview.png) chỉ dùng để kiểm tra asset nổ.
-
-Ảnh trên là **trận đấu**, không phải màn hình đầu khi mở app. Menu dùng cảnh đội sâu riêng; ảnh dưới bao gồm cả chữ và giao diện menu, ở trạng thái máy chủ báo cần cập nhật.
-
-![Menu preview thực tế với bốn nhân vật](docs/visuals/concept-rebuild-menu-preview.png)
-
-Ảnh tham chiếu đã chọn là **concept**; ảnh trận và menu phía trên là hình từ build thật. Bản đồ mới có hai bờ và thung lũng ở giữa; vách cao thay đổi cách đi bộ/nhảy. Khi các đội còn gần nhau, camera bao quát toàn trận; trên màn hình dọc, camera theo sâu đang chơi. Xem [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) để đối chiếu và biết những phần chưa đạt.
+Ảnh chụp từ development build Windows cũ được lưu trong [GRAPHICS_HANDOFF.md](docs/GRAPHICS_HANDOFF.md) làm tư liệu tiến độ; chúng không đại diện cho giao diện hiện tại.
 
 ### File ảnh gameplay
 
@@ -34,23 +45,6 @@ Bản đồ họa hiện tại dùng chung bộ sprite sâu đỏ cho mọi đ�
 | [VFX](client/Assets/Resources/VFX/) | 7 | Tên lửa, vụ nổ, khói, bụi và mảnh đất/đá. |
 
 Các pose mới nhất là `worm-red-fire.png`, `worm-red-place.png`, `worm-red-call.png`, `worm-red-drown.png`; `worm-red-walk-b.png` và `worm-red-airborne.png` đã được vẽ lại. [Xem bản xem trước pose và mũ](docs/visuals/worm-new-pose-preview.png) (dựng trong trình duyệt để kiểm tra bố cục, chưa phải ảnh chạy trong Unity). Bản nguồn, tên ảnh gốc và công dụng của từng PNG được liệt kê trong [thư viện asset tạo cho dự án](assets-src/generated/README.md).
-
-### File ảnh màn hình chờ
-
-Khi mở game, `WaitingScreen` chọn ngẫu nhiên **Coastal** hoặc **Neon**. Mỗi bộ có 12 PNG trong [Waiting/Coastal](client/Assets/Resources/Waiting/Coastal/) và [Waiting/Neon](client/Assets/Resources/Waiting/Neon/). Khi các ảnh nền và tiêu đề đã làm sạch đều có mặt, màn hình dùng:
-
-| Cảnh | PNG đang hiển thị |
-|---|---|
-| Coastal | `background.png`, `platform-solid.png`, `logo-clean.png`, `start.png`, `red-worm.png`, `green-worm.png` |
-| Neon | `background.png`, `logo-clean.png`, `start.png`, `green-worm.png` |
-
-Các lớp `sky`, `ocean`, `mountain`, `tree`, `skyscraper`, `vehicle`, `plants` và logo/sàn gốc được giữ làm phương án dự phòng khi thiếu nền hoặc ảnh đã làm sạch. Nhấn phím hoặc chạm nút bắt đầu để vào menu.
-
-| Coastal | Neon |
-|---|---|
-| ![Bản xem trước màn chờ Coastal](docs/visuals/waiting-coastal-landscape.png) | ![Bản xem trước màn chờ Neon](docs/visuals/waiting-neon-landscape.png) |
-
-Các ảnh trên là bản xem trước bố cục trong trình duyệt; có thêm bản [Coastal dọc](docs/visuals/waiting-coastal-portrait-500.png) và [Neon dọc](docs/visuals/waiting-neon-portrait-500.png). Ảnh gốc do chủ dự án cung cấp nằm trong [assets-src/supplied](assets-src/supplied/README.md); nền, logo và sàn đã tạo/chỉnh lại nằm trong [assets-src/generated/runtime/waiting](assets-src/generated/runtime/waiting/).
 
 ## Cấu trúc
 
