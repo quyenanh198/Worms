@@ -16,11 +16,6 @@ namespace Worms.Game.UI
             _start = Resources.Load<Texture2D>(root + "start");
         }
 
-        void Update()
-        {
-            if (Visible && Input.anyKeyDown) Visible = false;
-        }
-
         void OnGUI()
         {
             if (!Visible || _scene == null) return;
@@ -44,6 +39,7 @@ namespace Worms.Game.UI
                 image.width * 0.35f, image.height * 0.145f);
             if (_start != null)
                 GUI.DrawTexture(button, _start, ScaleMode.ScaleToFit, true);
+            if (Event.current.type == EventType.KeyDown) Visible = false;
             if (GUI.Button(button, GUIContent.none, GUIStyle.none)) Visible = false;
             GUI.depth = oldDepth;
         }
