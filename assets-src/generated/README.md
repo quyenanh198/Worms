@@ -23,6 +23,12 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/characters/worm-red-walk-a.png` | `exec-7bb01a11-2663-4aba-8072-cd1fe13c39e4.png` | `Resources/Characters/worm-red-walk-a.png`; shared walking pose A |
 | `runtime/characters/worm-red-walk-b.png` | `exec-fcfe5153-c4be-4e21-9a05-378f32521a6e.png` | `Resources/Characters/worm-red-walk-b.png`; shared walking pose B |
 | `runtime/characters/worm-red-airborne.png` | `exec-deef6cd2-e5e3-47d4-b122-10a465f00ed0.png` | `Resources/Characters/worm-red-airborne.png`; shared jump pose |
+| `runtime/characters/worm-red-bat.png` | `exec-6f6cda46-9d0a-47e0-bc38-53f62ad5a888.png` | `Resources/Characters/worm-red-bat.png`; baseball bat strike body pose |
+| `runtime/characters/worm-red-throw-windup.png` | `exec-4af63faf-62d3-4369-8765-83734d2707c3.png` | `Resources/Characters/worm-red-throw-windup.png`; throwing wind-up |
+| `runtime/characters/worm-red-throw-release.png` | `exec-25e8fb99-74c2-4e12-8c70-2c28e80f106d.png` | `Resources/Characters/worm-red-throw-release.png`; throwing follow-through |
+| `runtime/characters/worm-red-burn.png` | `exec-3aa82a18-15a0-40b7-8521-724d663f2092.png` | `Resources/Characters/worm-red-burn.png`; burning reaction without baked-in flames |
+| `runtime/characters/worm-red-hurt-recoil.png` | `exec-6d904603-315c-4780-9ccb-a897c00ea1af.png` | `Resources/Characters/worm-red-hurt-recoil.png`; second hurt frame |
+| `runtime/characters/worm-red-kamikaze.png` | `exec-b94d0b9c-e267-4664-acaa-8be0b2294f90.png` | `Resources/Characters/worm-red-kamikaze.png`; suicide blast reaction |
 | `runtime/characters/worm-blue.png` | `exec-22c51f86-9c32-4e4f-860a-0cb6c902a896.png` | `Resources/Characters/worm-blue.png` |
 | `runtime/characters/worm-blue-aim.png` | `exec-a45c8ef4-5da9-4605-915e-1932c8d17ad9.png` | `Resources/Characters/worm-blue-aim.png`; aiming pose |
 | `runtime/characters/worm-blue-hurt.png` | `exec-6fc827a4-32e1-4fde-be80-990b8f3bf1a6.png` | `Resources/Characters/worm-blue-hurt.png`; hit reaction |
