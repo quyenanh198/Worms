@@ -66,3 +66,6 @@ Khi thêm một file asset, ghi một dòng vào bảng dưới đây (nguồn, 
 | `client/Assets/Resources/Waiting/Neon/red-worm.png` | Biến thể màu đỏ từ sâu xanh lục neon do chủ dự án cung cấp, tạo bằng OpenAI image generation, 2026-09-29 | Worms project | Dẫn xuất từ asset do chủ dự án cung cấp |
 | `client/Assets/Resources/Waiting/Neon/blue-worm.png` | Biến thể màu xanh lam từ sâu xanh lục neon do chủ dự án cung cấp, tạo bằng OpenAI image generation, 2026-09-29 | Worms project | Dẫn xuất từ asset do chủ dự án cung cấp |
 | `client/Assets/Resources/Waiting/Neon/yellow-worm.png` | Biến thể màu vàng từ sâu xanh lục neon do chủ dự án cung cấp, tạo bằng OpenAI image generation, 2026-09-29 | Worms project | Dẫn xuất từ asset do chủ dự án cung cấp |
+
+| `client/Assets/Resources/Waiting/Coastal/scene.png` | Chỉnh ảnh màn chờ Coastal do chủ dự án cung cấp bằng OpenAI image generation, 2026-09-29; loại nút vẽ sẵn để đặt nút tương tác | Worms project | Dẫn xuất từ ảnh chủ dự án cung cấp |
+| `client/Assets/Resources/Waiting/Neon/scene.png` | Chỉnh ảnh màn chờ Neon do chủ dự án cung cấp bằng OpenAI image generation, 2026-09-29; loại nút vẽ sẵn để đặt nút tương tác | Worms project | Dẫn xuất từ ảnh chủ dự án cung cấp |
