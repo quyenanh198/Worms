@@ -9,7 +9,6 @@ namespace Worms.Sim
         {
             var rng = new Rng(seed);
             var t = new Terrain(width, height);
-            int margin = 60;
             // The approved map is the composition guide: separate high shoulders,
             // staggered lower ledges, and an open dry basin. Each side gets its
             // own positions and heights; the sprite layers never define geometry.
