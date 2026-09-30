@@ -1,6 +1,6 @@
 # Generated art sources
 
-This directory preserves the original PNG outputs used during the approved cartoon art pass. The files are committed as project art assets with descriptive names. `runtime/` contains 69 source PNGs: 57 gameplay images and 12 generated waiting-screen images. Their imported copies live under `client/Assets/Resources/`; Unity loads the copies there. `concept/` contains complete reference compositions, and `drafts/` contains alternative cutouts that are currently unused in play. A concept composition is not a sprite atlas or a game screenshot. The remaining runtime waiting-screen layers and seven store cosmetics originate from the owner's [supplied image packs](../supplied/README.md).
+This directory preserves the original PNG outputs used during the approved cartoon art pass. The files are committed as project art assets with descriptive names. `runtime/` contains 71 source PNGs: 59 gameplay images and 12 generated waiting-screen images. Their imported copies live under `client/Assets/Resources/`; Unity loads the copies there. `concept/` contains complete reference compositions, and `drafts/` contains alternative cutouts that are currently unused in play. A concept composition is not a sprite atlas or a game screenshot. The remaining runtime waiting-screen layers and seven store cosmetics originate from the owner's [supplied image packs](../supplied/README.md).
 
 | Source asset | Original generated file | Game use |
 |---|---|---|
@@ -52,6 +52,8 @@ This directory preserves the original PNG outputs used during the approved carto
 | `runtime/terrain/granite-boulder.png` | `exec-d14ab836-3b4c-4604-85e2-2b2b8ce8c181.png` | `Resources/Terrain/granite-boulder.png`; reusable gray rock inlay |
 | `runtime/terrain/sandstone-boulder.png` | `exec-f547981b-92e2-4cac-b8d8-77066a276b15.png` | `Resources/Terrain/sandstone-boulder.png`; reusable warm rock inlay |
 | `runtime/terrain/basalt-boulder.png` | `exec-858f6a02-0716-411d-8c01-37c771ec72ba.png` | `Resources/Terrain/basalt-boulder.png`; reusable dark freestanding rock cutout and cliff inlay |
+| `runtime/terrain/grass-lip-a.png` | `exec-f2d185e9-0fb0-4dab-9375-a6b8edacfb03.png` | `Resources/Terrain/grass-lip-a.png`; transparent concept-style grass fringe |
+| `runtime/terrain/grass-lip-b.png` | `exec-b2e156ee-3b88-4c29-bd9c-56b35f208bc3.png` | `Resources/Terrain/grass-lip-b.png`; second grass fringe variant |
 | `runtime/ui/foreground-foliage.png` | `exec-08dbc81c-c4f1-4029-8fd2-9ac14ee71925.png` | `Resources/UI/foreground-foliage.png` |
 | `runtime/ui/team-portraits.png` | `exec-52898453-e9b1-4727-b571-68e31cb47067.png` | `Resources/UI/team-portraits.png` |
 | `runtime/ui/weapon-icons.png` | `exec-9410194d-e587-4026-86d4-66f705bd4fbe.png` | `Resources/UI/weapon-icons.png` |
@@ -81,6 +83,6 @@ This directory preserves the original PNG outputs used during the approved carto
 | `drafts/mountain-cutout.png` | `exec-afd4c272-7121-43d9-91e5-e0cd63a946fb.png` | Unused background variant |
 | `drafts/boulder.png` | `exec-c6020528-f171-4413-8608-796d1aaa15db.png` | Unused rock variant |
 
-These images were generated for this project with OpenAI image generation between 2026-09-26 and 2026-09-29. See [CREDITS.md](../CREDITS.md) for attribution. The generated cutouts may have soft or imperfect alpha at the edges; inspect before reusing them in a new scene.
+These images were generated for this project with OpenAI image generation between 2026-09-26 and 2026-09-30. See [CREDITS.md](../CREDITS.md) for attribution. The generated cutouts may have soft or imperfect alpha at the edges; inspect before reusing them in a new scene.
 
-The clay-soil variant contains no painted stones; map seed modulo four selects it and omits decorative rock cutouts. Other seeds reuse natural, stratified, and sculpted soil and mix four reusable rock cutouts. The red idle, blink, aim, hurt, walk and airborne cutouts are shared across teams and recolored in the sprite shader. Existing per-team PNGs remain in the source library, but are not loaded for the main worm view. Explosion debris uses red earth for Meadow and tan soil for Beach; clay-only maps emit no rock shards. Independent collision rock obstacles are not yet implemented.
+Current maps blend the natural and sculpted soil paintings in their original orientation. The other soil textures remain available as archived variants and fallbacks; seeds vary terrain geometry and prop placement. The red idle, blink, aim, hurt, walk and airborne cutouts are shared across teams and recolored in the sprite shader. Existing per-team PNGs remain in the source library, but are not loaded for the main worm view. Explosion debris uses red earth for Meadow and tan soil for Beach; rock shards follow the active terrain material. Independent collision rock obstacles are not yet implemented.

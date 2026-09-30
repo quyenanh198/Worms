@@ -9,6 +9,7 @@ namespace Worms.Game.Render
         public int OriginalTop;
         public int MaxDropCells;
         public int HalfWidthCells;
+        public bool RequireContinuousGround;
 
         public void Refresh(Worms.Sim.Terrain terrain)
         {
@@ -25,6 +26,13 @@ namespace Worms.Game.Render
                 gameObject.SetActive(false);
                 return;
             }
+            if (RequireContinuousGround)
+                for (int dx = -HalfWidthCells; dx <= HalfWidthCells; dx += 8)
+                    if (Mathf.Abs(SurfaceTop(terrain, CellX + dx) - top) > 12)
+                    {
+                        gameObject.SetActive(false);
+                        return;
+                    }
             transform.localPosition = new Vector3(0, (OriginalTop - top) * WorldSpace.Scale, 0);
         }
 

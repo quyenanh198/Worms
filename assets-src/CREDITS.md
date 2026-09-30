@@ -69,3 +69,5 @@ Khi thêm một file asset, ghi một dòng vào bảng dưới đây (nguồn, 
 
 | `client/Assets/Resources/Waiting/Coastal/scene.png` | Chỉnh ảnh màn chờ Coastal do chủ dự án cung cấp bằng OpenAI image generation, 2026-09-29; loại nút vẽ sẵn để đặt nút tương tác | Worms project | Dẫn xuất từ ảnh chủ dự án cung cấp |
 | `client/Assets/Resources/Waiting/Neon/scene.png` | Chỉnh ảnh màn chờ Neon do chủ dự án cung cấp bằng OpenAI image generation, 2026-09-29; loại nút vẽ sẵn để đặt nút tương tác | Worms project | Dẫn xuất từ ảnh chủ dự án cung cấp |
+
+| `client/Assets/Resources/Terrain/grass-lip-a.png` and `grass-lip-b.png` | Generated with OpenAI image generation from the project-approved battle concept, 2026-09-30; two transparent grass fringe variants | Worms project | Original project art; no third-party image |

@@ -33,7 +33,7 @@ Bản đồ họa hiện tại dùng chung bộ sprite sâu đỏ cho mọi đ�
 | [Backdrop](client/Assets/Resources/Backdrop/) | 10 | Mây, đảo, vách biển, cây, đá và đạo cụ nền. |
 | [Characters](client/Assets/Resources/Characters/) | 26 | 17 sprite đỏ gồm idle, blink, aim, hai khung đi bộ, trên không, trúng đòn, cháy, chìm nước, đánh gậy, ném, bắn súng, đặt thuốc nổ, gọi không kích và tự sát; 9 ảnh xanh lam/lục/vàng cũ còn lưu nhưng `WormView` không nạp. |
 | [Cosmetics](client/Assets/Resources/Cosmetics/) | 9 | Mũ, băng đô và kính; bảy món từ bộ ảnh màn chờ là vật phẩm mua được trong cửa hàng. |
-| [Terrain](client/Assets/Resources/Terrain/) | 8 | Năm texture đất và ba ảnh tảng đá dùng cho các biến thể địa hình. |
+| [Terrain](client/Assets/Resources/Terrain/) | 10 | Năm texture đất và ba ảnh tảng đá dùng cho các biến thể địa hình. |
 | [UI](client/Assets/Resources/UI/) | 4 | Icon vũ khí, chân dung đội và lá tiền cảnh. |
 | [VFX](client/Assets/Resources/VFX/) | 7 | Tên lửa, vụ nổ, khói, bụi và mảnh đất/đá. |
 

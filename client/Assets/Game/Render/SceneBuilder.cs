@@ -266,15 +266,16 @@ namespace Worms.Game.Render
         }
 
         /// <summary>Painted scenery behind the play plane. It never changes collision or blocks actors.</summary>
-        public static void CreateSurfaceProps(Transform parent, Worms.Sim.Terrain terrain)
+        public static void CreateSurfaceProps(Transform parent, Worms.Sim.Terrain terrain, uint seed)
         {
             var texture = Resources.Load<Texture2D>("Backdrop/foreground-oak");
             if (texture == null) return;
-            float[] fractions = { 0.25f, 0.45f, 0.65f, 0.82f };
+            var rng = new Rng(seed ^ 0xD6E8FEB9u);
             float[] widths = { 5.8f, 7.5f, 5.2f, 6f };
-            for (int i = 0; i < fractions.Length; i++)
+            for (int i = 0; i < widths.Length; i++)
             {
-                int cellX = Mathf.Clamp(Mathf.RoundToInt((terrain.Width - 1) * fractions[i]), 0, terrain.Width - 1);
+                float fraction = (i + rng.Range(0.30f, 0.75f)) / widths.Length;
+                int cellX = Mathf.Clamp(Mathf.RoundToInt((terrain.Width - 1) * fraction), 0, terrain.Width - 1);
                 int top = 0;
                 while (top < terrain.Height && !terrain.IsSolid(cellX, top)) top++;
                 if (top >= terrain.Height - 8) continue;
@@ -284,8 +285,7 @@ namespace Worms.Game.Render
                 // The source cutout has an earth plinth in its bottom quarter. Hide it
                 // inside the real terrain so trees remain grounded on sloped maps.
                 const float cropBottom = 0.25f;
-                bool flip = i == 1; // keep the fence on the uphill side of the left tree
-                float uvLeft = flip ? 1f : 0f, uvRight = 1f - uvLeft;
+                float uvLeft = 0f, uvRight = 1f;
                 float height = width * texture.height / texture.width * (1f - cropBottom);
                 float bottom = -top * WorldSpace.Scale - 0.3f;
                 const float z = 1.2f;
@@ -318,6 +318,79 @@ namespace Worms.Game.Render
             }
         }
 
+        /// <summary>Concept-style grass fringe layered over stable cliff tops.</summary>
+        public static void CreateGrassLip(Transform parent, Worms.Sim.Terrain terrain, uint seed = 0)
+        {
+            var art = new[]
+            {
+                Resources.Load<Texture2D>("Terrain/grass-lip-a"),
+                Resources.Load<Texture2D>("Terrain/grass-lip-b"),
+            };
+            if (art[0] == null || art[1] == null) return;
+            var materials = new[]
+            {
+                Materials.BackdropSprite(art[0], "Grass lip A", 1f, alphaThreshold: 0.08f),
+                Materials.BackdropSprite(art[1], "Grass lip B", 1f, alphaThreshold: 0.08f),
+            };
+            var rng = new Rng(seed ^ 0x6C8E9CF5u);
+            const int spacing = 80, halfSupport = 40;
+            for (int slot = 0, origin = 40; origin < terrain.Width - 40; slot++, origin += spacing)
+            {
+                int x = Mathf.Clamp(origin + rng.Range(-13, 14), halfSupport,
+                    terrain.Width - halfSupport - 1);
+                int top = SurfaceTop(terrain, x);
+                if (top >= terrain.Height - 8) continue;
+                bool stable = true;
+                for (int dx = -halfSupport; dx <= halfSupport; dx += 8)
+                    if (Mathf.Abs(SurfaceTop(terrain, x + dx) - top) > 8)
+                    {
+                        stable = false;
+                        break;
+                    }
+                if (!stable) continue;
+
+                int variant = rng.Range(0, 2);
+                float width = 4.8f;
+                float height = variant == 0 ? 0.75f : 0.84f;
+                float center = x * WorldSpace.Scale;
+                float bottom = -top * WorldSpace.Scale - 0.54f;
+                // UVs trim transparent canvas padding; the painted blades keep
+                // their original orientation and aspect ratio.
+                float u0 = variant == 0 ? 0.015f : 0.012f;
+                float u1 = variant == 0 ? 0.985f : 0.988f;
+                float v0 = variant == 0 ? 0.250f : 0.225f;
+                float v1 = variant == 0 ? 0.712f : 0.745f;
+                var mesh = new Mesh
+                {
+                    name = "Grass lip " + slot,
+                    vertices = new[]
+                    {
+                        new Vector3(center - width * 0.5f, bottom, -0.08f),
+                        new Vector3(center - width * 0.5f, bottom + height, -0.08f),
+                        new Vector3(center + width * 0.5f, bottom + height, -0.08f),
+                        new Vector3(center + width * 0.5f, bottom, -0.08f),
+                    },
+                    uv = new[] { new Vector2(u0, v0), new Vector2(u0, v1),
+                        new Vector2(u1, v1), new Vector2(u1, v0) },
+                    triangles = new[] { 0, 1, 2, 0, 2, 3 },
+                };
+                mesh.RecalculateBounds();
+                var go = new GameObject(mesh.name);
+                go.transform.SetParent(parent, false);
+                var anchor = go.AddComponent<SurfacePropAnchor>();
+                anchor.CellX = x;
+                anchor.OriginalTop = top;
+                anchor.HalfWidthCells = halfSupport;
+                anchor.MaxDropCells = 16;
+                anchor.RequireContinuousGround = true;
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = materials[variant];
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+        }
+
         /// <summary>Painted grass and stones on stable shelves, behind the actors.</summary>
         public static void CreateGroundFoliage(Transform parent, Worms.Sim.Terrain terrain,
             uint seed = 0, bool menuComposition = false)
@@ -325,9 +398,13 @@ namespace Worms.Game.Render
             var texture = Resources.Load<Texture2D>("Backdrop/grass-rock-clump");
             var bankTexture = Resources.Load<Texture2D>("Backdrop/rocky-grass-bank");
             if (texture == null && bankTexture == null) return;
+            var rng = new Rng(seed ^ 0xA1B2C3D4u);
             float[] positions = menuComposition
-                ? new[] { 0.09f, 0.88f }
-                : new[] { 0.08f, 0.18f, 0.30f, 0.41f, 0.58f, 0.70f, 0.82f, 0.94f };
+                ? new[] { rng.Range(0.10f, 0.20f), rng.Range(0.77f, 0.89f) }
+                : new float[8];
+            if (!menuComposition)
+                for (int i = 0; i < positions.Length; i++)
+                    positions[i] = (i + rng.Range(0.22f, 0.78f)) / positions.Length;
             float[] widths = menuComposition
                 ? new[] { 2.0f, 2.0f }
                 : new[] { 3.2f, 4.1f, 3.6f, 4.3f, 3.4f, 4.0f, 3.7f, 4.2f };
@@ -343,7 +420,7 @@ namespace Worms.Game.Render
             for (int i = 0; i < positions.Length; i++)
             {
                 bool rocky = bankTexture != null && (texture == null ||
-                    !menuComposition && (i + (int)(seed % 3u)) % 3 == 1);
+                    !menuComposition && rng.Range(0, 3) == 0);
                 float width = widths[i], height = width * (rocky ? 0.26f : 1.25f / 3.8f);
                 int halfCells = Mathf.RoundToInt(width * (rocky ? 0.45f : 0.35f) / WorldSpace.Scale);
                 int origin = Mathf.RoundToInt((terrain.Width - 1) * positions[i]);
@@ -369,8 +446,7 @@ namespace Worms.Game.Render
 
                 float x = cellX * WorldSpace.Scale;
                 float bottom = -top * WorldSpace.Scale - 0.08f;
-                bool flip = i % 2 == 1;
-                float u0 = flip ? 1f : 0f, u1 = 1f - u0;
+                float u0 = 0f, u1 = 1f;
                 // Each cutout has different transparent padding around its baseline.
                 float vBottom = rocky ? 0.11f : 0.07f;
                 float vTop = rocky ? 0.84f : 0.64f;
@@ -416,25 +492,27 @@ namespace Worms.Game.Render
             var graniteMaterial = granite != null ? Materials.BackdropSprite(granite, "Granite face rock", 0.95f, alphaThreshold: 0.08f) : material;
             var sandstoneMaterial = sandstone != null ? Materials.BackdropSprite(sandstone, "Sandstone face rock", 0.95f, alphaThreshold: 0.25f) : material;
             var basaltMaterial = basalt != null ? Materials.BackdropSprite(basalt, "Basalt face rock", 0.95f, alphaThreshold: 0.08f) : material;
-            float[] fractions = { 0.11f, 0.23f, 0.36f, 0.64f, 0.78f, 0.91f };
-            float[] widths = { 4.8f, 5.5f, 4.2f, 6.1f, 4.6f, 5.7f };
-            float[] depths = { 3.5f, 4.2f, 3.1f, 4.5f, 3.8f, 4.0f };
+            var rng = new Rng(seed ^ 0x8D12E93Bu);
             int[] offsets = { 0, -48, 48, -96, 96 };
-            for (int i = 0; i < fractions.Length; i++)
+            const int count = 6;
+            for (int i = 0; i < count; i++)
             {
-                int rockKind = (i + (int)(seed % 4u)) % 4;
-                float width = widths[i], height = width * (rockKind == 1 ? 0.82f : rockKind == 2 ? 0.62f : rockKind == 3 ? 0.67f : 3.1f / 5.2f);
+                int rockKind = rng.Range(0, 4);
+                float width = rng.Range(4.1f, 5.9f);
+                float height = width * (rockKind == 1 ? 0.82f : rockKind == 2 ? 0.62f : rockKind == 3 ? 0.67f : 3.1f / 5.2f);
                 // The visible art spans roughly 74% by 58% of the PNG; do not
                 // reject a face because its transparent padding crosses a rim.
                 int halfX = Mathf.CeilToInt(width * 0.37f / WorldSpace.Scale);
                 int halfY = Mathf.CeilToInt(height * 0.29f / WorldSpace.Scale);
-                int origin = Mathf.RoundToInt((terrain.Width - 1) * fractions[i]);
+                int origin = Mathf.RoundToInt((terrain.Width - 1) *
+                    (i + rng.Range(0.22f, 0.78f)) / count);
+                float depth = rng.Range(2.8f, 4.5f);
                 int cellX = -1, cellY = -1;
                 foreach (int offset in offsets)
                 {
                     int x = origin + offset;
                     if (x - halfX < 0 || x + halfX >= terrain.Width) continue;
-                    int y = SurfaceTop(terrain, x) + Mathf.CeilToInt(depths[i] / WorldSpace.Scale);
+                    int y = SurfaceTop(terrain, x) + Mathf.CeilToInt(depth / WorldSpace.Scale);
                     if (y - halfY < 0 || y + halfY >= terrain.Height) continue;
                     if (!terrain.IsSolid(x, y) || !terrain.IsSolid(x - halfX, y) ||
                         !terrain.IsSolid(x + halfX, y) || !terrain.IsSolid(x, y - halfY) ||
@@ -445,8 +523,7 @@ namespace Worms.Game.Render
                 }
                 if (cellX < 0) continue;
                 float cx = cellX * WorldSpace.Scale, cy = -cellY * WorldSpace.Scale;
-                bool flip = i % 2 == 1;
-                float leftUv = flip ? 1f : 0f, rightUv = 1f - leftUv;
+                float leftUv = 0f, rightUv = 1f;
                 var mesh = new Mesh
                 {
                     name = "Cliff rock inlay",
@@ -484,20 +561,23 @@ namespace Worms.Game.Render
             return top;
         }
 
-        public static void CreateCrateProps(Transform parent, Worms.Sim.Terrain terrain, IReadOnlyList<WormSnap> worms)
+        public static void CreateCrateProps(Transform parent, Worms.Sim.Terrain terrain,
+            IReadOnlyList<WormSnap> worms, uint seed)
         {
             var texture = Resources.Load<Texture2D>("Backdrop/crate-rocks");
             if (texture == null) return;
-            float[] fractions = { 0.13f, 0.33f, 0.55f, 0.76f, 0.94f };
+            var rng = new Rng(seed ^ 0xC6D5A4B3u);
+            const int count = 5;
             var material = Materials.BackdropSprite(texture, "Crate and rocks", 1f, alphaThreshold: 0.25f);
             // Crop the generator's transparent padding and keep the props below worm height.
             const float u0 = 112f / 1536f, u1 = 1452f / 1536f;
             const float v0 = 141f / 1024f, v1 = 895f / 1024f;
-            for (int i = 0; i < fractions.Length; i++)
+            for (int i = 0; i < count; i++)
             {
-                float width = i % 2 == 0 ? 2.35f : 2.9f;
+                float width = rng.Range(2.35f, 2.9f);
                 float height = width * (1.65f / 2.9f);
-                int originX = Mathf.RoundToInt((terrain.Width - 1) * fractions[i]);
+                int originX = Mathf.RoundToInt((terrain.Width - 1) *
+                    (i + rng.Range(0.18f, 0.82f)) / count);
                 int cellX = originX, top = terrain.Height;
                 int[] offsets = { 0, -48, 48, -96, 96 };
                 bool found = false;
@@ -528,8 +608,7 @@ namespace Worms.Game.Render
                 }
                 if (!found) continue;
                 float x = cellX * WorldSpace.Scale, bottom = -top * WorldSpace.Scale - 0.12f;
-                float leftUv = i % 2 == 0 ? u0 : u1;
-                float rightUv = i % 2 == 0 ? u1 : u0;
+                float leftUv = u0, rightUv = u1;
                 var mesh = new Mesh
                 {
                     name = "Painted crate and rocks",

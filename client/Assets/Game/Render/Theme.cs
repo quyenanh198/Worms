@@ -69,33 +69,21 @@ namespace Worms.Game.Render
             m.SetColor("_DirtColor", t.Dirt);
             m.SetColor("_DeepColor", t.Deep);
             m.SetColor("_RockColor", t.Rock);
-            // Reuse the same destructible terrain geometry with a seeded surface
-            // treatment. The menu and seed zero keep the concept's natural soil.
-            string[] surfaces = { "natural-soil", "stratified-soil", "sculpted-soil", "clay-soil" };
-            Color[] tints =
-            {
-                new Color(0.83f, 0.8f, 0.89f),
-                new Color(0.85f, 0.82f, 0.9f),
-                new Color(0.94f, 0.92f, 1.02f),
-                new Color(0.87f, 0.85f, 0.92f),
-            };
-            int surface = (int)(mapSeed % (uint)surfaces.Length);
-            var paintedSoil = Resources.Load<Texture2D>("Terrain/" + surfaces[surface]);
-            var paintTint = tints[surface];
+            // Keep the approved concept's soil family for every map seed.
+            // The two source paintings remain upright and are only translated in world space.
+            var paintedSoil = Resources.Load<Texture2D>("Terrain/natural-soil");
             if (paintedSoil == null)
-            {
-                paintedSoil = Resources.Load<Texture2D>("Terrain/natural-soil");
-                paintTint = tints[0];
-            }
-            if (paintedSoil == null)
-            {
                 paintedSoil = Resources.Load<Texture2D>("Terrain/painted-soil");
-                paintTint = new Color(0.72f, 0.78f, 1.15f);
-            }
+            var secondarySoil = Resources.Load<Texture2D>("Terrain/sculpted-soil");
+            if (secondarySoil == null) secondarySoil = paintedSoil;
             if (paintedSoil != null) m.SetTexture("_PaintedSoil", paintedSoil);
-            m.SetColor("_PaintTint", paintTint);
-            m.SetFloat("_PaintStrength", paintedSoil != null ? 0.75f : 0f);
-            m.SetFloat("_RockStrength", surface == 3 ? 0f : 1f);
+            if (secondarySoil != null) m.SetTexture("_SecondarySoil", secondarySoil);
+            var rng = new Worms.Sim.Rng(mapSeed ^ 0xB5297A4Du);
+            m.SetVector("_SoilOffset", new Vector4(rng.NextFloat(), rng.NextFloat(),
+                rng.NextFloat(), rng.NextFloat()));
+            m.SetColor("_PaintTint", new Color(0.82f, 0.77f, 0.80f));
+            m.SetFloat("_PaintStrength", paintedSoil != null ? 0.88f : 0f);
+            m.SetFloat("_RockStrength", 1f);
             return m;
         }
 

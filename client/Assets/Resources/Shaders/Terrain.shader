@@ -11,6 +11,8 @@ Shader "Worms/Terrain"
         _NoiseScale ("Noise Scale", Float) = 1.6
         _Field ("Edge Field (R edge, G land above)", 2D) = "black" {}
         _PaintedSoil ("Painted soil", 2D) = "white" {}
+        _SecondarySoil ("Secondary soil", 2D) = "white" {}
+        _SoilOffset ("Soil offset", Vector) = (0, 0, 0, 0)
         _PaintStrength ("Paint strength", Range(0, 1)) = 0
         _RockStrength ("Procedural rock strength", Range(0, 1)) = 1
         _PaintTint ("Paint tint", Color) = (0.72, 0.78, 1.15, 1)
@@ -31,12 +33,14 @@ Shader "Worms/Terrain"
         float _RockStrength;
         half4 _PaintTint;
         float4 _FieldSize; // cells wide, cells high, cells per world unit
+        float4 _SoilOffset;
     CBUFFER_END
     TEXTURE2D(_Field);
     SAMPLER(sampler_Field);
     TEXTURE2D(_PaintedSoil);
     SAMPLER(sampler_PaintedSoil);
-    float4 _PaintedSoil_TexelSize;
+    TEXTURE2D(_SecondarySoil);
+    SAMPLER(sampler_SecondarySoil);
     ENDHLSL
 
     SubShader
@@ -121,27 +125,30 @@ Shader "Worms/Terrain"
                     soil = lerp(soil, _DeepColor.rgb, 0.45 * smoothstep(10.0, 24.0, above));
                     if (_PaintStrength > 0.001)
                     {
-                        float2 soilUv = ws.xy * 0.05 + float2(0.13, 0.27);
-                        // Mirror alternate tiles so neighboring cliffs meet at identical
-                        // texels even when the source PNG's opposite edges differ.
-                        soilUv = 1.0 - abs(frac(soilUv * 0.5) * 2.0 - 1.0);
-                        soilUv = clamp(soilUv, _PaintedSoil_TexelSize.xy * 0.5,
-                            1.0 - _PaintedSoil_TexelSize.xy * 0.5);
-                        half3 painted = SAMPLE_TEXTURE2D(_PaintedSoil, sampler_PaintedSoil, soilUv).rgb;
-                        // Pull the generated orange swatch toward the reference's
-                        // deeper, less saturated clay. Broad value changes keep a
-                        // large cliff from reading as one flat tiled plane.
-                        painted *= _PaintTint.rgb;
-                        float strata = WormsValueNoise(ws.xy * 0.10 + 29.7);
-                        painted *= 0.66 + 0.58 * strata;
+                        // Keep both source paintings upright. Two differently spaced
+                        // translations cover each other's non-seamless repeat edges.
+                        float2 uvA = ws.xy * 0.043 + _SoilOffset.xy;
+                        float2 uvB = ws.xy * 0.067 + _SoilOffset.zw;
+                        float2 edgeA = min(frac(uvA), 1.0 - frac(uvA));
+                        float2 edgeB = min(frac(uvB), 1.0 - frac(uvB));
+                        float weightA = smoothstep(0.015, 0.17, min(edgeA.x, edgeA.y));
+                        float weightB = smoothstep(0.015, 0.17, min(edgeB.x, edgeB.y));
+                        half3 artA = SAMPLE_TEXTURE2D(_PaintedSoil, sampler_PaintedSoil, uvA).rgb;
+                        half3 artB = SAMPLE_TEXTURE2D(_SecondarySoil, sampler_SecondarySoil, uvB).rgb;
+                        float artMix = weightB / max(0.001, weightA + weightB);
+                        half3 painted = lerp(artA, artB, artMix) * _PaintTint.rgb;
+                        float artCoverage = saturate((weightA + weightB) * 1.8);
+                        painted = lerp(soil, painted, artCoverage);
                         soil = lerp(soil, painted, _PaintStrength * 0.85);
                     }
 
                     // Grass on top surfaces only, in uneven tufts.
-                    float tuft = 3.4 + 3.0 * WormsValueNoise(float2(ws.x * 30.0, 1.7));
-                    float isGrass = 1.0 - smoothstep(tuft - 0.4, tuft + 0.4, above);
-                    half3 grass = _GrassColor.rgb * (0.95 + 0.15 * WormsValueNoise(float2(ws.x * 60.0, ws.y * 4.0)));
-                    grass = lerp(grass * 1.18, grass, smoothstep(0.0, tuft, above)); // lit tips
+                    float tuft = 7.0 + 4.0 * WormsValueNoise(float2(ws.x * 18.0, 1.7));
+                    float isGrass = 1.0 - smoothstep(tuft - 0.6, tuft + 0.8, above);
+                    float bladeNoise = WormsValueNoise(float2(ws.x * 42.0, ws.y * 3.0));
+                    half3 grass = _GrassColor.rgb * (0.90 + 0.18 * bladeNoise);
+                    grass *= lerp(1.26, 0.66, smoothstep(0.0, tuft, above));
+                    grass = lerp(grass, _DirtColor.rgb * 0.62, 0.28 * smoothstep(tuft * 0.6, tuft, above));
                     albedo = lerp(soil, grass, isGrass);
 
                     // Edge treatment along every border, crater rims included:
@@ -151,8 +158,8 @@ Shader "Worms/Terrain"
                     float inward = smoothstep(2.0, 8.0, edge);
                     albedo *= lerp(1.0, 1.18, crust * (1.0 - isGrass));
                     albedo *= lerp(1.06, 0.9, inward);
-                    half3 ink = lerp(_DeepColor.rgb * 0.78, _GrassColor.rgb * 0.52, isGrass);
-                    albedo = lerp(albedo, ink, outline * 0.78);
+                    half3 ink = lerp(_DeepColor.rgb * 0.78, _GrassColor.rgb * 0.56, isGrass);
+                    albedo = lerp(albedo, ink, outline * (0.78 - 0.28 * isGrass));
                     // Shadow of the turf on the soil just below it.
                     float under = smoothstep(tuft, tuft + 0.5, above) * (1.0 - smoothstep(tuft + 0.5, tuft + 3.5, above));
                     albedo *= 1.0 - 0.28 * under * (1.0 - isGrass);

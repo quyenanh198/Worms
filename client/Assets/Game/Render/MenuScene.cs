@@ -78,6 +78,7 @@ namespace Worms.Game.Render
             terrainView.transform.SetParent(transform, false);
             terrainView.Init(_terrain, Materials.Terrain(theme));
             SceneBuilder.CreateGroundFoliage(transform, _terrain, menuComposition: true);
+            SceneBuilder.CreateGrassLip(transform, _terrain, 7u);
             float width = _terrain.Width * WorldSpace.Scale;
             // The battle's near procedural hills cover the painted cliffs at this tighter menu camera.
             SceneBuilder.CreateBackdrop(transform, theme, 7u, width, waterY, menuComposition: true);

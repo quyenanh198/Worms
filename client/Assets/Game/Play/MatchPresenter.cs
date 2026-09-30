@@ -57,13 +57,10 @@ namespace Worms.Game.Play
             SceneBuilder.ConfigureEnvironment(theme, Sun);
             SceneBuilder.CreateBackdrop(transform, theme, seed, mapWidth, waterY);
             SceneBuilder.CreateWater(transform, theme, mapWidth, waterY);
-            SceneBuilder.CreateSurfaceProps(transform, terrain);
-            bool clayOnly = seed % 4u == 3u;
-            if (!clayOnly)
-            {
-                SceneBuilder.CreateGroundFoliage(transform, terrain, seed);
-                SceneBuilder.CreateCliffRocks(transform, terrain, seed);
-            }
+            SceneBuilder.CreateSurfaceProps(transform, terrain, seed);
+            SceneBuilder.CreateGroundFoliage(transform, terrain, seed);
+            SceneBuilder.CreateCliffRocks(transform, terrain, seed);
+            SceneBuilder.CreateGrassLip(transform, terrain, seed);
 
             Terrain = new GameObject("Terrain").AddComponent<TerrainView>();
             Terrain.transform.SetParent(transform, false);
@@ -71,7 +68,7 @@ namespace Worms.Game.Play
 
             Vfx = new GameObject("Vfx").AddComponent<Vfx>();
             Vfx.transform.SetParent(transform, false);
-            Vfx.Init(theme.Dirt, !clayOnly, theme == Theme.Beach);
+            Vfx.Init(theme.Dirt, true, theme == Theme.Beach);
 
             Actors = new GameObject("Actors").AddComponent<ActorViews>();
             Actors.transform.SetParent(transform, false);
@@ -94,9 +91,7 @@ namespace Worms.Game.Play
             Current = current;
             if (!_cratePropsCreated && current != null && current.Worms.Count > 0)
             {
-                // Crate cutouts include stones; leave the clay-only variant clear.
-                if (_surfaceSeed % 4u != 3u)
-                    SceneBuilder.CreateCrateProps(transform, _sourceTerrain, current.Worms);
+                SceneBuilder.CreateCrateProps(transform, _sourceTerrain, current.Worms, _surfaceSeed);
                 _cratePropsCreated = true;
             }
         }

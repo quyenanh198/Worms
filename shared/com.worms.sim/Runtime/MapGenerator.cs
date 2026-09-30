@@ -9,67 +9,47 @@ namespace Worms.Sim
         {
             var rng = new Rng(seed);
             var t = new Terrain(width, height);
-            float twoPi = (float)(Math.PI * 2);
-
-            float baseY = height * rng.Range(0.42f, 0.52f);
-            float a1 = rng.Range(55f, 85f), f1 = twoPi / width * rng.Range(1f, 2f), p1 = rng.Range(0f, twoPi);
-            float a2 = rng.Range(20f, 40f), f2 = twoPi / width * rng.Range(3f, 5f), p2 = rng.Range(0f, twoPi);
-            float f3 = twoPi / width * rng.Range(9f, 14f), p3 = rng.Range(0f, twoPi);
             int margin = 60;
-            const float terraceHeight = 65f;
+            // The approved map is the composition guide: separate high shoulders,
+            // staggered lower ledges, and an open dry basin. Each side gets its
+            // own positions and heights; the sprite layers never define geometry.
+            float leftHigh = height * rng.Range(.34f, .41f);
+            float leftMid = leftHigh + rng.Range(110f, 160f);
+            float basin = height * rng.Range(.69f, .75f);
+            float rightMid = basin - rng.Range(110f, 160f);
+            float rightHigh = rightMid - rng.Range(95f, 145f);
+            float[] px = {
+                0f, width * .075f,
+                width * rng.Range(.200f, .205f), width * rng.Range(.215f, .220f),
+                width * rng.Range(.30f, .33f), width * rng.Range(.410f, .415f),
+                width * rng.Range(.425f, .430f), width * rng.Range(.615f, .620f),
+                width * rng.Range(.625f, .630f), width * rng.Range(.785f, .790f),
+                width * rng.Range(.795f, .800f), width * rng.Range(.89f, .91f),
+                width * .97f, width - 1f
+            };
+            float[] py = {
+                leftHigh + 220f, leftHigh, leftHigh, leftMid,
+                leftMid, leftMid, basin, basin,
+                rightMid, rightMid, rightHigh, rightHigh,
+                rightHigh + 105f, rightHigh + 220f
+            };
             var surfaceTops = new int[width];
-
+            int segment = 0;
             for (int x = 0; x < width; x++)
             {
-                float surface = baseY + a1 * (float)Math.Sin(x * f1 + p1) + a2 * (float)Math.Sin(x * f2 + p2);
-                // A broad central basin keeps the playable cliffs on both sides
-                // of an open middle ground, as in the approved battle concept.
-                float basinX = (x - width * 0.5f) / (width * 0.15f);
-                surface += 135f * (float)Math.Exp(-basinX * basinX);
-                // Taper both edges down into the sea so the map reads as islands.
-                float edge = Math.Min(x, width - 1 - x);
-                if (edge < margin * 3) surface += (margin * 3 - edge) * 1.6f;
-                // The collision mask itself forms wide playable shelves and sharp cliffs.
-                // A small ripple breaks up the top line without adding impassable bumps.
-                int level = (int)Math.Round(surface / terraceHeight);
-                float terrace = level * terraceHeight + 10f * (float)Math.Sin(level * 2.37f + p1);
-                float ripple = 2.5f * (float)Math.Sin(x * f3 + p3);
-                int top = Math.Max(120, (int)(terrace + ripple));
-                surfaceTops[x] = top;
-            }
-
-            var squareTops = (int[])surfaceTops.Clone();
-            // Spread each terrace change over a short, uneven rock face. This
-            // keeps the playable shelf but removes the nearly vertical boxes.
-            for (int x = 12; x < width - 12; x++)
-            {
-                if (Math.Abs(squareTops[x] - squareTops[x - 1]) < 40) continue;
-                int left = squareTops[x - 12], right = squareTops[x + 12];
-                for (int offset = -11; offset <= 11; offset++)
-                {
-                    float blend = (offset + 12) / 24f;
-                    blend = blend * blend * (3f - 2f * blend);
-                    float rock = 1.6f * (float)Math.Sin((x + offset) * 0.53f + p2) * (float)Math.Sin(Math.PI * blend);
-                    surfaceTops[x + offset] = (int)(left + (right - left) * blend + rock);
-                }
+                while (segment < px.Length - 2 && x > px[segment + 1]) segment++;
+                float u = (x - px[segment]) / (px[segment + 1] - px[segment]);
+                float smooth = u * u * (3f - 2f * u);
+                float ripple = 2.2f * (float)Math.Sin(x * .057f + seed * .011f);
+                surfaceTops[x] = Math.Max(120, (int)(py[segment] +
+                    (py[segment + 1] - py[segment]) * smooth + ripple));
             }
             for (int x = 0; x < width; x++)
                 t.FillRect(x, surfaceTops[x], x + 1, height, true);
 
-            // Shallow alcoves break up the straight cliff silhouette. They are part
-            // of the same destructible collision mask, not a separate visual mesh.
-            for (int x = margin; x < width - margin; x++)
-            {
-                int delta = squareTops[x] - squareTops[x - 1];
-                if (Math.Abs(delta) < 40) continue;
-                int landX = delta > 0 ? x - 6 : x + 6;
-                int upper = Math.Min(squareTops[x], squareTops[x - 1]);
-                t.CarveCircle(landX, upper + Math.Abs(delta) / 2, 13);
-            }
-
             // Narrow sea channels at the outer quarters reveal the backdrop while
             // leaving the central battle basin intact.
-            int channels = rng.Range(1, 3);
+            int channels = rng.Range(0, 2);
             for (int i = 0; i < channels; i++)
             {
                 bool left = (rng.NextUInt() & 1u) == 0u;
@@ -84,7 +64,7 @@ namespace Worms.Sim
             for (int i = 0; i < caves; i++)
             {
                 int cx = rng.Range(150, width - 150);
-                int cy = rng.Range((int)baseY + 60, height - 140);
+                int cy = rng.Range((int)(height * .52f), height - 140);
                 t.CarveCircle(cx, cy, rng.Range(22, 55));
             }
             return t;
